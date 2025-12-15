@@ -8,7 +8,6 @@ export default function Home() {
         <Link href="/login">Login</Link>
         <Link href="/dashboard">Dashboard</Link>
       </div>
-      
     </>
   );
 }
