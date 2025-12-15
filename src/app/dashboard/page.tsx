@@ -1,10 +1,11 @@
 import { getSession } from "@/server/better-auth/session";
+import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
   const session = await getSession()
 
   if (!session) {
-    return <div>Not authenticated</div>;
+    redirect("/login");
   }
 
   return (
