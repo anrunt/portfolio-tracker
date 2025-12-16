@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 export function Navbar() {
   const { data: session } = authClient.useSession();
 
+  //TODO: Make the loading state for navbar user info better, fixed name size, multiple loading divs for each element
   return (
     <nav className="border-b border-border bg-background">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
