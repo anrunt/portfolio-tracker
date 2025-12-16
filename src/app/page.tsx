@@ -22,7 +22,7 @@ export default async function Home() {
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             {session ? (
-              <Button variant="outline" size="lg" asChild>
+              <Button variant="outline" size="lg" className="bg-popover" asChild>
                 <Link href="/dashboard">View Dashboard</Link>
               </Button>
             ): (
