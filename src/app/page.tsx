@@ -2,10 +2,29 @@ import Link from "next/link";
 import { Navbar } from "@/app/navbar";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/server/better-auth/session";
+import { Suspense } from "react";
+import { Footer } from "./footer";
+import { Loader2 } from "lucide-react";
 
-export default async function Home() {
+export async function AuthButton() {
   const session = await getSession();
 
+  return (
+    <>
+      {session ? (
+        <Button variant="outline" size="lg" className="min-w-[140px] bg-popover" asChild>
+          <Link href="/dashboard">View Dashboard</Link>
+        </Button>
+      ) : (
+        <Button size="lg" className="min-w-[140px]" asChild>
+          <Link href="/login">Get Started</Link>
+        </Button>
+      )}
+    </>
+  );
+}
+
+export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -21,22 +40,23 @@ export default async function Home() {
             decisions with our powerful portfolio tracking tools.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            {session ? (
-              <Button variant="outline" size="lg" className="bg-popover" asChild>
-                <Link href="/dashboard">View Dashboard</Link>
-              </Button>
-            ): (
-              <Button size="lg" asChild>
-                <Link href="/login">Get Started</Link>
-              </Button>
-            )}
+            <Suspense
+              fallback={
+                <Button size="lg" disabled className="min-w-[140px]">
+                  Loading
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </Button>
+              }
+            >
+              <AuthButton />
+            </Suspense>
           </div>
         </div>
       </main>
 
-      <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} Portfolio Tracker. All rights reserved.</p>
-      </footer>
+      <Suspense>
+        <Footer/>
+      </Suspense>
     </div>
   );
 }

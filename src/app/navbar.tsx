@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import { authClient } from "@/server/better-auth/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,9 +25,8 @@ function getInitials(name: string | undefined): string {
 }
 
 export function Navbar() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
 
-  //TODO: Make the loading state for navbar user info better, fixed name size, multiple loading divs for each element
   return (
     <nav className="border-b border-border bg-background">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -36,7 +35,13 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-4">
-          {session ? (
+          {isPending ? (
+            <Avatar className="cursor-default">
+              <AvatarFallback className="bg-muted">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
+          ) : session ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
