@@ -22,7 +22,8 @@
     "postgres": "^3.4.7",
     "react": "19.2.1",
     "react-dom": "19.2.1",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "yahoo-finance2": "^3.10.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
