@@ -1,11 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { searchTicker } from "@/server/actions/search-action";
 import { useEffect, useRef, useState } from "react";
 import { SearchResult } from "yahoo-finance2/modules/search";
 
 export default function Search() {
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<SearchResult>();
 
@@ -38,33 +46,52 @@ export default function Search() {
 
   function addCompany(symbol: string) {
     console.log("Selected Company: ", symbol);
+    setOpen(false);
+    setResults(undefined);
   }
 
   const filteredQuotes = results?.quotes.filter(company => company.isYahooFinance);
   
   return (
-    <>
-      <input
-        className="bg-black text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-        type="text"
-        onChange={printText}
-      />
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">Search Company</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>Search Company</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex flex-col gap-4">
+          <input
+            className="bg-black text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-blue-500 w-full"
+            type="text"
+            placeholder="Enter company name or symbol..."
+            onChange={printText}
+          />
 
-      {results == null ? null : (
-        filteredQuotes && filteredQuotes.length > 0 ? (
-          <ul>
-            {filteredQuotes.map(company => (
-              <li key={String(company.symbol)}>
-                <Button onClick={() => addCompany(company.symbol)}>
-                  {String(company.shortname || company.symbol)}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div>No results</div>
-        )
-      )}
-    </>
+          {results == null ? null : (
+            filteredQuotes && filteredQuotes.length > 0 ? (
+              <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
+                {filteredQuotes.map(company => (
+                  <li key={String(company.symbol)}>
+                    <Button 
+                      onClick={() => addCompany(company.symbol)}
+                      className="w-full flex justify-between items-center px-4"
+                      variant="secondary"
+                    >
+                      <span className="text-left truncate">{String(company.shortname || company.symbol)}</span>
+                      <span className="text-muted-foreground font-mono text-sm ml-4">{company.symbol}</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-muted-foreground text-center py-4">No results</div>
+            )
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
