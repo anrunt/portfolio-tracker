@@ -54,18 +54,16 @@ export default function Search() {
     setIsAddPositionVisible(true);
   }
 
-  const filteredQuotes = results?.quotes.filter(
-    (company) => company.isYahooFinance
-  );
+  const filteredQuotes = results?.quotes.filter((company) => company.isYahooFinance);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">Search Company</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
+      <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>Search Company</DialogTitle>
+          <DialogTitle>{isAddPositionVisible ? "Add Position" : "Search Company"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">

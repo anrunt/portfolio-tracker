@@ -1,7 +1,21 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+
 export default function AddPosition({ symbol, onBack }: { symbol: string; onBack: () => void }) {
+  const [shares, setShares] = useState("");
+  const [pricePerShare, setPricePerShare] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: Handle form submission
+    console.log({ symbol, shares, pricePerShare });
+  };
+
   return (
-    <>
-      <div className="flex items-center gap-2">
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
         <button
           onClick={onBack}
           className="p-1 hover:bg-muted rounded-md transition-colors"
@@ -9,8 +23,8 @@ export default function AddPosition({ symbol, onBack }: { symbol: string; onBack
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -22,9 +36,52 @@ export default function AddPosition({ symbol, onBack }: { symbol: string; onBack
             <path d="M12 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-lg font-semibold">Add position</h1>
+        <p className="text-base text-muted-foreground">
+          Adding position for <span className="font-mono font-semibold text-foreground">{symbol}</span>
+        </p>
       </div>
-      <p className="text-muted-foreground">Selected company: <span className="font-mono">{symbol}</span></p>
-    </>
-  )
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label htmlFor="shares" className="block text-sm text-muted-foreground">
+            Number of shares
+          </label>
+          <input
+            id="shares"
+            type="number"
+            min="0"
+            step="any"
+            placeholder="e.g. 10"
+            value={shares}
+            onChange={(e) => setShares(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="price" className="block text-sm text-muted-foreground">
+            Price per one
+          </label>
+          <input
+            id="price"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 150.00"
+            value={pricePerShare}
+            onChange={(e) => setPricePerShare(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
+            required
+          />
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button type="submit" variant="outline">
+            Add
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
 }
