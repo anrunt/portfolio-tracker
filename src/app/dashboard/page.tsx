@@ -9,6 +9,8 @@ export default async function Dashboard() {
     redirect("/login");
   }
 
+
+
   return (
     <div>
       <h1>Welcome {session.user.name}</h1>

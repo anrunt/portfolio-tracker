@@ -17,8 +17,7 @@ export default function Search() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<SearchResult>();
-  const [isAddPositionVisible, setIsAddPositionVisible] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [selectedCompany, setSelectedCompany] = useState<{name: string, symbol: string} | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -47,11 +46,11 @@ export default function Search() {
     }, 500);
   }
 
-  function addCompany(symbol: string) {
+  // Also pass company name
+  function addCompany(symbol: string, name: string) {
     console.log("Selected Company: ", symbol);
-    setSelectedCompany(symbol);
+    setSelectedCompany({name, symbol});
     setResults(undefined);
-    setIsAddPositionVisible(true);
   }
 
   const filteredQuotes = results?.quotes.filter((company) => company.isYahooFinance);
@@ -63,11 +62,11 @@ export default function Search() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>{isAddPositionVisible ? "Add Position" : "Search Company"}</DialogTitle>
+          <DialogTitle>{selectedCompany ? "Add Position" : "Search Company"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          {!isAddPositionVisible ? (
+          {!selectedCompany ? (
             <>
               <input
                 className="bg-black text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-blue-500 w-full"
@@ -82,7 +81,7 @@ export default function Search() {
                   {filteredQuotes.map((company) => (
                     <li key={String(company.symbol)}>
                       <Button
-                        onClick={() => addCompany(company.symbol)}
+                        onClick={() => addCompany(company.symbol, company.longname || company.shortname || "")}
                         className="w-full flex justify-between items-center px-4"
                         variant="secondary"
                       >
@@ -104,9 +103,9 @@ export default function Search() {
             </>
           ) : (
             <AddPosition
-              symbol={selectedCompany}
+              selectedCompany={selectedCompany}
               onBack={() => {
-                setIsAddPositionVisible(false);
+                setSelectedCompany(null);
                 setQuery("");
               }}
             />
