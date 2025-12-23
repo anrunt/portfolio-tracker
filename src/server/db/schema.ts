@@ -1,5 +1,7 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, pgEnum } from "drizzle-orm/pg-core";
+
+export const currencyEnum = pgEnum("currency_enum", ["USD", "PLN"]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -73,9 +75,20 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const wallet = pgTable("wallet", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  currency: currencyEnum("currency").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  wallets: many(wallet)
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -91,3 +104,10 @@ export const accountRelations = relations(account, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const walletRelations = relations(wallet, ({ one }) => ({
+  user: one(user, {
+    fields: [wallet.userId],
+    references: [user.id]
+  })
+}))

@@ -12,7 +12,7 @@ export default async function Dashboard() {
   return (
     <div>
       <h1>Welcome {session.user.name}</h1>
-      <Search />
+      {/* <Search /> */}
     </div>
   );
 }
