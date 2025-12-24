@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { searchTicker } from "@/server/actions/search-action";
+import { searchTicker } from "@/server/actions/dashboard-actions";
 import { useEffect, useRef, useState } from "react";
 import { SearchResult } from "yahoo-finance2/modules/search";
 import AddPosition from "./add-position";
@@ -46,7 +46,6 @@ export default function Search() {
     }, 500);
   }
 
-  // Also pass company name
   function addCompany(symbol: string, name: string) {
     console.log("Selected Company: ", symbol);
     setSelectedCompany({name, symbol});

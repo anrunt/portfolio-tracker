@@ -39,7 +39,7 @@ export default function AddPosition(
           </svg>
         </button>
         <p className="text-base text-muted-foreground">
-          Adding position for <span className="font-mono font-semibold text-foreground">{selectedCompany?.symbol}</span>
+          Adding position for <span className="font-mono font-semibold text-foreground">{selectedCompany.symbol}</span>
         </p>
       </div>
 
