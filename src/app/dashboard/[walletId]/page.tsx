@@ -1,4 +1,5 @@
 import { getSession } from "@/server/better-auth/session";
+import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
 
 export default async function WalletPage({
@@ -13,5 +14,15 @@ export default async function WalletPage({
     redirect("/login");
   }
 
-  return <h1>Wallet</h1>;
+  const wallet = await QUERIES.getWalletById(walletId, session.user.id);
+  if (!wallet) {
+    redirect("/dashboard");
+  }
+
+  return (
+    <>
+      <h1>Your wallet:</h1>
+      <h1>{wallet.name} - {wallet.currency}</h1>
+    </>
+  )
 }

@@ -52,7 +52,7 @@ export async function addWallet(prevState: { message: string, success: boolean, 
     name: result.data.name,
     userId: user.session.userId,
     currency: result.data.currency,
-  })
+  });
 
   revalidatePath("/dashboard");
   
