@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export default function AddPosition({ symbol, onBack }: { symbol: string; onBack: () => void }) {
+export default function AddPosition(
+  { selectedCompany, onBack }: { selectedCompany: { name: string, symbol: string }; onBack: () => void }
+) {
   const [shares, setShares] = useState("");
   const [pricePerShare, setPricePerShare] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Handle form submission
-    console.log({ symbol, shares, pricePerShare });
+    // TODO: Handle form submission and close dialog
+    console.log({ selectedCompany, shares, pricePerShare });
   };
 
   return (
@@ -37,7 +39,7 @@ export default function AddPosition({ symbol, onBack }: { symbol: string; onBack
           </svg>
         </button>
         <p className="text-base text-muted-foreground">
-          Adding position for <span className="font-mono font-semibold text-foreground">{symbol}</span>
+          Adding position for <span className="font-mono font-semibold text-foreground">{selectedCompany.symbol}</span>
         </p>
       </div>
 
