@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { addPosition } from "@/server/actions/dashboard-actions";
 
+// Get wallet id from route params?
 export default function AddPosition(
   { selectedCompany, onBack }: { selectedCompany: { name: string, symbol: string }; onBack: () => void }
 ) {
@@ -43,13 +45,14 @@ export default function AddPosition(
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form action={addPosition} onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="shares" className="block text-sm text-muted-foreground">
             Number of shares
           </label>
           <input
             id="shares"
+            name="shares"
             type="number"
             min="0"
             step="any"
@@ -67,6 +70,7 @@ export default function AddPosition(
           </label>
           <input
             id="price"
+            name="price"
             type="number"
             min="0"
             step="0.01"
@@ -77,6 +81,8 @@ export default function AddPosition(
             required
           />
         </div>
+
+        <input type="hidden" value={selectedCompany.name}/>
 
         <div className="flex justify-end pt-2">
           <Button type="submit" variant="outline">

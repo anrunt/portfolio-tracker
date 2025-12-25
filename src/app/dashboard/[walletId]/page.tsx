@@ -1,6 +1,7 @@
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
+import Search from "./search";
 
 export default async function WalletPage({
   params,
@@ -23,6 +24,7 @@ export default async function WalletPage({
     <>
       <h1>Your wallet:</h1>
       <h1>{wallet.name} - {wallet.currency}</h1>
+      <Search />
     </>
   )
 }

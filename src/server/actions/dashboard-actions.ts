@@ -58,3 +58,14 @@ export async function addWallet(prevState: { message: string, success: boolean, 
   
   return { message: "", success: true, timestamp: Date.now()};
 }
+
+export async function addPosition(formData: FormData) {
+  const user = await getSession()
+  if (!user) {
+    throw new Error("No session");
+  }
+
+  // Need walletId, company name and symbol
+  const shares = formData.get("shares");
+  const price = formData.get("price");
+}

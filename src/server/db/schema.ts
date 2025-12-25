@@ -90,6 +90,7 @@ export const position = pgTable("position", {
   walletId: text("wallet_id")
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
+  companyName: text("company_name").notNull(),
   companySymbol: text("company_symbol").notNull(),
   pricePerShare: decimal("price_per_share").notNull(),
   quantity: numeric("quantity").notNull(),
