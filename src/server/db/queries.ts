@@ -22,5 +22,5 @@ export const QUERIES = {
       )
       .limit(1)
       .then(result => result[0])
-  }
+  },
 }

@@ -59,13 +59,29 @@ export async function addWallet(prevState: { message: string, success: boolean, 
   return { message: "", success: true, timestamp: Date.now()};
 }
 
-export async function addPosition(formData: FormData) {
+
+const positionSchema = z.object({
+  companyName: z.string(),
+  companySymbol: z.string(),
+  shares: z.number().nonnegative({message: "Invalid share number, must be nonnegative"}),
+  price: z.number().nonnegative({message: "Invalid price number, must be nonnegative"})
+})
+
+export async function addPosition(companyName: string, companySymbol: string, walletId: string, prevState: { message: string, success: boolean }, formData: FormData) {
   const user = await getSession()
   if (!user) {
     throw new Error("No session");
   }
 
-  // Need walletId, company name and symbol
+  // Check if walletId is users wallet
+
+  // Need company symbol and name
+
   const shares = formData.get("shares");
   const price = formData.get("price");
+
+  return {
+    message: "",
+    success: true
+  }
 }

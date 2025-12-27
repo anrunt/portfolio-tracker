@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index, pgEnum, decimal, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, pgEnum, doublePrecision } from "drizzle-orm/pg-core";
 
 export const currencyEnum = pgEnum("currency_enum", ["USD", "PLN"]);
 
@@ -92,8 +92,8 @@ export const position = pgTable("position", {
     .references(() => wallet.id, { onDelete: "cascade" }),
   companyName: text("company_name").notNull(),
   companySymbol: text("company_symbol").notNull(),
-  pricePerShare: decimal("price_per_share").notNull(),
-  quantity: numeric("quantity").notNull(),
+  pricePerShare: doublePrecision("price_per_share").notNull(),
+  quantity: doublePrecision("quantity").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

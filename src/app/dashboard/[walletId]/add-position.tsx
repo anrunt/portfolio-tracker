@@ -1,15 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addPosition } from "@/server/actions/dashboard-actions";
+import { useParams } from "next/navigation";
 
-// Get wallet id from route params?
+// Message for every error
+const initialState = {
+  message: "",
+  success: false,
+};
+
 export default function AddPosition(
   { selectedCompany, onBack }: { selectedCompany: { name: string, symbol: string }; onBack: () => void }
 ) {
+  const { walletId } = useParams<{walletId: string}>();
+
   const [shares, setShares] = useState("");
   const [pricePerShare, setPricePerShare] = useState("");
+
+  const addPositionData = addPosition.bind(null, selectedCompany.name, selectedCompany.symbol, walletId);
+
+  const [state, formAction, pending] = useActionState(addPositionData, initialState);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +57,7 @@ export default function AddPosition(
         </p>
       </div>
 
-      <form action={addPosition} onSubmit={handleSubmit} className="space-y-4">
+      <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="shares" className="block text-sm text-muted-foreground">
             Number of shares
