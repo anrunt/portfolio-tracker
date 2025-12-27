@@ -30,6 +30,17 @@ export default function Search() {
     }
   }, [query]);
 
+  useEffect(() => {
+    if (!open) {
+      const timeout = setTimeout(() => {
+        setSelectedCompany(null);
+        setQuery("");
+        setResults(undefined);
+      }, 200);
+      return () => clearTimeout(timeout);
+    }
+  }, [open]);
+
   function printText(e: React.ChangeEvent<HTMLInputElement>) {
     clearTimeout(intervalRef.current!);
 
@@ -107,6 +118,7 @@ export default function Search() {
                 setSelectedCompany(null);
                 setQuery("");
               }}
+              onClose={() => setOpen(false)}
             />
           )}
         </div>
