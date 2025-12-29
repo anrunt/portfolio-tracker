@@ -104,6 +104,8 @@ export async function addPosition(companyName: string, companySymbol: string, wa
     quantity: validatedFields.data.shares,
   });
 
+  revalidatePath(`/dashboard/${walletId}`);
+
   return {
     message: "",
     success: true,

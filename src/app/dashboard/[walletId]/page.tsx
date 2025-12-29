@@ -20,6 +20,8 @@ export default async function WalletPage({
     redirect("/dashboard");
   }
 
+  const positions = await QUERIES.getWalletPositions(walletId, session.user.id);
+
   return (
     <>
       <h1>Your wallet:</h1>

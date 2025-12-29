@@ -32,12 +32,6 @@ export default function AddPosition(
     }
   }, [state.success, state.timestamp, onClose]);
 
-//  const handleSubmit = (e: React.FormEvent) => {
-//    e.preventDefault();
-//    // TODO: Handle form submission and close dialog
-//    console.log({ selectedCompany, shares, pricePerShare });
-//  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
