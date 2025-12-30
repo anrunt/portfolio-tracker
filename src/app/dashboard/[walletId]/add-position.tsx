@@ -12,9 +12,20 @@ const initialState = {
   timestamp: 0
 };
 
-export default function AddPosition(
-  { selectedCompany, onBack, onClose }: { selectedCompany: { name: string, symbol: string }; onBack: () => void; onClose: () => void}
-) {
+interface AddPositionProps {
+  selectedCompany: {
+    name: string;
+    symbol: string;
+  };
+  onBack: () => void;
+  onClose: () => void;
+}
+
+export default function AddPosition({
+  selectedCompany,
+  onBack,
+  onClose,
+}: AddPositionProps) {
   const { walletId } = useParams<{walletId: string}>();
 
   const [shares, setShares] = useState("");

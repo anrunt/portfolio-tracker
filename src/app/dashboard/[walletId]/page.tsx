@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import Search from "./search";
 import Position from "./position";
 
-export default async function WalletPage({
-  params,
-}: {
+interface WalletPageProps {
   params: Promise<{ walletId: string }>;
-}) {
+}
+
+export default async function WalletPage({ params }: WalletPageProps) {
   const { walletId } = await params;
 
   const session = await getSession();
