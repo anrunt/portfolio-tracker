@@ -8,6 +8,7 @@ import { position, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
+import { and, eq } from "drizzle-orm";
 
 export async function searchTicker(query: string) {
   const session = await getSession()
@@ -23,7 +24,7 @@ export async function searchTicker(query: string) {
 
 const walletSchema = z.object({
   name: z.coerce.string().max(50, {message: "Wallet name can't be longer than 50 characters!"}),
-  currency: z.enum(["USD", "PLN"], {message: "Please selet a valid currency (USD or PLN)"})
+  currency: z.enum(["USD", "PLN"], {message: "Please select a valid currency (USD or PLN)"})
 })
 
 export async function addWallet(prevState: { message: string, success: boolean, timestamp: number }, formData: FormData) {
@@ -58,7 +59,6 @@ export async function addWallet(prevState: { message: string, success: boolean, 
   
   return { message: "", success: true, timestamp: Date.now()};
 }
-
 
 const positionSchema = z.object({
   companyName: z.string(),
@@ -111,4 +111,20 @@ export async function addPosition(companyName: string, companySymbol: string, wa
     success: true,
     timestamp: Date.now()
   }
+}
+
+export async function deleteWallet(walletId: string) {
+  const user = await getSession();
+  if (!user) {
+    throw new Error("No session");
+  }
+
+  await db.delete(wallet).where(
+    and(
+      eq(wallet.id, walletId),
+      eq(wallet.userId, user.session.userId)
+    )
+  );
+
+  revalidatePath("/dashboard");
 }
