@@ -2,7 +2,7 @@ import { getSession } from "@/server/better-auth/session";
 import { redirect } from "next/navigation";
 import { QUERIES } from "@/server/db/queries";
 import AddWallet from "./add-wallet";
-import Link from "next/link";
+import Wallet from "./wallet";
 
 export default async function Dashboard() {
   const session = await getSession()
@@ -28,14 +28,7 @@ export default async function Dashboard() {
             </p>
           ) : (
             userWallets.map(w => (
-              <Link
-                href={`/dashboard/${w.id}`}
-                key={w.id}
-                className="w-full px-4 py-3 border border-gray-700 rounded-md hover:bg-secondary transition-colors flex items-center justify-between"
-              >
-                <span>{w.name}</span>
-                <span className="text-muted-foreground">1000 {w.currency}</span>
-              </Link>
+              <Wallet key={w.id} wallet={w} />
             ))
           )}
 

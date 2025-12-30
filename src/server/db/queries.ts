@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm"
 import { db } from "."
-import { wallet } from "./schema"
+import { position, wallet } from "./schema"
 
 export const QUERIES = {
   getWallets: function(userId: string) {
@@ -22,5 +22,25 @@ export const QUERIES = {
       )
       .limit(1)
       .then(result => result[0])
+  },
+
+  getWalletPositions: function(walletId: string, userId: string) {
+    return db
+      .select({
+        id: position.id,
+        companyName: position.companyName,
+        companySymbol: position.companySymbol,
+        pricePerShare: position.pricePerShare,
+        quantity: position.quantity,
+        createdAt: position.createdAt,
+      })
+      .from(position)
+      .innerJoin(wallet, eq(position.walletId, wallet.id))
+      .where(
+        and(
+          eq(position.walletId, walletId),
+          eq(wallet.userId, userId)
+        )
+      )
   }
 }

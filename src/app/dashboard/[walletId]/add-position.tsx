@@ -1,21 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addPosition } from "@/server/actions/dashboard-actions";
+import { useParams } from "next/navigation";
 
-// Get wallet id from route params?
-export default function AddPosition(
-  { selectedCompany, onBack }: { selectedCompany: { name: string, symbol: string }; onBack: () => void }
-) {
+// Message for every error ?
+const initialState = {
+  message: "",
+  success: false,
+  timestamp: 0
+};
+
+interface AddPositionProps {
+  selectedCompany: {
+    name: string;
+    symbol: string;
+  };
+  onBack: () => void;
+  onClose: () => void;
+}
+
+export default function AddPosition({
+  selectedCompany,
+  onBack,
+  onClose,
+}: AddPositionProps) {
+  const { walletId } = useParams<{walletId: string}>();
+
   const [shares, setShares] = useState("");
   const [pricePerShare, setPricePerShare] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Handle form submission and close dialog
-    console.log({ selectedCompany, shares, pricePerShare });
-  };
+  const addPositionData = addPosition.bind(null, selectedCompany.name, selectedCompany.symbol, walletId);
+
+  const [state, formAction, pending] = useActionState(addPositionData, initialState);
+
+  useEffect(() => {
+    if (state.success === true && state.timestamp !== 0) {
+      startTransition(() => {
+        onClose();
+      });
+    }
+  }, [state.success, state.timestamp, onClose]);
 
   return (
     <div className="space-y-4">
@@ -45,7 +71,7 @@ export default function AddPosition(
         </p>
       </div>
 
-      <form action={addPosition} onSubmit={handleSubmit} className="space-y-4">
+      <form action={formAction} className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="shares" className="block text-sm text-muted-foreground">
             Number of shares
@@ -81,11 +107,15 @@ export default function AddPosition(
             required
           />
         </div>
-
-        <input type="hidden" value={selectedCompany.name}/>
+        
+        <div>
+          {state.message && (
+            <p className="text-red-500 text-sm">{state.message}</p>
+          )}
+        </div>        
 
         <div className="flex justify-end pt-2">
-          <Button type="submit" variant="outline">
+          <Button disabled={pending} type="submit" variant="outline">
             Add
           </Button>
         </div>
