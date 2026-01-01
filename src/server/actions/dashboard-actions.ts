@@ -142,5 +142,14 @@ export async function deletePosition(positionId: string, walletId: string) {
   }
 
   // Delte user position from this wallet
+  await db
+    .delete(position)
+    .where(
+      and(
+        eq(position.id, positionId),
+        eq(position.walletId, walletId)
+      )
+    )
 
+  revalidatePath(`/dashboard/${walletId}`);
 }
