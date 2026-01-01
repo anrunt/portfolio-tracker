@@ -40,6 +40,8 @@ export default async function WalletPage({ params }: WalletPageProps) {
             positions.map((pos) => (
               <Position
                 key={pos.id}
+                walletId={wallet.id}
+                positionId={pos.id}
                 companySymbol={pos.companySymbol}
                 companyName={pos.companyName}
                 quantity={pos.quantity}

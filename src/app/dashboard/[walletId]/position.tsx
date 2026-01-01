@@ -1,4 +1,6 @@
 interface PositionProps {
+  walletId: string;
+  positionId: string;
   companySymbol: string;
   companyName: string;
   quantity: number;
@@ -7,6 +9,8 @@ interface PositionProps {
 }
 
 export default function Position({
+  walletId,
+  positionId,
   companySymbol,
   companyName,
   quantity,

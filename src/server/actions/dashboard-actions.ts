@@ -128,3 +128,19 @@ export async function deleteWallet(walletId: string) {
 
   revalidatePath("/dashboard");
 }
+
+export async function deletePosition(positionId: string, walletId: string) {
+  const user = await getSession();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+
+  if (!userWallet) {
+    throw new Error("No wallet for this userId");
+  }
+
+  // Delte user position from this wallet
+
+}
