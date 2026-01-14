@@ -8,15 +8,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { searchTicker } from "@/server/actions/dashboard-actions";
+import { searchTicker, FinnhubStock } from "@/server/actions/dashboard-actions";
 import { useEffect, useRef, useState } from "react";
-import { SearchResult } from "yahoo-finance2/modules/search";
 import AddPosition from "./add-position";
 
 export default function Search() {
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState<string>("");
-  const [results, setResults] = useState<SearchResult>();
+  const [results, setResults] = useState<FinnhubStock[] | undefined>();
   const [selectedCompany, setSelectedCompany] = useState<{name: string, symbol: string} | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -26,7 +26,7 @@ export default function Search() {
       searchTicker(query).then((result) => {
         console.log(result);
         setResults(result);
-      });
+      }).finally(() => {setIsLoading(false)});
     }
   }, [query]);
 
@@ -53,6 +53,7 @@ export default function Search() {
     }
 
     intervalRef.current = setTimeout(() => {
+      setIsLoading(true);
       setQuery(value);
     }, 500);
   }
@@ -62,8 +63,6 @@ export default function Search() {
     setSelectedCompany({name, symbol});
     setResults(undefined);
   }
-
-  const filteredQuotes = results?.quotes.filter((company) => company.isYahooFinance);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -85,21 +84,26 @@ export default function Search() {
                 onChange={printText}
               />
 
-              {results == null ? null : filteredQuotes &&
-                filteredQuotes.length > 0 ? (
+              {isLoading && (
+                <div className="flex justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-gray-600 border-t-white rounded-full animate-spin" />
+                </div>
+              )}
+
+              {!isLoading && results != null && (results.length > 0 ? (
                 <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
-                  {filteredQuotes.map((company) => (
-                    <li key={String(company.symbol)}>
+                  {results.map((company) => (
+                    <li key={company.symbol}>
                       <Button
-                        onClick={() => addCompany(company.symbol, company.longname || company.shortname || "")}
+                        onClick={() => addCompany(company.symbol, company.description)}
                         className="w-full flex justify-between items-center px-4"
                         variant="secondary"
                       >
                         <span className="text-left truncate">
-                          {String(company.shortname || company.symbol)}
+                          {company.description || company.symbol}
                         </span>
                         <span className="text-muted-foreground font-mono text-sm ml-4">
-                          {company.symbol}
+                          {company.displaySymbol}
                         </span>
                       </Button>
                     </li>
@@ -109,7 +113,7 @@ export default function Search() {
                 <div className="text-muted-foreground text-center py-4">
                   No results
                 </div>
-              )}
+              ))}
             </>
           ) : (
             <AddPosition

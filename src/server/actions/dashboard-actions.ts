@@ -1,6 +1,5 @@
 "use server"
 
-import YahooFinance from "yahoo-finance2";
 import { getSession } from "../better-auth/session";
 import { z } from "zod";
 import { db } from "../db";
@@ -10,17 +9,50 @@ import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
 import { and, eq } from "drizzle-orm";
 
-export async function searchTicker(query: string) {
-  const session = await getSession()
+export type FinnhubStock = {
+  description: string;
+  displaySymbol: string;
+  symbol: string;
+  type: string;
+};
+
+export async function searchTicker(query: string): Promise<FinnhubStock[]> {
+  const session = await getSession();
   if (!session) {
     throw new Error("Unauthenticated");
   }
 
-  const yahooFinance = new YahooFinance;
-  const result = await yahooFinance.search(query);
+  const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY; 
 
-  return result;
+  if (!FINNHUB_API_KEY) {
+    throw new Error("Missing Finnhub API Key");
+  }
+
+  const response = await fetch(
+    `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=US`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Finnhub API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  console.log("Finnhub data: ", data.result);
+  return data.result as FinnhubStock[];
 }
+
+//export async function searchTicker(query: string) {
+//  const session = await getSession()
+//  if (!session) {
+//    throw new Error("Unauthenticated");
+//  }
+//
+//  const yahooFinance = new YahooFinance;
+//  const result = await yahooFinance.search(query);
+//
+//  return result;
+//}
 
 const walletSchema = z.object({
   name: z.coerce.string().max(50, {message: "Wallet name can't be longer than 50 characters!"}),
