@@ -85,14 +85,17 @@ export default function Search() {
               />
 
               {isLoading && (
-                <div className="flex justify-center py-4">
+                <div className="flex justify-center py-2">
                   <div className="w-6 h-6 border-2 border-gray-600 border-t-white rounded-full animate-spin" />
                 </div>
               )}
 
               {!isLoading && results != null && (results.length > 0 ? (
-                <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
-                  {results.map((company) => (
+                <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2">
+                  {results.map((company) => {
+                    const text = company.description || company.symbol;
+                    const truncatedText = text.length > 30 ? text.slice(0, 30) + "..." : text;
+                    return (
                     <li key={company.symbol}>
                       <Button
                         onClick={() => addCompany(company.symbol, company.description)}
@@ -100,17 +103,17 @@ export default function Search() {
                         variant="secondary"
                       >
                         <span className="text-left truncate">
-                          {company.description || company.symbol}
+                          {truncatedText}
                         </span>
                         <span className="text-muted-foreground font-mono text-sm ml-4">
                           {company.displaySymbol}
                         </span>
                       </Button>
                     </li>
-                  ))}
+                  )})}
                 </ul>
               ) : (
-                <div className="text-muted-foreground text-center py-4">
+                <div className="text-muted-foreground text-center py-2">
                   No results
                 </div>
               ))}

@@ -29,7 +29,7 @@ export async function searchTicker(query: string): Promise<FinnhubStock[]> {
   }
 
   const response = await fetch(
-    `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=US`
+    `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=US` // TODO: user can pick exchange 
   );
 
   if (!response.ok) {
