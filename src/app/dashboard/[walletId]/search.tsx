@@ -129,11 +129,11 @@ export default function Search() {
 
               {!isLoading && results != null && (results.length > 0 ? (
                 <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2 -mr-2">
-                  {results.map((company) => {
+                  {results.map((company, index) => {
                     const text = company.description || company.symbol;
                     const truncatedText = text.length > 30 ? text.slice(0, 30) + "..." : text;
                     return (
-                    <li key={company.symbol}>
+                    <li key={`${company.symbol}-${index}`}>
                       <Button
                         onClick={() => addCompany(company.symbol, company.description)}
                         className="w-full flex justify-between items-center px-4"
