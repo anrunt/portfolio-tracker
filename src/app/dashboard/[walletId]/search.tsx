@@ -8,6 +8,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { searchTicker, FinnhubStock } from "@/server/actions/dashboard-actions";
 import { useEffect, useRef, useState } from "react";
 import AddPosition from "./add-position";
@@ -18,17 +25,29 @@ export default function Search() {
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<FinnhubStock[] | undefined>();
   const [selectedCompany, setSelectedCompany] = useState<{name: string, symbol: string} | null>(null);
+  const [exchange, setExchange] = useState<string>("US");
+  const [error, setError] = useState<string | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (query) {
-      searchTicker(query).then((result) => {
-        console.log(result);
-        setResults(result);
-      }).finally(() => {setIsLoading(false)});
+      searchTicker(query, exchange)
+        .then((result) => {
+          console.log(result);
+          setResults(result);
+          setError(null);
+        })
+        .catch((err) => {
+          console.error("Search failed:", err);
+          setError("Failed to search. Please try again.");
+          setResults(undefined);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
-  }, [query]);
+  }, [query, exchange]);
 
   useEffect(() => {
     if (!open) {
@@ -36,6 +55,7 @@ export default function Search() {
         setSelectedCompany(null);
         setQuery("");
         setResults(undefined);
+        setError(null);
       }, 200);
       return () => clearTimeout(timeout);
     }
@@ -77,12 +97,29 @@ export default function Search() {
         <div className="flex flex-col gap-4">
           {!selectedCompany ? (
             <>
-              <input
-                className="bg-black text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-blue-500 w-full"
-                type="text"
-                placeholder="Enter company name or symbol..."
-                onChange={printText}
-              />
+              <div className="flex gap-2 items-center">
+                <input
+                  className="bg-black text-white border border-gray-700 rounded-md px-3 h-9 text-sm focus:outline-none focus:border-blue-500 w-full"
+                  type="text"
+                  placeholder="Enter company name or symbol..."
+                  onChange={printText}
+                />
+                <Select value={exchange} onValueChange={setExchange}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Ex" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="US">US</SelectItem>
+                    <SelectItem value="WA">WA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {error && !isLoading && (
+                <div className="text-red-500 text-center py-2">
+                  {error}
+                </div>
+              )}
 
               {isLoading && (
                 <div className="flex justify-center py-2">
@@ -91,7 +128,7 @@ export default function Search() {
               )}
 
               {!isLoading && results != null && (results.length > 0 ? (
-                <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2">
+                <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2 -mr-2">
                   {results.map((company) => {
                     const text = company.description || company.symbol;
                     const truncatedText = text.length > 30 ? text.slice(0, 30) + "..." : text;

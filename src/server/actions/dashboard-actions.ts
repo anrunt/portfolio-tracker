@@ -16,7 +16,7 @@ export type FinnhubStock = {
   type: string;
 };
 
-export async function searchTicker(query: string): Promise<FinnhubStock[]> {
+export async function searchTicker(query: string, exchange: string = "US"): Promise<FinnhubStock[]> {
   const session = await getSession();
   if (!session) {
     throw new Error("Unauthenticated");
@@ -28,8 +28,13 @@ export async function searchTicker(query: string): Promise<FinnhubStock[]> {
     throw new Error("Missing Finnhub API Key");
   }
 
+  if (exchange !== "US" && exchange !== "WA") {
+    throw new Error("Unsupported exchange");
+  }
+
+  // Exchanges = US, WA
   const response = await fetch(
-    `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=US` // TODO: user can pick exchange 
+    `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=${exchange}`
   );
 
   if (!response.ok) {
