@@ -34,14 +34,14 @@ export default function Search() {
     if (query) {
       searchTicker(query, exchange)
         .then((result) => {
-          console.log(result);
-          setResults(result);
-          setError(null);
-        })
-        .catch((err) => {
-          console.error("Search failed:", err);
-          setError("Failed to search. Please try again.");
-          setResults(undefined);
+          if (result.status === "ok") {
+            setResults(result.value);
+            setError(null);
+          } else {
+            console.error("Search failed:", result.error);
+            setError(result.error.message);
+            setResults(undefined);
+          }
         })
         .finally(() => {
           setIsLoading(false);
