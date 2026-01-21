@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
 import { and, eq } from "drizzle-orm";
-import { Result } from "better-result";
+import { Result, SerializedResult } from "better-result";
 import {
   UnauthenticatedError,
   UnauthorizedError,
@@ -29,23 +29,21 @@ export type FinnhubStock = {
   type: string;
 };
 
-/** Serialized error for client consumption */
-type SerializedError = { _tag: string; message: string };
-
-export type ActionResult<T, E = SerializedError> = 
-  | { status: "ok"; value: T }
-  | { status: "error"; error: E };
+export type SerializedError = {
+  _tag: string;
+  name: string;
+  message: string;
+  cause?: unknown;
+  stack?: string;
+  [key: string]: unknown;
+};
 
 export async function searchTicker(
   query: string,
   exchange: string = "US"
-): Promise<ActionResult<FinnhubStock[]>> {
+): Promise<SerializedResult<FinnhubStock[], SerializedError>> {
   const result = await searchTickerResult(query, exchange);
-  
-  if (result.status === "ok") {
-    return { status: "ok", value: result.value };
-  }
-  return { status: "error", error: { _tag: result.error._tag, message: result.error.message } };
+  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
 }
 
 async function searchTickerResult(
