@@ -1,30 +1,22 @@
-import { and, eq } from "drizzle-orm"
-import { db } from "."
-import { position, wallet } from "./schema"
+import { and, eq } from "drizzle-orm";
+import { db } from ".";
+import { position, wallet } from "./schema";
 
 export const QUERIES = {
-  getWallets: function(userId: string) {
-    return db
-      .select()
-      .from(wallet)
-      .where(eq(wallet.userId, userId))
+  getWallets: function (userId: string) {
+    return db.select().from(wallet).where(eq(wallet.userId, userId));
   },
 
-  getWalletById: async function(walletId: string, userId: string) {
+  getWalletById: async function (walletId: string, userId: string) {
     return db
       .select()
       .from(wallet)
-      .where(
-        and(
-          eq(wallet.id, walletId),
-          eq(wallet.userId, userId)
-        )
-      )
+      .where(and(eq(wallet.id, walletId), eq(wallet.userId, userId)))
       .limit(1)
-      .then(result => result[0])
+      .then((result) => result[0]);
   },
 
-  getWalletPositions: function(walletId: string, userId: string) {
+  getWalletPositions: function (walletId: string, userId: string) {
     return db
       .select({
         id: position.id,
@@ -36,11 +28,6 @@ export const QUERIES = {
       })
       .from(position)
       .innerJoin(wallet, eq(position.walletId, wallet.id))
-      .where(
-        and(
-          eq(position.walletId, walletId),
-          eq(wallet.userId, userId)
-        )
-      )
-  }
-}
+      .where(and(eq(position.walletId, walletId), eq(wallet.userId, userId)));
+  },
+};

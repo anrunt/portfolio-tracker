@@ -1,4 +1,4 @@
-"use server"
+"use server";
 
 import { getSession } from "../better-auth/session";
 import { z } from "zod";
@@ -8,6 +8,19 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
 import { and, eq } from "drizzle-orm";
+import { Result, SerializedResult } from "better-result";
+import {
+  UnauthenticatedError,
+  UnauthorizedError,
+  NotFoundError,
+  ValidationError,
+  ConfigError,
+  ApiError,
+  DatabaseError,
+  type SearchTickerError,
+  type WalletError,
+  type PositionError,
+} from "../errors";
 
 export type FinnhubStock = {
   description: string;
@@ -16,177 +29,313 @@ export type FinnhubStock = {
   type: string;
 };
 
-export async function searchTicker(query: string, exchange: string = "US"): Promise<FinnhubStock[]> {
-  const session = await getSession();
-  if (!session) {
-    throw new Error("Unauthenticated");
-  }
+export type SerializedError = {
+  _tag: string;
+  name: string;
+  message: string;
+  cause?: unknown;
+  stack?: string;
+  [key: string]: unknown;
+};
 
-  const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY; 
-
-  if (!FINNHUB_API_KEY) {
-    throw new Error("Missing Finnhub API Key");
-  }
-
-  if (exchange !== "US" && exchange !== "WA") {
-    throw new Error("Unsupported exchange");
-  }
-
-  // Exchanges = US, WA
-  const response = await fetch(
-    `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=${exchange}`
-  );
-
-  if (!response.ok) {
-    throw new Error(`Finnhub API error: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  console.log("Finnhub data: ", data.result);
-  return data.result as FinnhubStock[];
+export async function searchTicker(
+  query: string,
+  exchange: string = "US"
+): Promise<SerializedResult<FinnhubStock[], SerializedError>> {
+  const result = await searchTickerResult(query, exchange);
+  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
 }
 
-//export async function searchTicker(query: string) {
-//  const session = await getSession()
-//  if (!session) {
-//    throw new Error("Unauthenticated");
-//  }
-//
-//  const yahooFinance = new YahooFinance;
-//  const result = await yahooFinance.search(query);
-//
-//  return result;
-//}
+async function searchTickerResult(
+  query: string,
+  exchange: string = "US"
+): Promise<Result<FinnhubStock[], SearchTickerError>> {
+  return Result.gen(async function* () {
+    const session = await getSession();
+    if (!session) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
+
+    if (!FINNHUB_API_KEY) {
+      return Result.err(new ConfigError({ key: "FINNHUB_API_KEY" }));
+    }
+
+    if (exchange !== "US" && exchange !== "WA") {
+      return Result.err(
+        new ValidationError({
+          field: "exchange",
+          message: "Unsupported exchange. Must be 'US' or 'WA'.",
+        })
+      );
+    }
+
+    const fetchResult = yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          const response = await fetch(
+            `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=${exchange}`
+          );
+
+          if (!response.ok) {
+            throw new ApiError({
+              service: "Finnhub",
+              status: response.status,
+            });
+          }
+
+          const data = await response.json();
+          return data.result as FinnhubStock[];
+        },
+        catch: (e) =>
+          e instanceof ApiError
+            ? e
+            : new ApiError({ service: "Finnhub", cause: e }),
+      })
+    );
+
+    console.log("Finnhub data: ", fetchResult);
+    return Result.ok(fetchResult);
+  });
+}
 
 const walletSchema = z.object({
-  name: z.coerce.string().max(50, {message: "Wallet name can't be longer than 50 characters!"}),
-  currency: z.enum(["USD", "PLN"], {message: "Please select a valid currency (USD or PLN)"})
-})
+  name: z.coerce
+    .string()
+    .max(50, { message: "Wallet name can't be longer than 50 characters!" }),
+  currency: z.enum(["USD", "PLN"], {
+    message: "Please select a valid currency (USD or PLN)",
+  }),
+});
 
-export async function addWallet(prevState: { message: string, success: boolean, timestamp: number }, formData: FormData) {
-  const user = await getSession()
-  if (!user) {
-    throw new Error("No session");
-  }
+export async function addWallet(
+  prevState: { message: string; success: boolean; timestamp: number },
+  formData: FormData
+): Promise<{ message: string; success: boolean; timestamp: number }> {
+  const result = await addWalletResult(formData);
 
-  const name = formData.get("name");
-  const currency = formData.get("currency");
-
-  const result = walletSchema.safeParse({name, currency});
-
-  if (!result.success) {
-    return {
-      message: result.error.issues[0].message,
-      success: false,
-      timestamp: Date.now()
-    }
-  }
-
-  console.log("Adding wallet:", { name, currency });
-
-  await db.insert(wallet).values({
-    id: randomUUID(),
-    name: result.data.name,
-    userId: user.session.userId,
-    currency: result.data.currency,
+  return result.match({
+    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now() }),
+    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now() }),
   });
+}
 
-  revalidatePath("/dashboard");
-  
-  return { message: "", success: true, timestamp: Date.now()};
+async function addWalletResult(
+  formData: FormData
+): Promise<Result<void, WalletError>> {
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    const name = formData.get("name");
+    const currency = formData.get("currency");
+
+    const parsed = walletSchema.safeParse({ name, currency });
+
+    if (!parsed.success) {
+      return Result.err(
+        new ValidationError({
+          message: parsed.error.issues[0].message,
+        })
+      );
+    }
+
+    console.log("Adding wallet:", { name, currency });
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db.insert(wallet).values({
+            id: randomUUID(),
+            name: parsed.data.name,
+            userId: user.session.userId,
+            currency: parsed.data.currency,
+          });
+        },
+        catch: (e) => new DatabaseError({ operation: "insert wallet", cause: e }),
+      })
+    );
+
+    revalidatePath("/dashboard");
+
+    return Result.ok(undefined);
+  });
 }
 
 const positionSchema = z.object({
   companyName: z.string(),
   companySymbol: z.string(),
-  shares: z.coerce.number().nonnegative({message: "Invalid share number, must be nonnegative"}),
-  price: z.coerce.number().nonnegative({message: "Invalid price number, must be nonnegative"})
-})
+  shares: z.coerce
+    .number()
+    .nonnegative({ message: "Invalid share number, must be nonnegative" }),
+  price: z.coerce
+    .number()
+    .nonnegative({ message: "Invalid price number, must be nonnegative" }),
+});
 
-export async function addPosition(companyName: string, companySymbol: string, walletId: string, prevState: { message: string, success: boolean, timestamp: number }, formData: FormData) {
-  const user = await getSession()
-  if (!user) {
-    throw new Error("No session");
-  }
-
-  const wallet = await QUERIES.getWalletById(walletId, user.session.userId);
-  if (!wallet) {
-    throw new Error("No wallet for this user");
-  }
-
-  const validatedFields = positionSchema.safeParse({
-    companyName: companyName,
-    companySymbol: companySymbol,
-    shares: formData.get("shares"),
-    price: formData.get("price") 
-  })
-
-  if (!validatedFields.success) {
-    console.log("Err with validating position: ", validatedFields.error)
-    
-    return {
-      message: validatedFields.error.issues[0].message,
-      success: false,
-      timestamp: Date.now()
-    }
-  }
-
-  await db.insert(position).values({
-    id: randomUUID(),
-    walletId: walletId,
-    companyName: companyName,
-    companySymbol: companySymbol,
-    pricePerShare: validatedFields.data.price,
-    quantity: validatedFields.data.shares,
-  });
-
-  revalidatePath(`/dashboard/${walletId}`);
-
-  return {
-    message: "",
-    success: true,
-    timestamp: Date.now()
-  }
-}
-
-export async function deleteWallet(walletId: string) {
-  const user = await getSession();
-  if (!user) {
-    throw new Error("No session");
-  }
-
-  await db.delete(wallet).where(
-    and(
-      eq(wallet.id, walletId),
-      eq(wallet.userId, user.session.userId)
-    )
+export async function addPosition(
+  companyName: string,
+  companySymbol: string,
+  walletId: string,
+  prevState: { message: string; success: boolean; timestamp: number },
+  formData: FormData
+): Promise<{ message: string; success: boolean; timestamp: number }> {
+  const result = await addPositionResult(
+    companyName,
+    companySymbol,
+    walletId,
+    formData
   );
 
-  revalidatePath("/dashboard");
+  return result.match({
+    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now() }),
+    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now() }),
+  });
 }
 
-export async function deletePosition(positionId: string, walletId: string) {
-  const user = await getSession();
-  if (!user) {
-    throw new Error("Unauthorized");
+async function addPositionResult(
+  companyName: string,
+  companySymbol: string,
+  walletId: string,
+  formData: FormData
+): Promise<Result<void, PositionError>> {
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+    if (!userWallet) {
+      return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
+    }
+
+    const validatedFields = positionSchema.safeParse({
+      companyName: companyName,
+      companySymbol: companySymbol,
+      shares: formData.get("shares"),
+      price: formData.get("price"),
+    });
+
+    if (!validatedFields.success) {
+      console.log("Err with validating position: ", validatedFields.error);
+
+      return Result.err(
+        new ValidationError({
+          message: validatedFields.error.issues[0].message,
+        })
+      );
+    }
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db.insert(position).values({
+            id: randomUUID(),
+            walletId: walletId,
+            companyName: companyName,
+            companySymbol: companySymbol,
+            pricePerShare: validatedFields.data.price,
+            quantity: validatedFields.data.shares,
+          });
+        },
+        catch: (e) =>
+          new DatabaseError({ operation: "insert position", cause: e }),
+      })
+    );
+
+    revalidatePath(`/dashboard/${walletId}`);
+
+    return Result.ok(undefined);
+  });
+}
+
+export async function deleteWallet(walletId: string): Promise<void> {
+  const result = await deleteWalletResult(walletId);
+  if (result.status === "error") {
+    throw new Error(result.error.message);
   }
+}
 
-  const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+export async function deleteWalletResult(
+  walletId: string
+): Promise<Result<void, WalletError>> {
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
 
-  if (!userWallet) {
-    throw new Error("No wallet for this userId");
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db
+            .delete(wallet)
+            .where(
+              and(
+                eq(wallet.id, walletId),
+                eq(wallet.userId, user.session.userId)
+              )
+            );
+        },
+        catch: (e) =>
+          new DatabaseError({ operation: "delete wallet", cause: e }),
+      })
+    );
+
+    revalidatePath("/dashboard");
+
+    return Result.ok(undefined);
+  });
+}
+
+export async function deletePosition(
+  positionId: string,
+  walletId: string
+): Promise<void> {
+  const result = await deletePositionResult(positionId, walletId);
+  if (result.status === "error") {
+    throw new Error(result.error.message);
   }
+}
 
-  // Delte user position from this wallet
-  await db
-    .delete(position)
-    .where(
-      and(
-        eq(position.id, positionId),
-        eq(position.walletId, walletId)
-      )
-    )
+export async function deletePositionResult(
+  positionId: string,
+  walletId: string
+): Promise<Result<void, PositionError>> {
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
 
-  revalidatePath(`/dashboard/${walletId}`);
+    const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+
+    if (!userWallet) {
+      return Result.err(
+        new UnauthorizedError({ resource: `wallet ${walletId}` })
+      );
+    }
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db
+            .delete(position)
+            .where(
+              and(eq(position.id, positionId), eq(position.walletId, walletId))
+            );
+        },
+        catch: (e) =>
+          new DatabaseError({ operation: "delete position", cause: e }),
+      })
+    );
+
+    revalidatePath(`/dashboard/${walletId}`);
+
+    return Result.ok(undefined);
+  });
 }

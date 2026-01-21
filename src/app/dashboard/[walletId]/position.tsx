@@ -32,6 +32,7 @@ export default function Position({
   currency,
 }: PositionProps) {
   const deletePositionWithId = deletePosition.bind(null, positionId, walletId);
+  const totalValue = pricePerShare * quantity;
 
   return (
     <div className="w-full flex items-stretch gap-2">
@@ -45,10 +46,16 @@ export default function Position({
           <span className="text-lg">{quantity}</span>
         </div>
 
-        <div className="w-1/3 flex justify-end">
-          <span className="text-lg font-medium">
+        <div className="w-1/3 flex justify-end gap-6">
+          <span className="text-lg font-medium text-right w-[160px]">
             {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
 //            minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}{" "}
+            {currency}
+          </span>
+          <span className="text-lg font-medium text-right w-[160px]">
+            {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
               maximumFractionDigits: 2,
             })}{" "}
             {currency}
