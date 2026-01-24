@@ -35,44 +35,46 @@ export default function Position({
   const totalValue = pricePerShare * quantity;
 
   return (
-    <div className="w-full flex items-stretch gap-2">
-      <div className="flex-1 px-6 py-4 border border-gray-700 rounded-lg flex items-center justify-between bg-card text-card-foreground">
-        <div className="flex items-center gap-6 w-1/3">
+    <div className="w-full flex items-center gap-2">
+      <div className="flex-1 min-w-0 px-4 py-4 border border-gray-700 rounded-lg flex items-center justify-between bg-card text-card-foreground gap-2">
+        <div className="flex items-center gap-3 min-w-0 overflow-hidden flex-1">
           <span className="font-medium text-lg w-16 shrink-0">{companySymbol}</span>
           <span className="text-muted-foreground truncate">{companyName}</span>
         </div>
 
-        <div className="flex-1 flex justify-center">
-          <span className="text-lg">{quantity}</span>
-        </div>
+        <div className="flex items-center gap-4 sm:gap-8 shrink-0">
+          <div className="text-right w-12 sm:w-16">
+            <span className="text-lg">{quantity}</span>
+          </div>
+          
+          <div className="text-right w-24 sm:w-32 hidden sm:block">
+            <span className="text-lg font-medium">
+              {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
+                maximumFractionDigits: 2,
+              })}{" "}
+              {currency}
+            </span>
+          </div>
 
-        <div className="w-1/3 flex justify-end gap-6">
-          <span className="text-lg font-medium text-right w-[160px]">
-            {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
-//            minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}{" "}
-            {currency}
-          </span>
-          <span className="text-lg font-medium text-right w-[160px]">
-            {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
-              maximumFractionDigits: 2,
-            })}{" "}
-            {currency}
-          </span>
+          <div className="text-right w-24 sm:w-32">
+            <span className="text-lg font-medium">
+              {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
+                maximumFractionDigits: 2,
+              })}{" "}
+              {currency}
+            </span>
+          </div>
         </div>
       </div>
 
       <Dialog>
-        <div className="flex">
-          <DialogTrigger asChild>
-            <button
-              className="h-full aspect-square flex items-center justify-center rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
-            >
-              <Trash2 className="size-4.5" />
-            </button>
-          </DialogTrigger>
-        </div>
+        <DialogTrigger asChild>
+          <button
+            className="w-14 h-14 flex items-center justify-center rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors shrink-0"
+          >
+            <Trash2 className="size-5" />
+          </button>
+        </DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Position - {companySymbol}</DialogTitle>

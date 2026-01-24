@@ -2,7 +2,7 @@ import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
 import Search from "./search";
-import Position from "./position";
+import MainPosition from "./position-main";
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
@@ -23,9 +23,14 @@ export default async function WalletPage({ params }: WalletPageProps) {
 
   const positions = await QUERIES.getWalletPositions(walletId, session.user.id);
 
+  const groupedPositions: Record<string, typeof positions> = {};
+  for (const pos of positions) {
+    (groupedPositions[pos.companySymbol] ??= []).push(pos);
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-4xl">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-medium mb-1">{wallet.name}</h1>
           <p className="text-muted-foreground uppercase">{wallet.currency}</p>
@@ -37,15 +42,12 @@ export default async function WalletPage({ params }: WalletPageProps) {
               No positions yet
             </p>
           ) : (
-            positions.map((pos) => (
-              <Position
-                key={pos.id}
+            Object.entries(groupedPositions).map(([symbol, symbolPositions]) => (
+              <MainPosition
+                key={symbol}
+                companySymbol={symbol}
+                positions={symbolPositions!}
                 walletId={wallet.id}
-                positionId={pos.id}
-                companySymbol={pos.companySymbol}
-                companyName={pos.companyName}
-                quantity={pos.quantity}
-                pricePerShare={pos.pricePerShare}
                 currency={wallet.currency}
               />
             ))
