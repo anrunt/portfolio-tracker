@@ -38,8 +38,8 @@ export default function Position({
     <div className="w-full flex items-center gap-2">
       <div className="flex-1 min-w-0 px-4 py-4 border border-gray-700 rounded-lg flex items-center justify-between bg-card text-card-foreground gap-2">
         <div className="flex items-center gap-3 min-w-0 overflow-hidden flex-1">
-          <span className="font-medium text-lg w-16 shrink-0">{companySymbol}</span>
-          <span className="text-muted-foreground truncate">{companyName}</span>
+          <span className="font-medium text-lg w-20 shrink-0">{companySymbol}</span>
+          <span className="text-muted-foreground truncate ml-2">{companyName}</span>
         </div>
 
         <div className="flex items-center gap-4 sm:gap-8 shrink-0">
