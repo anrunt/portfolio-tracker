@@ -11,6 +11,7 @@ export default async function Dashboard() {
     redirect("/login");
   }
 
+  // Write new getWalletsWithTotalValue query for wallet total value
   const userWallets = await QUERIES.getWallets(session.user.id);
   console.log("User wallets: ", userWallets);
 
