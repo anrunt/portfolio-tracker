@@ -7,6 +7,12 @@ export const QUERIES = {
     return db.select().from(wallet).where(eq(wallet.userId, userId));
   },
 
+  getWalletsWithTotalVaue: function (userId: string) {
+    return db
+      .select()
+      .from(wallet)
+  },
+
   getWalletById: async function (walletId: string, userId: string) {
     return db
       .select()
