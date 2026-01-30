@@ -17,6 +17,7 @@ interface MainPositionProps {
   positions: PositionData[];
   walletId: string;
   currency: string;
+  gridLayoutClass: string;
 }
 
 export default function MainPosition({
@@ -24,6 +25,7 @@ export default function MainPosition({
   positions,
   walletId,
   currency,
+  gridLayoutClass,
 }: MainPositionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -40,40 +42,37 @@ export default function MainPosition({
   const formatNumber = (value: number) =>
     value.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
       maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
     });
 
   return (
     <div
-      className="border border-gray-600 rounded-xl bg-card/50 cursor-pointer"
-      onClick={() => setIsExpanded(!isExpanded)}
+      className={`group border rounded-xl overflow-hidden mb-3 transition-colors duration-300 ${
+        isExpanded ? "border-white bg-neutral-900/30" : "border-gray-800 bg-black hover:border-gray-600"
+      }`}
     >
-      <div className="flex w-full items-center justify-between p-4">
-        <div className="flex items-center gap-4">
+      <div
+        className={`${gridLayoutClass} w-full p-4 cursor-pointer select-none`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="font-medium text-white text-lg">{companySymbol}</div>
+        <div className="text-gray-400 truncate font-light">{companyName}</div>
+        <div className="text-right font-mono text-gray-300">{totalQuantity}</div>
+        <div className="text-right font-mono font-medium">
+          {formatNumber(totalValue)} <span className="text-xs text-gray-500">{currency}</span>
+        </div>
+        <div className="text-right font-mono text-gray-400">
+          {formatNumber(weightedAveragePrice)} <span className="text-xs text-gray-600">{currency}</span>
+        </div>
+        <div className="text-right font-mono text-gray-500">
+          N/A
+        </div>
+        <div className="flex justify-end">
           <ChevronDown
-            className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${
-              isExpanded ? "rotate-180" : ""
+            className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${
+              isExpanded ? "rotate-180 text-white" : ""
             }`}
           />
-          <span className="font-bold text-xl">{companySymbol}</span>
-          <span className="text-muted-foreground">{companyName}</span>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center">
-            <span className="text-muted-foreground">Total Qty:</span>
-            <span className="font-medium w-10 text-right">{totalQuantity}</span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-muted-foreground">Avg Price:</span>
-            <span className="font-medium w-20 text-right">
-              {formatNumber(weightedAveragePrice)} {currency}
-            </span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-muted-foreground">Total Value:</span>
-            <span className="font-medium w-20 text-right">
-              {formatNumber(totalValue)} {currency}
-            </span>
-          </div>
         </div>
       </div>
 
@@ -83,10 +82,7 @@ export default function MainPosition({
         }`}
       >
         <div className="overflow-hidden">
-          <div
-            className="flex flex-col gap-2 px-4 pb-4"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="flex flex-col border-t border-gray-800 bg-neutral-900/10">
             {positions.map((pos) => (
               <Position
                 key={pos.id}
@@ -97,6 +93,7 @@ export default function MainPosition({
                 quantity={pos.quantity}
                 pricePerShare={pos.pricePerShare}
                 currency={currency}
+                gridLayoutClass={gridLayoutClass}
               />
             ))}
           </div>
