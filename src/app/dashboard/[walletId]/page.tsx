@@ -37,21 +37,23 @@ export default async function WalletPage({ params }: WalletPageProps) {
         </div>
 
         <div className="flex flex-col gap-3">
-          {positions.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No positions yet
-            </p>
-          ) : (
-            Object.entries(groupedPositions).map(([symbol, symbolPositions]) => (
-              <MainPosition
-                key={symbol}
-                companySymbol={symbol}
-                positions={symbolPositions!}
-                walletId={wallet.id}
-                currency={wallet.currency}
-              />
-            ))
-          )}
+          <div className="max-h-[40vh] overflow-y-auto flex flex-col gap-3 pr-2">
+            {positions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No positions yet
+              </p>
+            ) : (
+              Object.entries(groupedPositions).map(([symbol, symbolPositions]) => (
+                <MainPosition
+                  key={symbol}
+                  companySymbol={symbol}
+                  positions={symbolPositions!}
+                  walletId={wallet.id}
+                  currency={wallet.currency}
+                />
+              ))
+            )}
+          </div>
 
           <div className="mt-6 flex justify-center">
             <Search />
