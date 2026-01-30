@@ -77,17 +77,17 @@ export default function Position({
             <button
               className="flex items-center justify-center text-gray-600 hover:text-red-500 transition-colors shrink-0 p-2"
             >
-              <Trash2 className="size-4 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+              <Trash2 className="size-4" />
             </button>
           </DialogTrigger>
-          <DialogContent className="bg-neutral-900 border-gray-800 text-white">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Position - {companySymbol}</DialogTitle>
               <DialogDescription className="text-gray-400">
                 Are you sure you want to delete this position?
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-2">
               <DialogClose asChild>
                 <Button variant="outline" className="border-gray-700 hover:bg-gray-800 text-gray-300">Cancel</Button>
               </DialogClose>

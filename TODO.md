@@ -1,0 +1,2 @@
+-[x] Fix Delete position popup styling
+-[] Slightly different color theme for positions showcase

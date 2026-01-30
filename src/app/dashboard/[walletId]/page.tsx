@@ -48,7 +48,7 @@ export default async function WalletPage({ params }: WalletPageProps) {
   return (
     <div className="min-h-screen flex bg-black text-white">
       {/* Sidebar */}
-      <aside className="w-72 border-r border-gray-800/50 bg-gradient-to-b from-gray-900/50 to-black p-6 flex flex-col">
+      <aside className="w-72 border-r border-gray-800/50 bg-linear-to-b from-gray-900/50 to-black p-6 flex flex-col">
         <Link 
           href="/dashboard" 
           className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors mb-6 group"
