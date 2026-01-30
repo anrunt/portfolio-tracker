@@ -1,3 +1,5 @@
+"use client"
+
 import Position from "./position";
 
 interface PositionData {
