@@ -32,12 +32,10 @@ export default function MainPosition({
   const companyName = positions[0]?.companyName ?? "";
 
   const totalQuantity = positions.reduce((sum, pos) => sum + pos.quantity, 0);
-  const totalValue = positions.reduce(
-    (sum, pos) => sum + pos.pricePerShare * pos.quantity,
-    0,
-  );
-  const weightedAveragePrice =
-    totalQuantity > 0 ? totalValue / totalQuantity : 0;
+
+  const totalValue = positions.reduce((sum, pos) => sum + pos.pricePerShare * pos.quantity,0);
+
+  const weightedAveragePrice = totalQuantity > 0 ? totalValue / totalQuantity : 0;
 
   const formatNumber = (value: number) =>
     value.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
