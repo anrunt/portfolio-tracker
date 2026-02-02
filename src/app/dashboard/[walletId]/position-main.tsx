@@ -46,29 +46,29 @@ export default function MainPosition({
   return (
     <div
       className={`group border rounded-xl overflow-hidden mb-3 transition-colors duration-300 ${
-        isExpanded ? "border-white bg-neutral-900/30" : "border-gray-800 bg-black hover:border-gray-600"
+        isExpanded ? "border-primary bg-accent/30" : "border-border bg-card hover:border-muted-foreground/50"
       }`}
     >
       <div
         className={`${gridLayoutClass} w-full p-4 cursor-pointer select-none`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="font-medium text-white text-lg">{companySymbol}</div>
-        <div className="text-gray-400 truncate font-light">{companyName}</div>
-        <div className="text-right font-mono text-gray-300">{totalQuantity}</div>
-        <div className="text-right font-mono font-medium">
-          {formatNumber(totalValue)} <span className="text-xs text-gray-500">{currency}</span>
+        <div className="font-medium text-foreground text-lg">{companySymbol}</div>
+        <div className="text-muted-foreground truncate font-light">{companyName}</div>
+        <div className="text-right font-mono text-foreground/80">{totalQuantity}</div>
+        <div className="text-right font-mono font-medium text-foreground">
+          {formatNumber(totalValue)} <span className="text-xs text-muted-foreground">{currency}</span>
         </div>
-        <div className="text-right font-mono text-gray-400">
-          {formatNumber(weightedAveragePrice)} <span className="text-xs text-gray-600">{currency}</span>
+        <div className="text-right font-mono text-muted-foreground">
+          {formatNumber(weightedAveragePrice)} <span className="text-xs text-muted-foreground/70">{currency}</span>
         </div>
-        <div className="text-right font-mono text-gray-500">
+        <div className="text-right font-mono text-muted-foreground/50">
           N/A
         </div>
         <div className="flex justify-end">
           <ChevronDown
-            className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${
-              isExpanded ? "rotate-180 text-white" : ""
+            className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${
+              isExpanded ? "rotate-180 text-foreground" : ""
             }`}
           />
         </div>
@@ -80,7 +80,7 @@ export default function MainPosition({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="flex flex-col border-t border-gray-800 bg-neutral-900/10">
+          <div className="flex flex-col border-t border-border bg-accent/10">
             {positions.map((pos) => (
               <Position
                 key={pos.id}

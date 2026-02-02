@@ -39,35 +39,35 @@ export default function Position({
   const totalValue = pricePerShare * quantity;
 
   return (
-    <div className={`w-full ${gridLayoutClass} p-4 hover:bg-white/5 transition-colors group/item border-b border-gray-800/50 last:border-0`}>
-      <div className="text-gray-600 font-mono text-xs flex items-center">
-        <div className="w-1.5 h-1.5 rounded-full bg-gray-700 mr-2 group-hover/item:bg-gray-500 transition-colors" />
+    <div className={`w-full ${gridLayoutClass} p-4 hover:bg-accent/50 transition-colors group/item border-b border-border/50 last:border-0`}>
+      <div className="text-muted-foreground/70 font-mono text-xs flex items-center">
+        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 mr-2 group-hover/item:bg-muted-foreground/70 transition-colors" />
       </div>
       
-      <div className="text-gray-500 text-xs truncate">
+      <div className="text-muted-foreground text-xs truncate">
       </div>
 
-      <div className="text-right font-mono text-sm text-gray-400">
+      <div className="text-right font-mono text-sm text-muted-foreground">
         {quantity}
       </div>
       
-      <div className="text-right font-mono text-sm text-gray-400">
+      <div className="text-right font-mono text-sm text-muted-foreground">
         {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
           maximumFractionDigits: 2,
           minimumFractionDigits: 2,
         })}{" "}
-        <span className="text-[10px] text-gray-600">{currency}</span>
+        <span className="text-[10px] text-muted-foreground/70">{currency}</span>
       </div>
 
-      <div className="text-right font-mono text-sm text-gray-400">
+      <div className="text-right font-mono text-sm text-muted-foreground">
         {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
           maximumFractionDigits: 2,
           minimumFractionDigits: 2,
         })}{" "}
-        <span className="text-[10px] text-gray-600">{currency}</span>
+        <span className="text-[10px] text-muted-foreground/70">{currency}</span>
       </div>
 
-      <div className="text-right font-mono text-sm text-gray-600">
+      <div className="text-right font-mono text-sm text-muted-foreground/50">
         N/A
       </div>
 
@@ -75,7 +75,7 @@ export default function Position({
         <Dialog>
           <DialogTrigger asChild>
             <button
-              className="flex items-center justify-center text-gray-600 hover:text-red-500 transition-colors shrink-0 p-2"
+              className="flex items-center justify-center text-muted-foreground/70 hover:text-destructive transition-colors shrink-0 p-2"
             >
               <Trash2 className="size-4" />
             </button>
@@ -83,18 +83,18 @@ export default function Position({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Position - {companySymbol}</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription>
                 Are you sure you want to delete this position?
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2">
               <DialogClose asChild>
-                <Button variant="outline" className="border-gray-700 hover:bg-gray-800 text-gray-300">Cancel</Button>
+                <Button variant="outline">Cancel</Button>
               </DialogClose>
               <form action={deletePositionWithId}>
                 <button
                   type="submit"
-                  className="h-9 px-4 py-2 flex items-center justify-center gap-1 rounded-md bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors text-sm font-medium w-full sm:w-auto"
+                  className="h-9 px-4 py-2 flex items-center justify-center gap-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-sm font-medium w-full sm:w-auto"
                 >
                   Delete
                   <Trash2 className="size-4" />
