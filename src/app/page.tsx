@@ -12,7 +12,7 @@ export async function AuthButton() {
   return (
     <>
       {session ? (
-        <Button variant="outline" size="lg" className="min-w-[140px] bg-popover" asChild>
+        <Button variant="outline" size="lg" className="min-w-[140px]" asChild>
           <Link href="/dashboard">View Dashboard</Link>
         </Button>
       ) : (

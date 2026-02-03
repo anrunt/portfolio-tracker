@@ -69,7 +69,7 @@ export default function AddWallet() {
               name="name"
               type="text"
               placeholder="Name"
-              className="bg-black text-white border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-blue-500 w-full"
+              className="bg-card text-card-foreground border border-border rounded px-3 py-2 focus:outline-none focus:border-primary w-full"
             />
           </div>
 
@@ -79,19 +79,19 @@ export default function AddWallet() {
             </label>
             <input type="hidden" name="currency" value={currency} />
             <Select value={currency} onValueChange={(value) => { setCurrency(value); setClientError(""); }}>
-              <SelectTrigger className="bg-black text-white border border-gray-700 rounded px-3 py-2 h-auto focus:border-blue-500 w-full">
+              <SelectTrigger className="bg-card text-card-foreground border border-border rounded px-3 py-2 h-auto focus:border-primary w-full">
                 <SelectValue placeholder="Currency" />
               </SelectTrigger>
-              <SelectContent className="bg-black border border-gray-700">
+              <SelectContent className="bg-card border border-border">
                 <SelectItem
                   value="USD"
-                  className="text-white focus:bg-gray-800 focus:text-white"
+                  className="text-card-foreground focus:bg-secondary focus:text-secondary-foreground"
                 >
                   USD
                 </SelectItem>
                 <SelectItem
                   value="PLN"
-                  className="text-white focus:bg-gray-800 focus:text-white"
+                  className="text-card-foreground focus:bg-secondary focus:text-secondary-foreground"
                 >
                   PLN
                 </SelectItem>
