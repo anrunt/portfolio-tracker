@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +22,7 @@ interface PositionProps {
   quantity: number;
   pricePerShare: number;
   currency: string;
+  gridLayoutClass: string;
 }
 
 export default function Position({
@@ -30,72 +33,77 @@ export default function Position({
   quantity,
   pricePerShare,
   currency,
+  gridLayoutClass,
 }: PositionProps) {
   const deletePositionWithId = deletePosition.bind(null, positionId, walletId);
   const totalValue = pricePerShare * quantity;
 
   return (
-    <div className="w-full flex items-stretch gap-2">
-      <div className="flex-1 px-6 py-4 border border-gray-700 rounded-lg flex items-center justify-between bg-card text-card-foreground">
-        <div className="flex items-center gap-6 w-1/3">
-          <span className="font-medium text-lg w-16 shrink-0">{companySymbol}</span>
-          <span className="text-muted-foreground truncate">{companyName}</span>
-        </div>
-
-        <div className="flex-1 flex justify-center">
-          <span className="text-lg">{quantity}</span>
-        </div>
-
-        <div className="w-1/3 flex justify-end gap-6">
-          <span className="text-lg font-medium text-right w-[160px]">
-            {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
-//            minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}{" "}
-            {currency}
-          </span>
-          <span className="text-lg font-medium text-right w-[160px]">
-            {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
-              maximumFractionDigits: 2,
-            })}{" "}
-            {currency}
-          </span>
-        </div>
+    <div className={`w-full ${gridLayoutClass} p-4 hover:bg-accent/50 transition-colors group/item border-b border-border/50 last:border-0`}>
+      <div className="text-muted-foreground/70 font-mono text-xs flex items-center">
+        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 mr-2 group-hover/item:bg-muted-foreground/70 transition-colors" />
+      </div>
+      
+      <div className="text-muted-foreground text-xs truncate">
       </div>
 
-      <Dialog>
-        <div className="flex">
+      <div className="text-right font-mono text-sm text-muted-foreground">
+        {quantity}
+      </div>
+      
+      <div className="text-right font-mono text-sm text-muted-foreground">
+        {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
+          maximumFractionDigits: 2,
+          minimumFractionDigits: 2,
+        })}{" "}
+        <span className="text-[10px] text-muted-foreground/70">{currency}</span>
+      </div>
+
+      <div className="text-right font-mono text-sm text-muted-foreground">
+        {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
+          maximumFractionDigits: 2,
+          minimumFractionDigits: 2,
+        })}{" "}
+        <span className="text-[10px] text-muted-foreground/70">{currency}</span>
+      </div>
+
+      <div className="text-right font-mono text-sm text-muted-foreground/50">
+        N/A
+      </div>
+
+      <div className="flex justify-end">
+        <Dialog>
           <DialogTrigger asChild>
             <button
-              className="h-full aspect-square flex items-center justify-center rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+              className="flex items-center justify-center text-muted-foreground/70 hover:text-destructive transition-colors shrink-0 p-2"
             >
-              <Trash2 className="size-4.5" />
+              <Trash2 className="size-4" />
             </button>
           </DialogTrigger>
-        </div>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Position - {companySymbol}</DialogTitle>
-            <DialogDescription className="text-md">
-              Are you sure you want to delete this position?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <form action={deletePositionWithId}>
-              <button
-                type="submit"
-                className="h-9 px-4 py-2 flex items-center justify-center gap-1 rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors text-sm font-medium"
-              >
-                Delete
-                <Trash2 className="size-4" />
-              </button>
-            </form>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Position - {companySymbol}</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this position?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <form action={deletePositionWithId}>
+                <button
+                  type="submit"
+                  className="h-9 px-4 py-2 flex items-center justify-center gap-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-sm font-medium w-full sm:w-auto"
+                >
+                  Delete
+                  <Trash2 className="size-4" />
+                </button>
+              </form>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,26 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from ".";
 import { position, wallet } from "./schema";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
     return db.select().from(wallet).where(eq(wallet.userId, userId));
+  },
+
+  getWalletsWithTotalValue: function (userId: string) {
+    return db
+      .select({
+        id: wallet.id,
+        name: wallet.name,
+        userId: wallet.userId,
+        currency: wallet.currency,
+        createdAt: wallet.createdAt,
+        totalValue: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0)`
+      })
+      .from(wallet)
+      .leftJoin(position, eq(wallet.id, position.walletId))
+      .where(eq(wallet.userId, userId))
+      .groupBy(wallet.id)
   },
 
   getWalletById: async function (walletId: string, userId: string) {

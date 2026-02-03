@@ -29,37 +29,59 @@ export default function Search() {
   const [error, setError] = useState<string | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (query) {
-      searchTicker(query, exchange)
-        .then((result) => {
-          if (result.status === "ok") {
-            setResults(result.value);
-            setError(null);
-          } else {
-            console.error("Search failed:", result.error);
-            setError(result.error.message);
-            setResults(undefined);
-          }
-        })
-        .finally(() => {
+    if (!query) return;
+
+    let ignore = false;
+
+    searchTicker(query, exchange)
+      .then((result) => {
+        if (ignore) return;
+        
+        if (result.status === "ok") {
+          setResults(result.value);
+          setError(null);
+        } else {
+          console.error("Search failed:", result.error);
+          setError(result.error.message);
+          setResults(undefined);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
           setIsLoading(false);
-        });
-    }
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [query, exchange]);
 
-  useEffect(() => {
-    if (!open) {
-      const timeout = setTimeout(() => {
+  function handleOpenChange(newOpen: boolean) {
+    setOpen(newOpen);
+    
+    if (!newOpen) {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+
+      // For allowing animation to complete
+      resetTimeoutRef.current = setTimeout(() => {
         setSelectedCompany(null);
         setQuery("");
         setResults(undefined);
         setError(null);
       }, 200);
-      return () => clearTimeout(timeout);
+    } else {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+        resetTimeoutRef.current = null;
+      }
     }
-  }, [open]);
+  }
 
   function printText(e: React.ChangeEvent<HTMLInputElement>) {
     clearTimeout(intervalRef.current!);
@@ -85,7 +107,7 @@ export default function Search() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">Search Company</Button>
       </DialogTrigger>
@@ -162,7 +184,7 @@ export default function Search() {
                 setSelectedCompany(null);
                 setQuery("");
               }}
-              onClose={() => setOpen(false)}
+              onClose={() => handleOpenChange(false)}
             />
           )}
         </div>

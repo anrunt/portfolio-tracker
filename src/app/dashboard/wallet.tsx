@@ -18,11 +18,18 @@ interface WalletProps {
     id: string;
     name: string;
     currency: string;
+    totalValue: number 
   };
 }
 
 export default function Wallet({ wallet }: WalletProps) {
   const deleteWalletWithId = deleteWallet.bind(null, wallet.id);
+
+  const locale = wallet.currency === "USD" ? "en-US" : "pl-PL";
+  const formattedValue = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(wallet.totalValue);
 
   return (
     <div className="w-full flex items-stretch gap-2">
@@ -31,7 +38,7 @@ export default function Wallet({ wallet }: WalletProps) {
         className="flex-1 px-4 py-3 border border-gray-700 rounded-md hover:bg-secondary transition-colors flex items-center justify-between"
       >
         <span>{wallet.name}</span>
-        <span className="text-muted-foreground">1000 {wallet.currency}</span>
+        <span className="text-muted-foreground">{formattedValue} {wallet.currency}</span>
       </Link>
 
       <Dialog>
