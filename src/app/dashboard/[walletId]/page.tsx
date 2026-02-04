@@ -5,6 +5,7 @@ import Search from "./search";
 import MainPosition from "./position-main";
 import { TrendingUp, PieChart, ArrowLeft, Wallet } from "lucide-react";
 import Link from "next/link";
+import { ModeToggle } from "@/components/mode-toggle";
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
@@ -46,13 +47,16 @@ export default async function WalletPage({ params }: WalletPageProps) {
     <div className="min-h-screen flex bg-background text-foreground">
       {/* Sidebar */}
       <aside className="w-72 border-r border-border/50 bg-background p-6 flex flex-col">
-        <Link 
-          href="/dashboard" 
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm">Back to Wallets</span>
-        </Link>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="text-sm">Back to Wallets</span>
+          </Link>
+          <ModeToggle size="icon-sm" className="shrink-0" />
+        </div>
 
         <div className="space-y-4 flex-1">
           <div className="p-4 rounded-xl bg-card border border-border">

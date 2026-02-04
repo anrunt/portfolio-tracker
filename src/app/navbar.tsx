@@ -5,6 +5,7 @@ import { LogOut, Loader2 } from "lucide-react";
 import { authClient } from "@/server/better-auth/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ModeToggle } from "@/components/mode-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +35,8 @@ export function Navbar() {
           Portfolio Tracker
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <ModeToggle />
           {isPending ? (
             <Avatar className="cursor-default">
               <AvatarFallback className="bg-muted">
