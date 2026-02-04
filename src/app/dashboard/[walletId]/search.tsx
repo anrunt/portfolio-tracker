@@ -121,7 +121,7 @@ export default function Search() {
             <>
               <div className="flex gap-2 items-center">
                 <input
-                  className="bg-black text-white border border-gray-700 rounded-md px-3 h-9 text-sm focus:outline-none focus:border-blue-500 w-full"
+                  className="bg-card text-card-foreground border border-border rounded-md px-3 h-9 text-sm focus:outline-none focus:border-primary w-full"
                   type="text"
                   placeholder="Enter company name or symbol..."
                   onChange={printText}
@@ -145,7 +145,7 @@ export default function Search() {
 
               {isLoading && (
                 <div className="flex justify-center py-2">
-                  <div className="w-6 h-6 border-2 border-gray-600 border-t-white rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-muted border-t-primary rounded-full animate-spin" />
                 </div>
               )}
 

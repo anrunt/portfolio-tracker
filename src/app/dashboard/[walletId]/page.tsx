@@ -5,6 +5,7 @@ import Search from "./search";
 import MainPosition from "./position-main";
 import { TrendingUp, PieChart, ArrowLeft, Wallet } from "lucide-react";
 import Link from "next/link";
+import { ModeToggle } from "@/components/mode-toggle";
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
@@ -45,14 +46,17 @@ export default async function WalletPage({ params }: WalletPageProps) {
   return (
     <div className="min-h-screen flex bg-background text-foreground">
       {/* Sidebar */}
-      <aside className="w-72 border-r border-border/50 bg-black p-6 flex flex-col">
-        <Link 
-          href="/dashboard" 
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm">Back to Wallets</span>
-        </Link>
+      <aside className="w-72 border-r border-border/50 bg-background p-6 flex flex-col">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="text-sm">Back to Wallets</span>
+          </Link>
+          <ModeToggle size="icon-sm" className="shrink-0" />
+        </div>
 
         <div className="space-y-4 flex-1">
           <div className="p-4 rounded-xl bg-card border border-border">
@@ -92,13 +96,13 @@ export default async function WalletPage({ params }: WalletPageProps) {
       {/* Main Content */}
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-6">
-            <h2 className="text-2xl font-light tracking-tight mb-1 text-foreground">Positions</h2>
-            <p className="text-muted-foreground text-sm">Manage your portfolio holdings</p>
+          <div className="mb-8">
+            <h2 className="text-3xl font-semibold tracking-tight mb-2 text-muted-foreground">Positions</h2>
+            <p className="text-muted-foreground">Manage your portfolio holdings</p>
           </div>
 
           {/* Positions Container */}
-          <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-card/50 to-card/30 backdrop-blur-sm shadow-lg shadow-black/5 overflow-hidden">
+          <div className="rounded-2xl border border-border/60 bg-linear-to-b from-card/50 to-card/30 backdrop-blur-sm shadow-lg shadow-black/5 overflow-hidden">
             {/* Header */}
             <div className="hidden md:block border-b border-border/40 bg-muted/30 px-2 py-4">
               <div className={`${gridLayoutClass} px-4 text-xs uppercase tracking-wider text-muted-foreground font-medium`}>

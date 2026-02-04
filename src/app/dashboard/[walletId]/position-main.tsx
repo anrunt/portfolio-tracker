@@ -46,7 +46,9 @@ export default function MainPosition({
   return (
     <div
       className={`group border rounded-xl overflow-hidden mb-3 transition-colors duration-300 ${
-        isExpanded ? "border-primary bg-accent/30" : "border-border bg-card hover:border-muted-foreground/50"
+        isExpanded
+          ? "border-primary bg-card dark:bg-background"
+          : "border-border bg-card dark:bg-background hover:border-muted-foreground/50 dark:hover:border-primary/50"
       }`}
     >
       <div
@@ -80,7 +82,7 @@ export default function MainPosition({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="flex flex-col border-t border-border bg-accent/10">
+          <div className="flex flex-col border-t border-border">
             {positions.map((pos) => (
               <Position
                 key={pos.id}

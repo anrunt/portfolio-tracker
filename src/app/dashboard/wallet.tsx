@@ -35,7 +35,7 @@ export default function Wallet({ wallet }: WalletProps) {
     <div className="w-full flex items-stretch gap-2">
       <Link
         href={`/dashboard/${wallet.id}`}
-        className="flex-1 px-4 py-3 border border-gray-700 rounded-md hover:bg-secondary transition-colors flex items-center justify-between"
+        className="flex-1 px-4 py-3 border border-border rounded-md hover:bg-secondary transition-colors flex items-center justify-between"
       >
         <span>{wallet.name}</span>
         <span className="text-muted-foreground">{formattedValue} {wallet.currency}</span>

@@ -39,7 +39,9 @@ export default function Position({
   const totalValue = pricePerShare * quantity;
 
   return (
-    <div className={`w-full ${gridLayoutClass} p-4 hover:bg-accent/50 transition-colors group/item border-b border-border/50 last:border-0`}>
+    <div
+      className={`w-full ${gridLayoutClass} p-4 transition-colors group/item border-b border-border/50 last:border-0 hover:bg-accent/50 dark:bg-secondary dark:hover:bg-primary/20`}
+    >
       <div className="text-muted-foreground/70 font-mono text-xs flex items-center">
         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 mr-2 group-hover/item:bg-muted-foreground/70 transition-colors" />
       </div>
