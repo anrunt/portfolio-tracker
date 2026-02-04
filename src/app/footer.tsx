@@ -2,7 +2,7 @@
 
 export function Footer() {
   return (
-    <footer className="bg-[#1C2101] py-6 text-center text-sm text-[#D9E3AA]">
+    <footer className="footer-background py-6 text-center text-sm text-background">
       <p>© {new Date().getFullYear()} Portfolio Tracker. All rights reserved.</p>
     </footer>
   )

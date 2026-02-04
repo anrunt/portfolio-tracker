@@ -165,3 +165,12 @@
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #FFFFFF;
 }
+
+/* Footer Background */
+.footer-background {
+  background-color: oklch(0.16 0.04 120);
+}
+
+.dark .footer-background {
+  background-color: var(--primary);
+}
