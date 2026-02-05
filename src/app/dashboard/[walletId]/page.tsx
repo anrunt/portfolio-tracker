@@ -104,7 +104,7 @@ export default async function WalletPage({ params }: WalletPageProps) {
           {/* Positions Container */}
           <div className="rounded-2xl border border-border/60 bg-linear-to-b from-card/50 to-card/30 backdrop-blur-sm shadow-lg shadow-black/5 overflow-hidden">
             {/* Header */}
-            <div className="hidden md:block border-b border-border/40 bg-muted/30 px-2 py-4">
+            <div className="hidden md:block border-b border-border/40 bg-muted/30 px-4 py-4">
               <div className={`${gridLayoutClass} px-4 text-xs uppercase tracking-wider text-muted-foreground font-medium`}>
                 <div>Symbol</div>
                 <div>Name</div>
