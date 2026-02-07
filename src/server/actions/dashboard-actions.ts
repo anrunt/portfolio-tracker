@@ -190,6 +190,7 @@ export async function addPosition(
     formData
   );
 
+  // Need to add another field for index of the error so we know which field was bad
   return result.match({
     ok: () => ({ message: "", success: true as boolean, timestamp: Date.now() }),
     err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now() }),
@@ -213,6 +214,7 @@ async function addPositionResult(
       return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
     }
 
+    // formData.getAll -> gets the value arrays.
     const validatedFields = positionSchema.safeParse({
       companyName: companyName,
       companySymbol: companySymbol,

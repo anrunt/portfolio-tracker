@@ -3,14 +3,12 @@
 import { useState } from "react";
 
 interface AddPositionInputsProps {
-  index: number;
   errorMessage: string;
   onRemove: () => void;
   showRemove: boolean;
 }
 
 export default function AddPositionInputs({
-  index,
   errorMessage,
   onRemove,
   showRemove,
@@ -22,7 +20,7 @@ export default function AddPositionInputs({
     <>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label htmlFor={`shares-${index}`} className="block text-sm text-muted-foreground">
+          <label htmlFor="shares" className="block text-sm text-muted-foreground">
             Number of shares
           </label>
           {showRemove && (
@@ -50,8 +48,8 @@ export default function AddPositionInputs({
           )}
         </div>
         <input
-          id={`shares-${index}`}
-          name={`shares-${index}`}
+          id="shares"
+          name="shares"
           type="number"
           min="0"
           step="any"
@@ -64,12 +62,12 @@ export default function AddPositionInputs({
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor={`price-${index}`} className="block text-sm text-muted-foreground">
+        <label htmlFor="price" className="block text-sm text-muted-foreground">
           Price per one
         </label>
         <input
-          id={`price-${index}`}
-          name={`price-${index}`}
+          id="price"
+          name="price"
           type="number"
           min="0"
           step="0.01"

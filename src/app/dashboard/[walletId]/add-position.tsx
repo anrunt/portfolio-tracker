@@ -81,10 +81,9 @@ export default function AddPosition({
 
       <form action={formAction} className="flex flex-col gap-4">
         <div className="max-h-[45vh] overflow-y-auto custom-scrollbar space-y-4 pr-1 -mr-1">
-          {positionIds.map((id, index) => (
+          {positionIds.map((id) => (
             <AddPositionInputs 
               key={id} 
-              index={index}
               errorMessage={state.message}
               onRemove={() => removePositionRow(id)}
               showRemove={positionIds.length > 1}
