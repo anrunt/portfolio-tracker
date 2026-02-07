@@ -168,12 +168,10 @@ async function addWalletResult(
 const positionSchema = z.object({
   companyName: z.string(),
   companySymbol: z.string(),
-  shares: z.coerce
-    .number()
-    .nonnegative({ message: "Invalid share number, must be nonnegative" }),
-  price: z.coerce
-    .number()
-    .nonnegative({ message: "Invalid price number, must be nonnegative" }),
+  position: z.array(z.object({
+    shares: z.coerce.number().nonnegative({ message: "Invalid share number, must be nonnegative" }),
+    price: z.coerce.number().nonnegative({ message: "Invalid price number, must be nonnegative" }),
+  }))
 });
 
 export async function addPosition(
@@ -214,12 +212,23 @@ async function addPositionResult(
       return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
     }
 
-    // formData.getAll -> gets the value arrays.
+    const shares = formData.getAll("shares");
+    const price = formData.getAll("price");
+
+//    const positions = shares.map((share, index) => ({shares: share, price: price[index]}));
+
+    // Two mock positions, one of them has invalid data to trigger an error in parsing
+    const positions = [
+      { shares: 10, price: 10.00 },  // valid position
+      { shares: -5, price: 200.00 }   // invalid: shares is negative, should trigger validation error
+    ];
+
+    console.log("Positions: ", positions);
+
     const validatedFields = positionSchema.safeParse({
       companyName: companyName,
       companySymbol: companySymbol,
-      shares: formData.get("shares"),
-      price: formData.get("price"),
+      position: positions
     });
 
     if (!validatedFields.success) {
@@ -232,22 +241,22 @@ async function addPositionResult(
       );
     }
 
-    yield* Result.await(
-      Result.tryPromise({
-        try: async () => {
-          await db.insert(position).values({
-            id: randomUUID(),
-            walletId: walletId,
-            companyName: companyName,
-            companySymbol: companySymbol,
-            pricePerShare: validatedFields.data.price,
-            quantity: validatedFields.data.shares,
-          });
-        },
-        catch: (e) =>
-          new DatabaseError({ operation: "insert position", cause: e }),
-      })
-    );
+//    yield* Result.await(
+//      Result.tryPromise({
+//        try: async () => {
+//          await db.insert(position).values({
+//            id: randomUUID(),
+//            walletId: walletId,
+//            companyName: companyName,
+//            companySymbol: companySymbol,
+//            pricePerShare: validatedFields.data.price,
+//            quantity: validatedFields.data.shares,
+//          });
+//        },
+//        catch: (e) =>
+//          new DatabaseError({ operation: "insert position", cause: e }),
+//      })
+//    );
 
     revalidatePath(`/dashboard/${walletId}`);
 
