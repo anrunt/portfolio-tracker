@@ -220,7 +220,8 @@ async function addPositionResult(
     // Two mock positions, one of them has invalid data to trigger an error in parsing
     const positions = [
       { shares: 10, price: 10.00 },  // valid position
-      { shares: -5, price: 200.00 }   // invalid: shares is negative, should trigger validation error
+      { shares: -5, price: 200.00 },   // invalid: shares is negative, should trigger validation error
+      { shares: 0, price: -50.00 }    // invalid: shares is zero and price is negative, should trigger another validation error
     ];
 
     console.log("Positions: ", positions);
@@ -230,6 +231,10 @@ async function addPositionResult(
       companySymbol: companySymbol,
       position: positions
     });
+    
+    // Update ValidationError, 
+    // loop through error and get all errors, with fields and indexes
+    // then we return it to the frontend
 
     if (!validatedFields.success) {
       console.log("Err with validating position: ", validatedFields.error);
