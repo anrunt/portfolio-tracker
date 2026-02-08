@@ -49,10 +49,15 @@ export class NotFoundError extends TaggedError("NotFoundError")<{
 /**
  * Validation error from schema parsing or business rules.
  */
-// use field and add optional index here
 export class ValidationError extends TaggedError("ValidationError")<{
   field?: string;
   message: string;
+  fieldErrors?: {
+    [index: number] : {
+      shares?: string; 
+      price?: string;
+    }
+  }
 }>() {}
 
 /**
