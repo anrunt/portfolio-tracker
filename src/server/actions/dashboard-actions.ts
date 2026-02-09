@@ -85,6 +85,43 @@ async function searchTickerResult(
   });
 }
 
+async function getPriceResult(companySymbols: string[], exchange: string) {
+  return Result.gen(async function* () {
+    const session = await getSession();
+    if (!session) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
+    if (!FINNHUB_API_KEY) {
+      return Result.err(new ConfigError({ key: "FINNHUB_API_KEY" }));
+    }
+
+    if (exchange !== "US" && exchange !== "WA") {
+      return Result.err(
+        new ValidationError({
+          field: "exchange",
+          message: "Unsupported exchange. Must be 'US' or 'WA'.",
+        })
+      );
+    }
+
+    const fetchPrices = yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          
+        },
+        catch: (e) => 
+          e instanceof ApiError
+          ? e
+          : new  ApiError({service: "Finnhub", cause: e})
+      })
+    )
+
+    return Result.ok(undefined);
+  })
+}
+
 const walletSchema = z.object({
   name: z.coerce
     .string()

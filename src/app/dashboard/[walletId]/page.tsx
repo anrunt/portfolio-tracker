@@ -31,6 +31,8 @@ export default async function WalletPage({ params }: WalletPageProps) {
     (groupedPositions[pos.companySymbol] ??= []).push(pos);
   }
 
+  // Array with companySymbols and we call the api for prices
+
   const totalValue = positions.reduce((sum, pos) => sum + pos.pricePerShare * pos.quantity,0);
   const totalPositions = positions.length;
   const uniqueSymbols = Object.keys(groupedPositions).length;
