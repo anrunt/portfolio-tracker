@@ -6,7 +6,6 @@ import { addPosition } from "@/server/actions/dashboard-actions";
 import { useParams } from "next/navigation";
 import AddPositionInputs from "./add-position-inputs";
 
-// Message for every error ?
 const initialState = {
   message: "",
   success: false,
