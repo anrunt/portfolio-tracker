@@ -52,6 +52,12 @@ export class NotFoundError extends TaggedError("NotFoundError")<{
 export class ValidationError extends TaggedError("ValidationError")<{
   field?: string;
   message: string;
+  fieldErrors?: {
+    [index: number] : {
+      shares?: string; 
+      price?: string;
+    }
+  }
 }>() {}
 
 /**

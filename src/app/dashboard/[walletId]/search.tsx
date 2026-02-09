@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { searchTicker, FinnhubStock } from "@/server/actions/dashboard-actions";
+import { searchTicker } from "@/server/actions/dashboard-actions";
+import type { FinnhubStock } from "@/server/actions/types";
 import { useEffect, useRef, useState } from "react";
 import AddPosition from "./add-position";
 

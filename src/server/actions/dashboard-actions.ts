@@ -21,22 +21,7 @@ import {
   type WalletError,
   type PositionError,
 } from "../errors";
-
-export type FinnhubStock = {
-  description: string;
-  displaySymbol: string;
-  symbol: string;
-  type: string;
-};
-
-export type SerializedError = {
-  _tag: string;
-  name: string;
-  message: string;
-  cause?: unknown;
-  stack?: string;
-  [key: string]: unknown;
-};
+import type { FinnhubStock, SerializedError, FieldErrors } from "./types";
 
 export async function searchTicker(
   query: string,
@@ -168,21 +153,19 @@ async function addWalletResult(
 const positionSchema = z.object({
   companyName: z.string(),
   companySymbol: z.string(),
-  shares: z.coerce
-    .number()
-    .nonnegative({ message: "Invalid share number, must be nonnegative" }),
-  price: z.coerce
-    .number()
-    .nonnegative({ message: "Invalid price number, must be nonnegative" }),
+  position: z.array(z.object({
+    shares: z.coerce.number().nonnegative({ message: "Invalid share number, must be nonnegative" }),
+    price: z.coerce.number().nonnegative({ message: "Invalid price number, must be nonnegative" }),
+  }))
 });
 
 export async function addPosition(
   companyName: string,
   companySymbol: string,
   walletId: string,
-  prevState: { message: string; success: boolean; timestamp: number },
+  prevState: { message: string; success: boolean; timestamp: number, fieldErrors: FieldErrors | undefined },
   formData: FormData
-): Promise<{ message: string; success: boolean; timestamp: number }> {
+): Promise<{ message: string; success: boolean; timestamp: number; fieldErrors: FieldErrors | undefined }> {
   const result = await addPositionResult(
     companyName,
     companySymbol,
@@ -191,8 +174,8 @@ export async function addPosition(
   );
 
   return result.match({
-    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now() }),
-    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now() }),
+    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now(), fieldErrors: undefined }),
+    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now(), fieldErrors: "fieldErrors" in e ? e.fieldErrors : undefined}),
   });
 }
 
@@ -213,34 +196,58 @@ async function addPositionResult(
       return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
     }
 
+    const shares = formData.getAll("shares");
+    const price = formData.getAll("price");
+
+    const positions = shares.map((share, index) => ({shares: share, price: price[index]}));
+
+//    console.log("Positions: ", positions);
+
     const validatedFields = positionSchema.safeParse({
       companyName: companyName,
       companySymbol: companySymbol,
-      shares: formData.get("shares"),
-      price: formData.get("price"),
+      position: positions
     });
 
     if (!validatedFields.success) {
-      console.log("Err with validating position: ", validatedFields.error);
+//      console.log("Err with validating position: ", validatedFields.error.issues);
+
+      const fieldErrors = validatedFields.error.issues.reduce<FieldErrors>((acc, err) => {
+        const index = err.path[1] as number;
+        const field = err.path[2] as "shares" | "price";
+
+        if (!acc[index]) {
+          acc[index] = {};
+        }
+
+        acc[index][field] = err.message;
+
+        return acc;
+      }, {});
 
       return Result.err(
         new ValidationError({
-          message: validatedFields.error.issues[0].message,
+          message: "Invalid position data",
+          fieldErrors: fieldErrors
         })
       );
     }
 
+    const insertData = validatedFields.data.position.map((data) => {
+      return {
+        id: randomUUID(),
+        walletId: walletId,
+        companyName: companyName,
+        companySymbol: companySymbol,
+        pricePerShare: data.price,
+        quantity: data.shares
+      }
+    })
+
     yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          await db.insert(position).values({
-            id: randomUUID(),
-            walletId: walletId,
-            companyName: companyName,
-            companySymbol: companySymbol,
-            pricePerShare: validatedFields.data.price,
-            quantity: validatedFields.data.shares,
-          });
+          await db.insert(position).values(insertData);
         },
         catch: (e) =>
           new DatabaseError({ operation: "insert position", cause: e }),
