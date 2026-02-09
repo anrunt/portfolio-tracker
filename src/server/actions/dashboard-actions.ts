@@ -173,7 +173,6 @@ export async function addPosition(
     formData
   );
 
-  // Need to add another field for index of the error so we know which field was bad
   return result.match({
     ok: () => ({ message: "", success: true as boolean, timestamp: Date.now(), fieldErrors: undefined }),
     err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now(), fieldErrors: "fieldErrors" in e ? e.fieldErrors : undefined}),
@@ -200,16 +199,9 @@ async function addPositionResult(
     const shares = formData.getAll("shares");
     const price = formData.getAll("price");
 
-//    const positions = shares.map((share, index) => ({shares: share, price: price[index]}));
+    const positions = shares.map((share, index) => ({shares: share, price: price[index]}));
 
-    // Two mock positions, one of them has invalid data to trigger an error in parsing
-    const positions = [
-      { shares: 10, price: 10.00 },  // valid position
-      { shares: -5, price: -200.00 },   // invalid: shares is negative, should trigger validation error
-      { shares: -10, price: -50.00 }    // invalid: shares is zero and price is negative, should trigger another validation error
-    ];
-
-    console.log("Positions: ", positions);
+//    console.log("Positions: ", positions);
 
     const validatedFields = positionSchema.safeParse({
       companyName: companyName,
@@ -217,12 +209,8 @@ async function addPositionResult(
       position: positions
     });
 
-    // Update ValidationError, 
-    // loop through error and get all errors, with fields and indexes
-    // then we return it to the frontend
-
     if (!validatedFields.success) {
-      console.log("Err with validating position: ", validatedFields.error.issues);
+//      console.log("Err with validating position: ", validatedFields.error.issues);
 
       const fieldErrors = validatedFields.error.issues.reduce<FieldErrors>((acc, err) => {
         const index = err.path[1] as number;
@@ -245,22 +233,26 @@ async function addPositionResult(
       );
     }
 
-//    yield* Result.await(
-//      Result.tryPromise({
-//        try: async () => {
-//          await db.insert(position).values({
-//            id: randomUUID(),
-//            walletId: walletId,
-//            companyName: companyName,
-//            companySymbol: companySymbol,
-//            pricePerShare: validatedFields.data.price,
-//            quantity: validatedFields.data.shares,
-//          });
-//        },
-//        catch: (e) =>
-//          new DatabaseError({ operation: "insert position", cause: e }),
-//      })
-//    );
+    const insertData = validatedFields.data.position.map((data) => {
+      return {
+        id: randomUUID(),
+        walletId: walletId,
+        companyName: companyName,
+        companySymbol: companySymbol,
+        pricePerShare: data.price,
+        quantity: data.shares
+      }
+    })
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db.insert(position).values(insertData);
+        },
+        catch: (e) =>
+          new DatabaseError({ operation: "insert position", cause: e }),
+      })
+    );
 
     revalidatePath(`/dashboard/${walletId}`);
 

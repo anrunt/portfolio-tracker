@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 
+type FieldErrors = {
+  shares?: string;
+  price?: string;
+} | undefined;
+
 interface AddPositionInputsProps {
-  errorMessage: string;
+  errors: FieldErrors;
   onRemove: () => void;
   showRemove: boolean;
 }
 
 export default function AddPositionInputs({
-  errorMessage,
+  errors,
   onRemove,
   showRemove,
 }: AddPositionInputsProps) {
@@ -59,6 +64,13 @@ export default function AddPositionInputs({
           className="w-full px-3 py-2.5 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
           required
         />
+
+        <div>
+          {errors?.shares && (
+            <p className="text-red-500 text-sm">{errors.shares}</p>
+          )}
+        </div>
+
       </div>
 
       <div className="space-y-1.5">
@@ -77,12 +89,13 @@ export default function AddPositionInputs({
           className="w-full px-3 py-2.5 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
           required
         />
-      </div>
 
-      <div>
-        {errorMessage && (
-          <p className="text-red-500 text-sm">{errorMessage}</p>
-        )}
+        <div>
+          {errors?.price && (
+            <p className="text-red-500 text-sm">{errors.price}</p>
+          )}
+        </div>
+
       </div>
     </>
   );
