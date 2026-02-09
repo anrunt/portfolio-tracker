@@ -21,22 +21,7 @@ import {
   type WalletError,
   type PositionError,
 } from "../errors";
-
-export type FinnhubStock = {
-  description: string;
-  displaySymbol: string;
-  symbol: string;
-  type: string;
-};
-
-export type SerializedError = {
-  _tag: string;
-  name: string;
-  message: string;
-  cause?: unknown;
-  stack?: string;
-  [key: string]: unknown;
-};
+import type { FinnhubStock, SerializedError, FieldErrors } from "./types";
 
 export async function searchTicker(
   query: string,
@@ -178,9 +163,9 @@ export async function addPosition(
   companyName: string,
   companySymbol: string,
   walletId: string,
-  prevState: { message: string; success: boolean; timestamp: number },
+  prevState: { message: string; success: boolean; timestamp: number, fieldErrors: FieldErrors | undefined },
   formData: FormData
-): Promise<{ message: string; success: boolean; timestamp: number }> {
+): Promise<{ message: string; success: boolean; timestamp: number; fieldErrors: FieldErrors | undefined }> {
   const result = await addPositionResult(
     companyName,
     companySymbol,
@@ -190,8 +175,8 @@ export async function addPosition(
 
   // Need to add another field for index of the error so we know which field was bad
   return result.match({
-    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now() }),
-    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now() }),
+    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now(), fieldErrors: undefined }),
+    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now(), fieldErrors: "fieldErrors" in e ? e.fieldErrors : undefined}),
   });
 }
 
@@ -231,7 +216,7 @@ async function addPositionResult(
       companySymbol: companySymbol,
       position: positions
     });
-    
+
     // Update ValidationError, 
     // loop through error and get all errors, with fields and indexes
     // then we return it to the frontend
@@ -239,9 +224,23 @@ async function addPositionResult(
     if (!validatedFields.success) {
       console.log("Err with validating position: ", validatedFields.error.issues);
 
+      const fieldErrors = validatedFields.error.issues.reduce<FieldErrors>((acc, err) => {
+        const index = err.path[1] as number;
+        const field = err.path[2] as "shares" | "price";
+
+        if (!acc[index]) {
+          acc[index] = {};
+        }
+
+        acc[index][field] = err.message;
+
+        return acc;
+      }, {});
+
       return Result.err(
         new ValidationError({
-          message: validatedFields.error.issues[0].message,
+          message: "Invalid position data",
+          fieldErrors: fieldErrors
         })
       );
     }

@@ -10,7 +10,8 @@ import AddPositionInputs from "./add-position-inputs";
 const initialState = {
   message: "",
   success: false,
-  timestamp: 0
+  timestamp: 0,
+  fieldErrors: undefined
 };
 
 interface AddPositionProps {
