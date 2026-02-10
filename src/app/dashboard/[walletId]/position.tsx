@@ -22,6 +22,7 @@ interface PositionProps {
   quantity: number;
   pricePerShare: number;
   currency: string;
+  currentPrice?: number;
   gridLayoutClass: string;
 }
 
@@ -33,6 +34,7 @@ export default function Position({
   quantity,
   pricePerShare,
   currency,
+  currentPrice,
   gridLayoutClass,
 }: PositionProps) {
   const deletePositionWithId = deletePosition.bind(null, positionId, walletId);
@@ -49,28 +51,38 @@ export default function Position({
       <div className="text-muted-foreground text-xs truncate">
       </div>
 
-      <div className="text-right font-mono text-sm text-muted-foreground">
+      <div className="text-right font-mono text-sm text-foreground/70">
         {quantity}
       </div>
       
-      <div className="text-right font-mono text-sm text-muted-foreground">
+      <div className="text-right font-mono text-sm text-foreground">
         {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
           maximumFractionDigits: 2,
           minimumFractionDigits: 2,
         })}{" "}
-        <span className="text-[10px] text-muted-foreground/70">{currency}</span>
+        <span className="text-[10px] text-foreground/70">{currency}</span>
       </div>
 
-      <div className="text-right font-mono text-sm text-muted-foreground">
+      <div className="text-right font-mono text-sm text-foreground">
         {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
           maximumFractionDigits: 2,
           minimumFractionDigits: 2,
         })}{" "}
-        <span className="text-[10px] text-muted-foreground/70">{currency}</span>
+        <span className="text-[10px] text-foreground/70">{currency}</span>
       </div>
 
-      <div className="text-right font-mono text-sm text-muted-foreground/50">
-        N/A
+      <div className="text-right font-mono text-sm text-foreground">
+        {typeof currentPrice === "number" ? (
+          <>
+            {currentPrice.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
+              maximumFractionDigits: 2,
+              minimumFractionDigits: 2,
+            })}{" "}
+            <span className="text-[10px] text-foreground/70">{currency}</span>
+          </>
+        ) : (
+          "N/A"
+        )}
       </div>
 
       <div className="flex justify-end">

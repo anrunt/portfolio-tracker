@@ -17,6 +17,7 @@ interface MainPositionProps {
   positions: PositionData[];
   walletId: string;
   currency: string;
+  currentPrice?: number;
   gridLayoutClass: string;
 }
 
@@ -25,6 +26,7 @@ export default function MainPosition({
   positions,
   walletId,
   currency,
+  currentPrice,
   gridLayoutClass,
 }: MainPositionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -56,16 +58,22 @@ export default function MainPosition({
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="font-medium text-foreground text-lg">{companySymbol}</div>
-        <div className="text-muted-foreground truncate font-light">{companyName}</div>
-        <div className="text-right font-mono text-foreground/80">{totalQuantity}</div>
+        <div className="text-foreground/70 truncate font-light">{companyName}</div>
+        <div className="text-right font-mono text-foreground">{totalQuantity}</div>
         <div className="text-right font-mono font-medium text-foreground">
-          {formatNumber(totalValue)} <span className="text-xs text-muted-foreground">{currency}</span>
+          {formatNumber(totalValue)} <span className="text-xs text-foreground/70">{currency}</span>
         </div>
-        <div className="text-right font-mono text-muted-foreground">
-          {formatNumber(weightedAveragePrice)} <span className="text-xs text-muted-foreground/70">{currency}</span>
+        <div className="text-right font-mono text-foreground">
+          {formatNumber(weightedAveragePrice)} <span className="text-xs text-foreground/70">{currency}</span>
         </div>
-        <div className="text-right font-mono text-muted-foreground/50">
-          N/A
+        <div className="text-right font-mono text-foreground">
+          {typeof currentPrice === "number" ? (
+            <>
+              {formatNumber(currentPrice)} <span className="text-xs text-foreground/70">{currency}</span>
+            </>
+          ) : (
+            "N/A"
+          )}
         </div>
         <div className="flex justify-end">
           <ChevronDown
@@ -93,6 +101,7 @@ export default function MainPosition({
                 quantity={pos.quantity}
                 pricePerShare={pos.pricePerShare}
                 currency={currency}
+                currentPrice={currentPrice}
                 gridLayoutClass={gridLayoutClass}
               />
             ))}

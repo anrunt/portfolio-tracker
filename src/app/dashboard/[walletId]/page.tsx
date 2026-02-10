@@ -7,6 +7,8 @@ import { TrendingUp, PieChart, ArrowLeft, Wallet } from "lucide-react";
 import Link from "next/link";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getPrice } from "@/server/actions/dashboard-actions";
+import type { PriceResultData, SerializedError } from "@/server/actions/types";
+import { Result } from "better-result";
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
@@ -32,9 +34,22 @@ export default async function WalletPage({ params }: WalletPageProps) {
     (groupedPositions[pos.companySymbol] ??= []).push(pos);
   }
 
-  // Array with companySymbols and we call the api for prices
   const positionsSymbols = Object.keys(groupedPositions);
-  const serializedPrices = await getPrice(positionsSymbols, wallet.currency);
+
+  const serializedPrices = await getPrice(positionsSymbols, wallet.currency === "USD" ? "US" : "WA");
+  const deserializedPrices = Result.deserialize<PriceResultData, SerializedError>(serializedPrices);
+
+  const currentPricesBySymbol = new Map<string, number>();
+  const failedPriceSymbols = new Set<string>();
+
+  if (deserializedPrices && Result.isOk(deserializedPrices)) {
+    for (const { symbol, price } of deserializedPrices.value.prices) {
+      currentPricesBySymbol.set(symbol, price);
+    }
+    for (const { symbol } of deserializedPrices.value.failures) {
+      failedPriceSymbols.add(symbol);
+    }
+  }
 
   const totalValue = positions.reduce((sum, pos) => sum + pos.pricePerShare * pos.quantity,0);
   const totalPositions = positions.length;
@@ -138,6 +153,11 @@ export default async function WalletPage({ params }: WalletPageProps) {
                       positions={symbolPositions!}
                       walletId={wallet.id}
                       currency={wallet.currency}
+                      currentPrice={
+                        failedPriceSymbols.has(symbol)
+                          ? undefined
+                          : currentPricesBySymbol.get(symbol)
+                      }
                       gridLayoutClass={gridLayoutClass}
                     />
                   ))}

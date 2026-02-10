@@ -118,8 +118,9 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
         try: async () => {
           const promises = companySymbols.map(async (symbol) => {
             const response = await fetch(
-              `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
-            )
+              `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
+              { next: { revalidate: 60 } }
+            );
 
             if (!response.ok) {
               throw new Error(`${symbol}: HTTP ${response.status}`)
