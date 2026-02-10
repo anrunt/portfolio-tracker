@@ -1,7 +1,7 @@
 "use server";
 
 import { getSession } from "../better-auth/session";
-import { z } from "zod";
+import { promise, z } from "zod";
 import { db } from "../db";
 import { position, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
@@ -21,7 +21,7 @@ import {
   type WalletError,
   type PositionError,
 } from "../errors";
-import type { FinnhubStock, SerializedError, FieldErrors } from "./types";
+import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData } from "./types";
 
 export async function searchTicker(
   query: string,
@@ -109,6 +109,43 @@ async function getPriceResult(companySymbols: string[], exchange: string) {
     const fetchPrices = yield* Result.await(
       Result.tryPromise({
         try: async () => {
+          const promises = companySymbols.map(async (symbol) => {
+            const response = await fetch(
+              `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
+            )
+
+            if (!response.ok) {
+              throw new Error(`${symbol}: HTTP ${response.status}`)
+            }
+
+            const data = (await response.json()) as FinnhubQuote;
+
+            return {
+              symbol: symbol,
+              price: data.c
+            }
+          })
+
+          const settledPromises = await Promise.allSettled(promises);
+
+          const prices: PriceSuccess[] = [];
+          const failures: PriceFetchFailure[] = [];
+          
+          for (let i = 0; i < settledPromises.length; i++) {
+            const res = settledPromises[i];
+            if (res.status === "fulfilled") {
+              prices.push(res.value);
+            } else {
+              failures.push({
+                symbol: companySymbols[i],
+                reason: res.reason instanceof Error 
+                  ? res.reason.message
+                  : String(res.reason)
+              })
+            }
+          }
+
+          return { prices, failures } satisfies PriceResultData;
           
         },
         catch: (e) => 
@@ -118,7 +155,7 @@ async function getPriceResult(companySymbols: string[], exchange: string) {
       })
     )
 
-    return Result.ok(undefined);
+    return Result.ok(fetchPrices);
   })
 }
 

@@ -5,6 +5,32 @@ export type FinnhubStock = {
   type: string;
 };
 
+export type FinnhubQuote = {
+  c: number;  // current price
+  d: number;  // change
+  dp: number; // change percent
+  h: number;  // high
+  l: number;  // low
+  o: number;  // open
+  pc: number; // previous close
+  t: number;  // timestamp
+};
+
+export type PriceSuccess = { 
+  symbol: string; 
+  price: number; 
+};
+
+export type PriceFetchFailure = { 
+  symbol: string; 
+  reason: string; 
+};
+
+export type PriceResultData = {
+  prices: PriceSuccess[];
+  failures: PriceFetchFailure[];
+};
+
 export type SerializedError = {
   _tag: string;
   name: string;
