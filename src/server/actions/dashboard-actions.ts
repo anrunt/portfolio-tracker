@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
 import { and, eq } from "drizzle-orm";
-import { Result, SerializedResult } from "better-result";
+import { Result, SerializedErr, SerializedResult } from "better-result";
 import {
   UnauthenticatedError,
   UnauthorizedError,
@@ -20,6 +20,7 @@ import {
   type SearchTickerError,
   type WalletError,
   type PositionError,
+  PriceError,
 } from "../errors";
 import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData } from "./types";
 
@@ -59,6 +60,7 @@ async function searchTickerResult(
     const fetchResult = yield* Result.await(
       Result.tryPromise({
         try: async () => {
+          // Try to use next-fetch for cache
           const response = await fetch(
             `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=${exchange}`
           );
@@ -85,7 +87,12 @@ async function searchTickerResult(
   });
 }
 
-async function getPriceResult(companySymbols: string[], exchange: string) {
+export async function getPrice(companySymbols: string[], exchange: string): Promise<SerializedResult<PriceResultData, SerializedError>> {
+  const result = await getPriceResult(companySymbols, exchange);
+  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
+}
+
+async function getPriceResult(companySymbols: string[], exchange: string): Promise<Result<PriceResultData, PriceError>> {
   return Result.gen(async function* () {
     const session = await getSession();
     if (!session) {

@@ -6,6 +6,7 @@ import MainPosition from "./position-main";
 import { TrendingUp, PieChart, ArrowLeft, Wallet } from "lucide-react";
 import Link from "next/link";
 import { ModeToggle } from "@/components/mode-toggle";
+import { getPrice } from "@/server/actions/dashboard-actions";
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
@@ -32,6 +33,8 @@ export default async function WalletPage({ params }: WalletPageProps) {
   }
 
   // Array with companySymbols and we call the api for prices
+  const positionsSymbols = Object.keys(groupedPositions);
+  const serializedPrices = await getPrice(positionsSymbols, wallet.currency);
 
   const totalValue = positions.reduce((sum, pos) => sum + pos.pricePerShare * pos.quantity,0);
   const totalPositions = positions.length;

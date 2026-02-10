@@ -134,3 +134,9 @@ export type PositionError =
   | NotFoundError
   | ValidationError
   | DatabaseError;
+
+export type PriceError =
+  | UnauthenticatedError
+  | ConfigError
+  | ValidationError
+  | ApiError;
