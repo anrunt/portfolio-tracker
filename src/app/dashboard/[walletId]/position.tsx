@@ -40,15 +40,48 @@ export default function Position({
   const deletePositionWithId = deletePosition.bind(null, positionId, walletId);
   const totalValue = pricePerShare * quantity;
 
+  const formatNumber = (value: number) =>
+    value.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    });
+
+  const unrealizedPl =
+    typeof currentPrice === "number"
+      ? (currentPrice - pricePerShare) * quantity
+      : undefined;
+
+  const unrealizedPlPercent =
+    typeof currentPrice === "number" && pricePerShare > 0
+      ? ((currentPrice - pricePerShare) / pricePerShare) * 100
+      : undefined;
+
+  const plColor =
+    unrealizedPl !== undefined && unrealizedPl > 0
+      ? "text-emerald-600 dark:text-emerald-400"
+      : unrealizedPl !== undefined && unrealizedPl < 0
+        ? "text-red-500 dark:text-red-400"
+        : "text-muted-foreground";
+
+  const formatPl = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + formatNumber(Math.abs(value));
+  };
+
+  const formatPlPercent = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + Math.abs(value).toFixed(2) + "%";
+  };
+
   return (
     <div
       className={`w-full ${gridLayoutClass} p-4 transition-colors group/item border-b border-border/50 last:border-0 hover:bg-accent/50 dark:bg-secondary dark:hover:bg-primary/20`}
     >
-      <div className="text-muted-foreground/70 font-mono text-xs flex items-center">
+      <div className="text-muted-foreground/70 font-mono text-sm flex items-center">
         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 mr-2 group-hover/item:bg-muted-foreground/70 transition-colors" />
       </div>
       
-      <div className="text-muted-foreground text-xs truncate">
+      <div className="text-muted-foreground text-sm truncate">
       </div>
 
       <div className="text-right font-mono text-sm text-foreground/70">
@@ -56,32 +89,39 @@ export default function Position({
       </div>
       
       <div className="text-right font-mono text-sm text-foreground">
-        {totalValue.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
-          maximumFractionDigits: 2,
-          minimumFractionDigits: 2,
-        })}{" "}
+        {formatNumber(totalValue)}{" "}
         <span className="text-[10px] text-foreground/70">{currency}</span>
       </div>
 
       <div className="text-right font-mono text-sm text-foreground">
-        {pricePerShare.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
-          maximumFractionDigits: 2,
-          minimumFractionDigits: 2,
-        })}{" "}
+        {formatNumber(pricePerShare)}{" "}
         <span className="text-[10px] text-foreground/70">{currency}</span>
       </div>
 
       <div className="text-right font-mono text-sm text-foreground">
         {typeof currentPrice === "number" ? (
           <>
-            {currentPrice.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
-              maximumFractionDigits: 2,
-              minimumFractionDigits: 2,
-            })}{" "}
+            {formatNumber(currentPrice)}{" "}
             <span className="text-[10px] text-foreground/70">{currency}</span>
           </>
         ) : (
           "N/A"
+        )}
+      </div>
+
+      <div className={`text-right font-mono text-sm ${plColor}`}>
+        {typeof unrealizedPl === "number" ? (
+          <div className="flex flex-col items-end leading-snug">
+            <span>
+              {formatPl(unrealizedPl)}{" "}
+              <span className="text-[10px] text-foreground/70">{currency}</span>
+            </span>
+            {typeof unrealizedPlPercent === "number" && (
+              <span className="text-sm">{formatPlPercent(unrealizedPlPercent)}</span>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">N/A</span>
         )}
       </div>
 

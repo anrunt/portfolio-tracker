@@ -45,6 +45,33 @@ export default function MainPosition({
       minimumFractionDigits: 2,
     });
 
+  const unrealizedPl =
+    typeof currentPrice === "number"
+      ? (currentPrice - weightedAveragePrice) * totalQuantity
+      : undefined;
+
+  const unrealizedPlPercent =
+    typeof currentPrice === "number" && weightedAveragePrice > 0
+      ? ((currentPrice - weightedAveragePrice) / weightedAveragePrice) * 100
+      : undefined;
+
+  const plColor =
+    unrealizedPl !== undefined && unrealizedPl > 0
+      ? "text-emerald-600 dark:text-emerald-400"
+      : unrealizedPl !== undefined && unrealizedPl < 0
+        ? "text-red-500 dark:text-red-400"
+        : "text-muted-foreground";
+
+  const formatPl = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + formatNumber(Math.abs(value));
+  };
+
+  const formatPlPercent = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + Math.abs(value).toFixed(2) + "%";
+  };
+
   return (
     <div
       className={`group border rounded-xl overflow-hidden mb-3 transition-colors duration-300 ${
@@ -57,22 +84,37 @@ export default function MainPosition({
         className={`${gridLayoutClass} w-full p-4 cursor-pointer select-none`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="font-medium text-foreground text-lg">{companySymbol}</div>
-        <div className="text-foreground/70 truncate font-light">{companyName}</div>
-        <div className="text-right font-mono text-foreground">{totalQuantity}</div>
-        <div className="text-right font-mono font-medium text-foreground">
-          {formatNumber(totalValue)} <span className="text-xs text-foreground/70">{currency}</span>
+        <div className="font-semibold text-foreground text-sm">{companySymbol}</div>
+        <div className="text-foreground/70 truncate font-light text-sm">{companyName}</div>
+        <div className="text-right font-mono text-sm text-foreground">{totalQuantity}</div>
+        <div className="text-right font-mono font-medium text-sm text-foreground">
+          {formatNumber(totalValue)} <span className="text-[10px] text-foreground/70">{currency}</span>
         </div>
-        <div className="text-right font-mono text-foreground">
-          {formatNumber(weightedAveragePrice)} <span className="text-xs text-foreground/70">{currency}</span>
+        <div className="text-right font-mono text-sm text-foreground">
+          {formatNumber(weightedAveragePrice)} <span className="text-[10px] text-foreground/70">{currency}</span>
         </div>
-        <div className="text-right font-mono text-foreground">
+        <div className="text-right font-mono text-sm text-foreground">
           {typeof currentPrice === "number" ? (
             <>
-              {formatNumber(currentPrice)} <span className="text-xs text-foreground/70">{currency}</span>
+              {formatNumber(currentPrice)} <span className="text-[10px] text-foreground/70">{currency}</span>
             </>
           ) : (
             "N/A"
+          )}
+        </div>
+        <div className={`text-right font-mono text-sm ${plColor}`}>
+          {typeof unrealizedPl === "number" ? (
+            <div className="flex flex-col items-end leading-snug">
+              <span>
+                {formatPl(unrealizedPl)}{" "}
+                <span className="text-[10px] text-foreground/70">{currency}</span>
+              </span>
+              {typeof unrealizedPlPercent === "number" && (
+                <span className="text-sm">{formatPlPercent(unrealizedPlPercent)}</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">N/A</span>
           )}
         </div>
         <div className="flex justify-end">

@@ -1,14 +1,14 @@
 "use server";
 
 import { getSession } from "../better-auth/session";
-import { promise, z } from "zod";
+import { z } from "zod";
 import { db } from "../db";
 import { position, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
 import { and, eq } from "drizzle-orm";
-import { Result, SerializedErr, SerializedResult } from "better-result";
+import { Result,  SerializedResult } from "better-result";
 import {
   UnauthenticatedError,
   UnauthorizedError,

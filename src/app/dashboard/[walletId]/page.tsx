@@ -61,7 +61,7 @@ export default async function WalletPage({ params }: WalletPageProps) {
       minimumFractionDigits: 2,
     });
 
-  const gridLayoutClass = "grid grid-cols-[80px_2fr_100px_140px_140px_140px_60px] gap-4 items-center";
+  const gridLayoutClass = "grid grid-cols-[65px_1.5fr_65px_110px_110px_110px_150px_44px] gap-3 items-center";
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
@@ -132,6 +132,7 @@ export default async function WalletPage({ params }: WalletPageProps) {
                 <div className="text-right">Total</div>
                 <div className="text-right">Avg Price</div>
                 <div className="text-right">Current</div>
+                <div className="text-right">P/L</div>
                 <div></div>
               </div>
             </div>
