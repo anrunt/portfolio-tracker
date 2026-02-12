@@ -9,6 +9,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { getPrice } from "@/server/actions/dashboard-actions";
 import type { PriceResultData, SerializedError } from "@/server/actions/types";
 import { Result } from "better-result";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
@@ -138,33 +139,35 @@ export default async function WalletPage({ params }: WalletPageProps) {
             </div>
 
             {/* Scrollable Positions Area */}
-            <div className="h-[40vh] overflow-y-auto custom-scrollbar p-4">
-              {positions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <Wallet className="w-12 h-12 mb-4 opacity-30" />
-                  <p className="font-light">No positions yet</p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">Add your first position to get started</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-0">
-                  {Object.entries(groupedPositions).map(([symbol, symbolPositions]) => (
-                    <MainPosition
-                      key={symbol}
-                      companySymbol={symbol}
-                      positions={symbolPositions!}
-                      walletId={wallet.id}
-                      currency={wallet.currency}
-                      currentPrice={
-                        failedPriceSymbols.has(symbol)
-                          ? undefined
-                          : currentPricesBySymbol.get(symbol)
-                      }
-                      gridLayoutClass={gridLayoutClass}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <ScrollArea className="h-[40vh]">
+              <div className="p-4">
+                {positions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-[calc(40vh-2rem)] text-muted-foreground">
+                    <Wallet className="w-12 h-12 mb-4 opacity-30" />
+                    <p className="font-light">No positions yet</p>
+                    <p className="text-sm text-muted-foreground/70 mt-1">Add your first position to get started</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-0">
+                    {Object.entries(groupedPositions).map(([symbol, symbolPositions]) => (
+                      <MainPosition
+                        key={symbol}
+                        companySymbol={symbol}
+                        positions={symbolPositions!}
+                        walletId={wallet.id}
+                        currency={wallet.currency}
+                        currentPrice={
+                          failedPriceSymbols.has(symbol)
+                            ? undefined
+                            : currentPricesBySymbol.get(symbol)
+                        }
+                        gridLayoutClass={gridLayoutClass}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </div>
         </div>
       </main>

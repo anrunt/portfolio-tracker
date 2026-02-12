@@ -6,6 +6,6 @@
 add multiple positions for the same company from the Add Position dialog.
 -[] FEATURE: Realtime prices via finnhub api
   -[x] Fetch prices on server
-  -[] Show P/L
+  -[x] Show P/L
   -[] Auto refresh every 60s
 -[] FEATURE: Portfolio progress chart -> /dashboard and /dashboard/walletId for independent wallets
