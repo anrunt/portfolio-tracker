@@ -3,7 +3,7 @@ import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
 import Search from "./search";
 import MainPosition from "./position-main";
-import { TrendingUp, PieChart, ArrowLeft, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, PieChart, ArrowLeft, Wallet } from "lucide-react";
 import Link from "next/link";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getPrice } from "@/server/actions/dashboard-actions";
@@ -52,15 +52,42 @@ export default async function WalletPage({ params }: WalletPageProps) {
     }
   }
 
-  const totalValue = positions.reduce((sum, pos) => sum + pos.pricePerShare * pos.quantity,0);
+  const totalCostBasis = positions.reduce((sum, pos) => sum + pos.pricePerShare * pos.quantity, 0);
   const totalPositions = positions.length;
   const uniqueSymbols = Object.keys(groupedPositions).length;
+
+  // Calculate current market value using real-time prices
+  let totalCurrentValue = 0;
+  let hasAnyPrice = false;
+  for (const pos of positions) {
+    const livePrice = !failedPriceSymbols.has(pos.companySymbol)
+      ? currentPricesBySymbol.get(pos.companySymbol)
+      : undefined;
+    if (typeof livePrice === "number") {
+      totalCurrentValue += livePrice * pos.quantity;
+      hasAnyPrice = true;
+    } else {
+      totalCurrentValue += pos.pricePerShare * pos.quantity;
+    }
+  }
+  const totalPl = totalCurrentValue - totalCostBasis;
+  const totalPlPercent = totalCostBasis > 0 ? (totalPl / totalCostBasis) * 100 : 0;
 
   const formatCurrency = (value: number) =>
     value.toLocaleString(wallet.currency === "USD" ? "en-US" : "pl-PL", {
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
     });
+
+  const formatPl = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + formatCurrency(Math.abs(value));
+  };
+
+  const formatPlPercent = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + Math.abs(value).toFixed(2) + "%";
+  };
 
   const gridLayoutClass = "grid grid-cols-[65px_1.5fr_65px_110px_110px_110px_150px_44px] gap-3 items-center";
 
@@ -80,15 +107,61 @@ export default async function WalletPage({ params }: WalletPageProps) {
         </div>
 
         <div className="space-y-4 flex-1">
-          <div className="p-4 rounded-xl bg-card border border-border">
+          <div className="p-4 rounded-xl bg-card border border-border relative overflow-hidden">
+            {/* Accent line colored by P/L direction */}
+            {hasAnyPrice && (
+              <div
+                className={`absolute top-0 left-0 right-0 h-[2px] ${
+                  totalPl >= 0 ? "bg-emerald-500" : "bg-red-500"
+                }`}
+              />
+            )}
+
             <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider mb-2">
               <TrendingUp className="w-3.5 h-3.5" />
               Total Value
             </div>
+
+            {/* Current market value — hero number */}
             <div className="text-2xl font-semibold tabular-nums text-card-foreground">
-              {formatCurrency(totalValue)}
+              {formatCurrency(totalCurrentValue)}
               <span className="text-sm text-muted-foreground ml-1">{wallet.currency}</span>
             </div>
+
+            {/* P/L section */}
+            {hasAnyPrice && (
+              <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div
+                    className={`flex items-center gap-1 text-sm font-medium tabular-nums ${
+                      totalPl >= 0 ? "text-[#00D492]" : "text-red-500 dark:text-red-400"
+                    }`}
+                  >
+                    {totalPl >= 0 ? (
+                      <TrendingUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <TrendingDown className="w-3.5 h-3.5" />
+                    )}
+                    <span>{formatPl(totalPl)}</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ${
+                      totalPl >= 0
+                        ? "bg-[#00D492]/15 text-[#00D492]"
+                        : "bg-red-500/15 text-red-500 dark:bg-red-400/15 dark:text-red-400"
+                    }`}
+                  >
+                    {formatPlPercent(totalPlPercent)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Invested</span>
+                  <span className="tabular-nums">
+                    {formatCurrency(totalCostBasis)} {wallet.currency}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-4 rounded-xl bg-card border border-border">
