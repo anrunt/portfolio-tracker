@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
 import { and, eq } from "drizzle-orm";
-import { Result,  SerializedResult } from "better-result";
+import { Result, SerializedResult } from "better-result";
 import {
   UnauthenticatedError,
   UnauthorizedError,
@@ -119,7 +119,7 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
           const promises = companySymbols.map(async (symbol) => {
             const response = await fetch(
               `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
-              { next: { revalidate: 60 } }
+              { next: { revalidate: 60 } } // 60 for now, with tanstac query it might show outdated price but its fine - for now i want to protect my rate limits
             );
 
             if (!response.ok) {
@@ -138,7 +138,7 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
 
           const prices: PriceSuccess[] = [];
           const failures: PriceFetchFailure[] = [];
-          
+
           for (let i = 0; i < settledPromises.length; i++) {
             const res = settledPromises[i];
             if (res.status === "fulfilled") {
@@ -146,7 +146,7 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
             } else {
               failures.push({
                 symbol: companySymbols[i],
-                reason: res.reason instanceof Error 
+                reason: res.reason instanceof Error
                   ? res.reason.message
                   : String(res.reason)
               })
@@ -154,12 +154,12 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
           }
 
           return { prices, failures } satisfies PriceResultData;
-          
+
         },
-        catch: (e) => 
+        catch: (e) =>
           e instanceof ApiError
-          ? e
-          : new  ApiError({service: "Finnhub", cause: e})
+            ? e
+            : new ApiError({ service: "Finnhub", cause: e })
       })
     )
 
@@ -257,7 +257,7 @@ export async function addPosition(
 
   return result.match({
     ok: () => ({ message: "", success: true as boolean, timestamp: Date.now(), fieldErrors: undefined }),
-    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now(), fieldErrors: "fieldErrors" in e ? e.fieldErrors : undefined}),
+    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now(), fieldErrors: "fieldErrors" in e ? e.fieldErrors : undefined }),
   });
 }
 
@@ -281,9 +281,9 @@ async function addPositionResult(
     const shares = formData.getAll("shares");
     const price = formData.getAll("price");
 
-    const positions = shares.map((share, index) => ({shares: share, price: price[index]}));
+    const positions = shares.map((share, index) => ({ shares: share, price: price[index] }));
 
-//    console.log("Positions: ", positions);
+    //    console.log("Positions: ", positions);
 
     const validatedFields = positionSchema.safeParse({
       companyName: companyName,
@@ -292,7 +292,7 @@ async function addPositionResult(
     });
 
     if (!validatedFields.success) {
-//      console.log("Err with validating position: ", validatedFields.error.issues);
+      //      console.log("Err with validating position: ", validatedFields.error.issues);
 
       const fieldErrors = validatedFields.error.issues.reduce<FieldErrors>((acc, err) => {
         const index = err.path[1] as number;
