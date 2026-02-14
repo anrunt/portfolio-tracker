@@ -1,5 +1,6 @@
 import { PriceResultData } from "@/server/actions/types";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 interface UsePricesParams {
   symbols: string[];
@@ -25,5 +26,26 @@ export function usePrices({symbols, exchange, initialData} : UsePricesParams) {
     refetchInterval: 60_000
   });
 
-  // Process data into failedPriceSymbols and currentPricesBySymbol and return it
+  const { pricesBySymbol, failedSymbols } = useMemo(() => {
+    const pricesBySymbol = new Map<string, number>();
+    const failedSymbols = new Set<string>();
+
+    if (data) {
+      for (const { symbol, price } of data.prices) {
+        pricesBySymbol.set(symbol, price);
+      }
+
+      for (const { symbol } of data.failures) {
+        failedSymbols.add(symbol);
+      }
+    }
+
+    return { pricesBySymbol, failedSymbols };
+  }, [data]);
+
+  return {
+    pricesBySymbol,
+    failedSymbols,
+    dataUpdatedAt
+  }
 }
