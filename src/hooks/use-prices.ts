@@ -20,7 +20,7 @@ export function usePrices({symbols, exchange, initialData} : UsePricesParams) {
         throw new Error("Failed to fetch prices");
       }
 
-      return result.json() as Promise<PriceResultData>;
+      return await result.json() as PriceResultData;
     },
     initialData: initialData,
     refetchInterval: 60_000
