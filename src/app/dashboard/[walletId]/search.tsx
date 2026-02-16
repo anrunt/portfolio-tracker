@@ -8,25 +8,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { searchTicker } from "@/server/actions/dashboard-actions";
 import type { FinnhubStock } from "@/server/actions/types";
 import { useEffect, useRef, useState } from "react";
 import AddPosition from "./add-position";
 
-export default function Search() {
+interface SearchProps {
+  exchange: string;
+}
+
+export default function Search({ exchange }: SearchProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<FinnhubStock[] | undefined>();
   const [selectedCompany, setSelectedCompany] = useState<{name: string, symbol: string} | null>(null);
-  const [exchange, setExchange] = useState<string>("US");
   const [error, setError] = useState<string | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -120,23 +116,12 @@ export default function Search() {
         <div className="flex flex-col gap-4">
           {!selectedCompany ? (
             <>
-              <div className="flex gap-2 items-center">
-                <input
-                  className="bg-card text-card-foreground border border-border rounded-md px-3 h-9 text-sm focus:outline-none focus:border-primary w-full"
-                  type="text"
-                  placeholder="Enter company name or symbol..."
-                  onChange={printText}
-                />
-                <Select value={exchange} onValueChange={setExchange}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="Ex" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="US">US</SelectItem>
-                    <SelectItem value="WA">WA</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <input
+                className="bg-card text-card-foreground border border-border rounded-md px-3 h-9 text-sm focus:outline-none focus:border-primary w-full"
+                type="text"
+                placeholder="Enter company name or symbol..."
+                onChange={printText}
+              />
 
               {error && !isLoading && (
                 <div className="text-red-500 text-center py-2">

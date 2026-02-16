@@ -191,7 +191,7 @@ export default function WalletPositions({
           </div>
 
           <div className="flex justify-center pt-2">
-            <Search />
+            <Search exchange={exchange} />
           </div>
         </div>
       </aside>
