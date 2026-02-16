@@ -60,7 +60,6 @@ async function searchTickerResult(
     const fetchResult = yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          // Try to use next-fetch for cache
           const response = await fetch(
             `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=${exchange}`
           );
@@ -118,6 +117,8 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
         try: async () => {
           const promises = companySymbols.map(async (symbol) => {
             const response = await fetch(
+              // only for US exchange, for WA, I will use the stoq api.
+              // I need to strip the .WA from my symbols for fetching.
               `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
               { next: { revalidate: 60 } } // 60 for now, with tanstac query it might show outdated price but its fine - for now i want to protect my rate limits
             );
