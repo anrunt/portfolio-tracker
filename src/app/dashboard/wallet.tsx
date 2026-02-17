@@ -41,7 +41,7 @@ export default function Wallet({ wallet }: WalletProps) {
         <span className="text-muted-foreground">{formattedValue} {wallet.currency}</span>
       </Link>
 
-      <Dialog>
+      <Dialog key={wallet.id}>
         <div className="flex">
           <DialogTrigger asChild>
             <button
