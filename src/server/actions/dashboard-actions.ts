@@ -60,7 +60,6 @@ async function searchTickerResult(
     const fetchResult = yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          // Try to use next-fetch for cache
           const response = await fetch(
             `https://finnhub.io/api/v1/search?q=${query}&token=${FINNHUB_API_KEY}&exchange=${exchange}`
           );
@@ -116,45 +115,78 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
     const fetchPrices = yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          const promises = companySymbols.map(async (symbol) => {
+          if (exchange === "US") {
+            const promises = companySymbols.map(async (symbol) => {
+              const response = await fetch(
+                `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
+                { next: { revalidate: 60 } } // 60 for now, with tanstack query it might show outdated price but its fine - for now i want to protect my rate limits
+              );
+
+              if (!response.ok) {
+                throw new Error(`${symbol}: HTTP ${response.status}`)
+              }
+
+              const data = (await response.json()) as FinnhubQuote;
+
+              return {
+                symbol: symbol,
+                price: data.c
+              }
+            })
+            const settledPromises = await Promise.allSettled(promises);
+
+            const prices: PriceSuccess[] = [];
+            const failures: PriceFetchFailure[] = [];
+
+            for (let i = 0; i < settledPromises.length; i++) {
+              const res = settledPromises[i];
+              if (res.status === "fulfilled") {
+                prices.push(res.value);
+              } else {
+                failures.push({
+                  symbol: companySymbols[i],
+                  reason: res.reason instanceof Error
+                    ? res.reason.message
+                    : String(res.reason)
+                })
+              }
+            }
+
+            return { prices, failures } satisfies PriceResultData;
+          } else {
+            const stoqSymbols = companySymbols.map((s) => s.replace(".WA", ""));
+
             const response = await fetch(
-              `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
-              { next: { revalidate: 60 } } // 60 for now, with tanstac query it might show outdated price but its fine - for now i want to protect my rate limits
+              `https://stooq.pl/q/l/?s=${stoqSymbols.join("+")}&f=sc&e=csv`,
+              { next: { revalidate: 60 } }
             );
 
             if (!response.ok) {
-              throw new Error(`${symbol}: HTTP ${response.status}`)
+              throw new Error(`Stoq HTTP: ${response.status}`);
             }
 
-            const data = (await response.json()) as FinnhubQuote;
+            const text = await response.text();
 
-            return {
-              symbol: symbol,
-              price: data.c
+            console.log("STOQ res: ", text);
+
+            const lines = text.trim().split("\n");
+
+            const prices: PriceSuccess[] = [];
+            const failures: PriceFetchFailure[] = [];
+
+            for (const line of lines) {
+              const [stoqSymbol, priceStr] = line.split(",");
+              const originalSymbol = `${stoqSymbol}.WA`
+
+              if (priceStr === "B/D" || isNaN(Number(priceStr))) {
+                failures.push({symbol: originalSymbol, reason: "No data avaiable"})
+              } else {
+                prices.push({symbol: originalSymbol, price: Number(priceStr)})
+              }
             }
-          })
 
-          const settledPromises = await Promise.allSettled(promises);
-
-          const prices: PriceSuccess[] = [];
-          const failures: PriceFetchFailure[] = [];
-
-          for (let i = 0; i < settledPromises.length; i++) {
-            const res = settledPromises[i];
-            if (res.status === "fulfilled") {
-              prices.push(res.value);
-            } else {
-              failures.push({
-                symbol: companySymbols[i],
-                reason: res.reason instanceof Error
-                  ? res.reason.message
-                  : String(res.reason)
-              })
-            }
+            return { prices, failures } satisfies PriceResultData;
           }
-
-          return { prices, failures } satisfies PriceResultData;
-
         },
         catch: (e) =>
           e instanceof ApiError
