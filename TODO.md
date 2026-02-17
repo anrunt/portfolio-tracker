@@ -4,9 +4,10 @@
 -[x] Redesing dark-mode
 -[x] FEATURE: So its quite tedious to type every position if someone is new to the app so i think i should add a option to
 add multiple positions for the same company from the Add Position dialog.
--[] FEATURE: Realtime prices via finnhub api
+-[x] FEATURE: Realtime prices via finnhub api
   -[x] Fetch prices on server
   -[x] Show P/L
   -[x] Auto refresh every 60s (Tanstack Query)
-  -[] Polish stock exchange (stoq api)
+  -[x] Polish stock exchange (stoq api)
+-[] Add renaming wallets
 -[] FEATURE: Portfolio progress chart -> /dashboard and /dashboard/walletId for independent wallets
