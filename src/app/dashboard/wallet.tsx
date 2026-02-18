@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { deleteWallet } from "@/server/actions/dashboard-actions";
+import RenameWallet from "./rename-wallet";
 
 interface WalletProps {
   wallet: {
@@ -32,25 +33,25 @@ export default function Wallet({ wallet }: WalletProps) {
   }).format(wallet.totalValue);
 
   return (
-    <div className="w-full flex items-stretch gap-2">
+    <div className="w-full flex items-stretch justify-center gap-2">
       <Link
         href={`/dashboard/${wallet.id}`}
-        className="flex-1 px-4 py-3 border border-border rounded-md hover:bg-secondary transition-colors flex items-center justify-between"
+        className="flex h-12 flex-1 items-center justify-between rounded-md border border-border px-4 hover:bg-secondary transition-colors"
       >
         <span>{wallet.name}</span>
         <span className="text-muted-foreground">{formattedValue} {wallet.currency}</span>
       </Link>
 
+      <RenameWallet walletId={wallet.id} walletName={wallet.name} />
+
       <Dialog key={wallet.id}>
-        <div className="flex">
-          <DialogTrigger asChild>
-            <button
-              className="h-full aspect-square flex items-center justify-center rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
-            >
-              <Trash2 className="size-4.5" />
-            </button>
-          </DialogTrigger>
-        </div>
+        <DialogTrigger asChild>
+          <button
+            className="h-12 w-12 shrink-0 flex items-center justify-center rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+          >
+            <Trash2 className="size-4.5" />
+          </button>
+        </DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Wallet - {wallet.name}</DialogTitle>

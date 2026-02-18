@@ -264,6 +264,73 @@ async function addWalletResult(
   });
 }
 
+const renameWalletSchema = z.coerce
+  .string()
+  .max(50, { message: "Wallet name can't be longer than 50 characters!" });
+
+export async function renameWallet(
+  walletId: string,
+  prevState: { message: string; success: boolean; timestamp: number },
+  formData: FormData
+): Promise<{ message: string; success: boolean; timestamp: number }> {
+  const result = await renameWalletResult(formData, walletId);
+
+  return result.match({
+    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now() }),
+    err: (e) => ({ message: e.message, success: false as boolean, timestamp: Date.now() }),
+  });
+}
+
+async function renameWalletResult(formData: FormData, walletId: string): Promise<Result<void, WalletError>>{
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+    if (!userWallet) {
+      return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
+    }
+
+    const name = formData.get("name");
+
+    const parsedName = renameWalletSchema.safeParse(name);
+
+    if (!parsedName.success) {
+      return Result.err(
+        new ValidationError({
+          message: parsedName.error.issues[0].message,
+        })
+      );
+    }
+
+    if (name === userWallet.name) {
+      return Result.err(
+        new ValidationError({
+          message: "New name must be different from the current name.",
+        })
+      );
+    }
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db
+            .update(wallet)
+            .set({name: parsedName.data})
+            .where(and(eq(wallet.id, walletId), eq(wallet.userId, user.session.userId)))
+        },
+        catch: (e) => new DatabaseError({ operation: "insert wallet", cause: e }),
+      })
+    )
+
+    revalidatePath("/dashboard");
+
+    return Result.ok(undefined);
+  })
+}
+
 const positionSchema = z.object({
   companyName: z.string(),
   companySymbol: z.string(),

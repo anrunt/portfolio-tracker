@@ -16,7 +16,7 @@ export default async function Dashboard() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-[480px]">
         <h1 className="text-xl font-medium mb-8">
           Your Wallets
         </h1>
