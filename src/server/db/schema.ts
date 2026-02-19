@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index, pgEnum, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, pgEnum, doublePrecision, date, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const currencyEnum = pgEnum("currency_enum", ["USD", "PLN"]);
 
@@ -94,6 +94,30 @@ export const position = pgTable("position", {
   companySymbol: text("company_symbol").notNull(),
   pricePerShare: doublePrecision("price_per_share").notNull(),
   quantity: doublePrecision("quantity").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const walletDailySnapshot = pgTable("wallet_daily_snapshot", {
+  id: text("id").primaryKey(),
+  walletId: text("wallet_id")
+    .notNull()
+    .references(() => wallet.id, { onDelete: "cascade" }),
+  totalValue: doublePrecision("total_value").notNull(),
+  totalCostBasis: doublePrecision("total_cost_basis").notNull(),
+  snapshotDate: date("snapshot_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("wallet_daily_snapshot_wallet_date_idx").on(table.walletId, table.snapshotDate),
+]);
+
+export const walletIntradaySnapshot = pgTable("wallet_intraday_snapshot", {
+  id: text("id").primaryKey(),
+  walletId: text("wallet_id")
+    .notNull()
+    .references(() => wallet.id, { onDelete: "cascade" }),
+  totalValue: doublePrecision("total_value").notNull(),
+  totalCostBasis: doublePrecision("total_cost_basis").notNull(),
+  snapshotAt: timestamp("snapshot_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
