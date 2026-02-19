@@ -9,5 +9,5 @@ add multiple positions for the same company from the Add Position dialog.
   -[x] Show P/L
   -[x] Auto refresh every 60s (Tanstack Query)
   -[x] Polish stock exchange (stoq api)
--[] Add renaming wallets
+-[x] Add renaming wallets
 -[] FEATURE: Portfolio progress chart -> /dashboard and /dashboard/walletId for independent wallets
