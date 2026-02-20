@@ -80,8 +80,6 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
 
             const text = await response.text();
 
-            console.log("STOQ res: ", text);
-
             const lines = text.trim().split("\n");
 
             const prices: PriceSuccess[] = [];

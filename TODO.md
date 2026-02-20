@@ -11,3 +11,5 @@ add multiple positions for the same company from the Add Position dialog.
   -[x] Polish stock exchange (stoq api)
 -[x] Add renaming wallets
 -[] FEATURE: Portfolio progress chart -> /dashboard and /dashboard/walletId for independent wallets
+  -[x] Added cron portfolsio snapshots
+  -[] Added charts
