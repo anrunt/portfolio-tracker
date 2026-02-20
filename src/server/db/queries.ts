@@ -46,4 +46,28 @@ export const QUERIES = {
       .innerJoin(wallet, eq(position.walletId, wallet.id))
       .where(and(eq(position.walletId, walletId), eq(wallet.userId, userId)));
   },
+
+  getAllWalletsWithPositions: function() {
+    return db
+      .select({
+        wallet: {
+          id: wallet.id,
+          name: wallet.name,
+          userId: wallet.userId,
+          currency: wallet.currency,
+          createdAt: wallet.createdAt,
+        },
+        position: {
+          id: position.id,
+          walletId: position.walletId,
+          companyName: position.companyName,
+          companySymbol: position.companySymbol,
+          pricePerShare: position.pricePerShare,
+          quantity: position.quantity,
+          createdAt: position.createdAt,
+        },
+      })
+      .from(wallet)
+      .innerJoin(position, eq(wallet.id, position.walletId))
+  }
 };
