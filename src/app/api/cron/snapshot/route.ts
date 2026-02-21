@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
   const allFailures = [...usPriceData.failures, ...waPriceData.failures];
 
   if (allFailures.length > 0) {
-    console.warn(`[cron/snapshot] Prie fetch failrures: `, allFailures);
+    console.warn(`[cron/snapshot] Price fetch failures: `, allFailures);
   }
 
   const dailyRows = [];
