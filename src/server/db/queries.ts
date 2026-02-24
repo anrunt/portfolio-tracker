@@ -1,6 +1,6 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, gte, sql } from "drizzle-orm";
 import { db } from ".";
-import { position, wallet } from "./schema";
+import { position, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
@@ -69,5 +69,30 @@ export const QUERIES = {
       })
       .from(wallet)
       .innerJoin(position, eq(wallet.id, position.walletId))
+  },
+
+  getDailyPortfolioData: function(walletId: string, startDate: string) {
+    return db
+      .select()
+      .from(walletDailySnapshot)
+      .where(
+        and(
+          eq(walletDailySnapshot.walletId, walletId),
+          gte(walletDailySnapshot.snapshotDate, startDate)
+        )
+      )
+      .orderBy(asc(walletDailySnapshot.snapshotDate))
+  },
+
+  getIntradayPortfolioData: function(walletId: string, startOfToday: Date) {
+    return db
+      .select()
+      .from(walletIntradaySnapshot)
+      .where(
+        and(
+          eq(walletIntradaySnapshot.walletId, walletId),
+          gte(walletIntradaySnapshot.snapshotAt, startOfToday)
+        )
+      )
   }
 };

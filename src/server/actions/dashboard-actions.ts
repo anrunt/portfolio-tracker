@@ -22,7 +22,7 @@ import {
   type PositionError,
   PriceError,
 } from "../errors";
-import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData } from "./types";
+import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData, TimeRange } from "./types";
 
 export async function searchTicker(
   query: string,
@@ -524,4 +524,35 @@ export async function deletePositionResult(
 
     return Result.ok(undefined);
   });
+}
+
+export async function getWalletChartDataResult(walletId: string, range: TimeRange) {
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    if (range === "1D" || range === "3D") {
+      const start = new Date();
+      start.setUTCHours(0,0,0,0);
+
+      if (range === "3D") {
+        start.setUTCDate(start.getUTCDate() - 2);
+      }
+
+      const intradayDataRaw = await QUERIES.getIntradayPortfolioData(walletId, start);
+      if (!intradayDataRaw) {
+        return Result.err(new NotFoundError({resource: "Wallet Snapshots", id: walletId}));
+      }
+
+      const intradayData = intradayDataRaw.map((r) => ({
+        timestamp: r.snapshotAt.getTime(),
+        totalValue: r.totalValue,
+        totalCostBasis: r.totalCostBasis
+      }))
+
+      
+    }
+  })
 }
