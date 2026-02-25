@@ -527,7 +527,12 @@ export async function deletePositionResult(
   });
 }
 
-export async function getWalletChartDataResult(walletId: string, range: TimeRange): Promise<Result<ChartDataPoint[], WalletChartError>> {
+export async function getWalletChartData(walletId: string, range: TimeRange): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
+  const result = await getWalletChartDataResult(walletId, range);
+  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
+}
+
+async function getWalletChartDataResult(walletId: string, range: TimeRange): Promise<Result<ChartDataPoint[], WalletChartError>> {
   return Result.gen(async function* () {
     const user = await getSession();
     if (!user) {
