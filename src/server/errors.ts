@@ -128,6 +128,11 @@ export type WalletError =
   | ValidationError
   | DatabaseError;
 
+export type WalletChartError =
+  | UnauthenticatedError
+  | NotFoundError
+  | ValidationError
+
 export type PositionError =
   | UnauthenticatedError
   | UnauthorizedError

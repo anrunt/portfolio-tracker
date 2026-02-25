@@ -21,8 +21,9 @@ import {
   type WalletError,
   type PositionError,
   PriceError,
+  WalletChartError,
 } from "../errors";
-import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData, TimeRange } from "./types";
+import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData, TimeRange, ChartDataPoint } from "./types";
 
 export async function searchTicker(
   query: string,
@@ -526,13 +527,14 @@ export async function deletePositionResult(
   });
 }
 
-export async function getWalletChartDataResult(walletId: string, range: TimeRange) {
+export async function getWalletChartDataResult(walletId: string, range: TimeRange): Promise<Result<ChartDataPoint[], WalletChartError>> {
   return Result.gen(async function* () {
     const user = await getSession();
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
 
+    // For now only for 1D and 3D
     if (range === "1D" || range === "3D") {
       const start = new Date();
       start.setUTCHours(0,0,0,0);
@@ -550,9 +552,11 @@ export async function getWalletChartDataResult(walletId: string, range: TimeRang
         timestamp: r.snapshotAt.getTime(),
         totalValue: r.totalValue,
         totalCostBasis: r.totalCostBasis
-      }))
+      }));
 
-      
+      return Result.ok(intradayData);
+    } else {
+      return Result.err(new ValidationError({ field: "range", message: "Unsupported time range for chart data" }));
     }
   })
 }
