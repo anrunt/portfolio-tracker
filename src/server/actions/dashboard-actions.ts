@@ -554,6 +554,8 @@ export async function getWalletChartDataResult(walletId: string, range: TimeRang
         totalCostBasis: r.totalCostBasis
       }));
 
+      console.log("Intraday data: ", intradayData);
+
       return Result.ok(intradayData);
     } else {
       return Result.err(new ValidationError({ field: "range", message: "Unsupported time range for chart data" }));

@@ -54,3 +54,12 @@ export type ChartDataPoint = {
   totalValue: number;
   totalCostBasis: number;
 };
+
+export interface PositionData {
+  id: string;
+  companySymbol: string;
+  companyName: string;
+  quantity: number;
+  pricePerShare: number;
+  createdAt: Date;
+}

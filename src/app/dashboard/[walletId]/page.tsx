@@ -6,6 +6,7 @@ import type { PriceResultData } from "@/server/actions/types";
 import { Result } from "better-result";
 import type { SerializedError } from "@/server/actions/types";
 import WalletPositions from "./wallet-positions";
+import WalletSidebar from "./wallet-sidebar";
 import WalletChart from "./wallet-chart";
 
 interface WalletPageProps {
@@ -43,17 +44,22 @@ export default async function WalletPage({ params }: WalletPageProps) {
       ? deserializedPrices.value
       : { prices: [], failures: [] };
 
+  const walletProps = {
+    wallet: { id: wallet.id, name: wallet.name, currency: wallet.currency },
+    positions,
+    groupedPositions,
+    symbols: positionsSymbols,
+    exchange,
+    initialPriceData,
+  };
+
   return (
     <>
-      <WalletChart walletId={wallet.id} range={"1D"}/>
-      <WalletPositions
-        wallet={{ id: wallet.id, name: wallet.name, currency: wallet.currency }}
-        positions={positions}
-        groupedPositions={groupedPositions}
-        symbols={positionsSymbols}
-        exchange={exchange}
-        initialPriceData={initialPriceData}
-      />
+      <WalletChart walletId={wallet.id} range={"1D"} />
+      <div className="min-h-screen flex bg-background text-foreground">
+        <WalletSidebar {...walletProps} />
+        <WalletPositions {...walletProps} />
+      </div>
     </>
   );
 }
