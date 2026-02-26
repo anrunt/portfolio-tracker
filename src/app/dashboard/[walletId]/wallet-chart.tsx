@@ -1,6 +1,7 @@
 import { getWalletChartData } from "@/server/actions/dashboard-actions";
 import { ChartDataPoint, SerializedError, TimeRange } from "@/server/actions/types";
 import { Result } from "better-result";
+import WalletChartClient from "./wallet-chart-client";
 
 interface Props {
   walletId: string;
@@ -8,11 +9,6 @@ interface Props {
 }
 
 export default async function WalletChart({ walletId, range }: Props) {
-  // Fetch data 
-  // Transform it 
-  // Render chart component
-
-  // Remember to handle error
   const serialized = await getWalletChartData(walletId, range);
   const deserialized = Result.deserialize<ChartDataPoint[], SerializedError>(serialized);
 
@@ -26,7 +22,5 @@ export default async function WalletChart({ walletId, range }: Props) {
   const chartData = deserialized.value;
   console.log("Chart data: ", chartData);
 
-  return (
-    <h1>Siema</h1>
-  )
+  return <WalletChartClient data={chartData} />;
 }

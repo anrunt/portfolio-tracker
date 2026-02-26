@@ -539,14 +539,9 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
       return Result.err(new UnauthenticatedError());
     }
 
-    // For now only for 1D and 3D
-    if (range === "1D" || range === "3D") {
+    if (range === "1D") {
       const start = new Date();
       start.setUTCHours(0,0,0,0);
-
-      if (range === "3D") {
-        start.setUTCDate(start.getUTCDate() - 2);
-      }
 
       const intradayDataRaw = await QUERIES.getIntradayPortfolioData(walletId, start);
       if (!intradayDataRaw) {

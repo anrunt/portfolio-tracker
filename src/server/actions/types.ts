@@ -47,7 +47,7 @@ export type FieldErrors = {
   }
 };
 
-export type TimeRange = "1D" | "3D" | "1W" | "1M" | "3M" | "6M" | "1YR";
+export type TimeRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1YR";
 
 export type ChartDataPoint = {
   timestamp: number;

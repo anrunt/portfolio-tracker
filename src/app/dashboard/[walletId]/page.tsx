@@ -54,12 +54,12 @@ export default async function WalletPage({ params }: WalletPageProps) {
   };
 
   return (
-    <>
-      <WalletChart walletId={wallet.id} range={"1D"} />
-      <div className="min-h-screen flex bg-background text-foreground">
-        <WalletSidebar {...walletProps} />
+    <div className="min-h-screen flex bg-background text-foreground">
+      <WalletSidebar {...walletProps} />
+      <div className="flex flex-1 flex-col">
+        <WalletChart walletId={wallet.id} range={"1D"} />
         <WalletPositions {...walletProps} />
       </div>
-    </>
+    </div>
   );
 }

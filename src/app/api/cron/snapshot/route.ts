@@ -105,11 +105,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === "daily") {
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 3);
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
     await db.delete(walletIntradaySnapshot).where(
-      lte(walletIntradaySnapshot.snapshotAt, twoDaysAgo)
+      lte(walletIntradaySnapshot.snapshotAt, cutoff)
     );
   }
 
