@@ -1,6 +1,6 @@
 "use client";
 
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
+import { CartesianGrid, Line, LineChart } from "recharts";
 import { ChartDataPoint } from "@/server/actions/types";
 import {
   Card,
