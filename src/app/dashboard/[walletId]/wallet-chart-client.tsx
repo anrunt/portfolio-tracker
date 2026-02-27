@@ -39,18 +39,20 @@ interface Props {
 
 export default function WalletChartClient({ data }: Props) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Portfolio Value</CardTitle>
+    <Card className="py-4 gap-3">
+      <CardHeader className="px-5 pb-0">
+        <CardTitle className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
+          Portfolio Value
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig}>
+      <CardContent className="px-5 pb-1">
+        <ChartContainer config={chartConfig} className="aspect-5/1 w-full">
           <LineChart
             accessibilityLayer
             data={data}
-            margin={{ left: 12, right: 12 }}
+            margin={{ left: 8, right: 8, top: 4, bottom: 4 }}
           >
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <ChartTooltip
               content={
                 <ChartTooltipContent

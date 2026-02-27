@@ -57,7 +57,11 @@ export default async function WalletPage({ params }: WalletPageProps) {
     <div className="min-h-screen flex bg-background text-foreground">
       <WalletSidebar {...walletProps} />
       <div className="flex flex-1 flex-col">
-        <WalletChart walletId={wallet.id} range={"1D"} />
+        <div className="px-8 pt-8">
+          <div className="max-w-6xl mx-auto">
+            <WalletChart walletId={wallet.id} range={"1D"} />
+          </div>
+        </div>
         <WalletPositions {...walletProps} />
       </div>
     </div>
