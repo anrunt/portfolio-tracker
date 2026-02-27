@@ -94,5 +94,6 @@ export const QUERIES = {
           gte(walletIntradaySnapshot.snapshotAt, startOfToday)
         )
       )
+      .orderBy(asc(walletIntradaySnapshot.snapshotAt))
   }
 };
