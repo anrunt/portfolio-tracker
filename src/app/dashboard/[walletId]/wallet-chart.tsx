@@ -22,5 +22,5 @@ export default async function WalletChart({ walletId, range }: Props) {
   const chartData = deserialized.value;
   console.log("Chart data: ", chartData);
 
-  return <WalletChartClient data={chartData} />;
+  return <WalletChartClient walletId={walletId} range={range} data={chartData} />;
 }

@@ -1,7 +1,7 @@
 "use server";
 
 import { getSession } from "../better-auth/session";
-import { lt, z } from "zod";
+import { z } from "zod";
 import { db } from "../db";
 import { position, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
@@ -591,7 +591,6 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
         totalCostBasis: r.totalCostBasis
       }))
 
-      // For now, just return a ValidationError, placeholder for future implementation
       return Result.ok(dailyData);
     } else {
       return Result.err(new ValidationError({ field: "range", message: "Unsupported time range for chart data" }));
