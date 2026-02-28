@@ -21,8 +21,9 @@ import {
   type WalletError,
   type PositionError,
   PriceError,
+  WalletChartError,
 } from "../errors";
-import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData } from "./types";
+import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData, TimeRange, ChartDataPoint } from "./types";
 
 export async function searchTicker(
   query: string,
@@ -166,8 +167,6 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
             }
 
             const text = await response.text();
-
-            console.log("STOQ res: ", text);
 
             const lines = text.trim().split("\n");
 
@@ -526,4 +525,75 @@ export async function deletePositionResult(
 
     return Result.ok(undefined);
   });
+}
+
+export async function getWalletChartData(walletId: string, range: TimeRange): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
+  const result = await getWalletChartDataResult(walletId, range);
+  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
+}
+
+async function getWalletChartDataResult(walletId: string, range: TimeRange): Promise<Result<ChartDataPoint[], WalletChartError>> {
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    if (range === "1D") {
+      const start = new Date();
+      start.setUTCHours(0,0,0,0);
+
+      const intradayDataRaw = await QUERIES.getIntradayPortfolioData(walletId, start);
+      if (!intradayDataRaw) {
+        return Result.err(new NotFoundError({resource: "Wallet Snapshots", id: walletId}));
+      }
+
+      const intradayData = intradayDataRaw.map((r) => ({
+        timestamp: r.snapshotAt.getTime(),
+        totalValue: r.totalValue,
+        totalCostBasis: r.totalCostBasis
+      }));
+
+      console.log("Intraday data: ", intradayData);
+
+      return Result.ok(intradayData);
+    } else if (["1W", "1M", "3M", "6M", "1YR"].includes(range)) {
+      const start = new Date();
+
+      switch (range) {
+        case "1W":
+          start.setDate(start.getDate() - 7);
+          break;
+        case "1M":
+          start.setMonth(start.getMonth() - 1);
+          break;
+        case "3M":
+          start.setMonth(start.getMonth() - 3);
+          break;
+        case "6M":
+          start.setMonth(start.getMonth() - 6);
+          break;
+        case "1YR":
+          start.setFullYear(start.getFullYear() - 1);
+          break;
+      }
+
+      const startDateStr = start.toISOString().split("T")[0];
+      const dailyDataRaw = await QUERIES.getDailyPortfolioData(walletId, startDateStr);
+      if (!dailyDataRaw) {
+        return Result.err(new NotFoundError({resource: "Wallet Snapshots", id: walletId}));
+      }
+      
+      const dailyData = dailyDataRaw.map((r) => ({
+        timestamp: new Date(r.snapshotDate).getTime(),
+        label: r.snapshotDate,
+        totalValue: r.totalValue,
+        totalCostBasis: r.totalCostBasis
+      }))
+
+      return Result.ok(dailyData);
+    } else {
+      return Result.err(new ValidationError({ field: "range", message: "Unsupported time range for chart data" }));
+    }
+  })
 }

@@ -46,3 +46,21 @@ export type FieldErrors = {
     price?: string;
   }
 };
+
+export type TimeRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1YR";
+
+export type ChartDataPoint = {
+  timestamp: number;
+  label?: string;
+  totalValue: number;
+  totalCostBasis: number;
+};
+
+export interface PositionData {
+  id: string;
+  companySymbol: string;
+  companyName: string;
+  quantity: number;
+  pricePerShare: number;
+  createdAt: Date;
+}

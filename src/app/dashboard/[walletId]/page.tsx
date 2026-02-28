@@ -2,17 +2,21 @@ import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
 import { getPrice } from "@/server/actions/dashboard-actions";
-import type { PriceResultData } from "@/server/actions/types";
+import type { PriceResultData, TimeRange } from "@/server/actions/types";
 import { Result } from "better-result";
 import type { SerializedError } from "@/server/actions/types";
 import WalletPositions from "./wallet-positions";
+import WalletSidebar from "./wallet-sidebar";
+import WalletChart from "./wallet-chart";
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
+  searchParams: Promise<{ range?: TimeRange }>;
 }
 
-export default async function WalletPage({ params }: WalletPageProps) {
+export default async function WalletPage({ params, searchParams }: WalletPageProps) {
   const { walletId } = await params;
+  const range = (await searchParams).range ?? "1D"; // Default to 1 day if missing
 
   const session = await getSession();
   if (!session) {
@@ -42,14 +46,26 @@ export default async function WalletPage({ params }: WalletPageProps) {
       ? deserializedPrices.value
       : { prices: [], failures: [] };
 
+  const walletProps = {
+    wallet: { id: wallet.id, name: wallet.name, currency: wallet.currency },
+    positions,
+    groupedPositions,
+    symbols: positionsSymbols,
+    exchange,
+    initialPriceData,
+  };
+
   return (
-    <WalletPositions
-      wallet={{ id: wallet.id, name: wallet.name, currency: wallet.currency }}
-      positions={positions}
-      groupedPositions={groupedPositions}
-      symbols={positionsSymbols}
-      exchange={exchange}
-      initialPriceData={initialPriceData}
-    />
+    <div className="min-h-screen flex bg-background text-foreground">
+      <WalletSidebar {...walletProps} />
+      <div className="flex flex-1 flex-col">
+        <div className="px-8 pt-8">
+          <div className="max-w-6xl mx-auto">
+            <WalletChart walletId={wallet.id} range={range} />
+          </div>
+        </div>
+        <WalletPositions {...walletProps} />
+      </div>
+    </div>
   );
 }
