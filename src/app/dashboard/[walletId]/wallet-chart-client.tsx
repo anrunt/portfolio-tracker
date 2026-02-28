@@ -56,9 +56,18 @@ export default function WalletChartClient({ data }: Props) {
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  labelFormatter={(_, payload) =>
-                    formatTimestamp(payload[0]?.payload?.timestamp)
-                  }
+                  labelFormatter={(_, payload) => {
+                    const point = payload[0]?.payload;
+                    if (point?.label) {
+                      return new Date(point.label + "T00:00:00").toLocaleDateString([], {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                    } else {
+                      return formatTimestamp(point?.timestamp);
+                    }
+                  }}
                 />
               }
             />

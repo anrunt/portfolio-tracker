@@ -1,7 +1,7 @@
 "use server";
 
 import { getSession } from "../better-auth/session";
-import { z } from "zod";
+import { lt, z } from "zod";
 import { db } from "../db";
 import { position, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
@@ -557,6 +557,42 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
       console.log("Intraday data: ", intradayData);
 
       return Result.ok(intradayData);
+    } else if (["1W", "1M", "3M", "6M", "1YR"].includes(range)) {
+      const start = new Date();
+
+      switch (range) {
+        case "1W":
+          start.setDate(start.getDate() - 7);
+          break;
+        case "1M":
+          start.setMonth(start.getMonth() - 1);
+          break;
+        case "3M":
+          start.setMonth(start.getMonth() - 3);
+          break;
+        case "6M":
+          start.setMonth(start.getMonth() - 6);
+          break;
+        case "1YR":
+          start.setFullYear(start.getFullYear() - 1);
+          break;
+      }
+
+      const startDateStr = start.toISOString().split("T")[0];
+      const dailyDataRaw = await QUERIES.getDailyPortfolioData(walletId, startDateStr);
+      if (!dailyDataRaw) {
+        return Result.err(new NotFoundError({resource: "Wallet Snapshots", id: walletId}));
+      }
+      
+      const dailyData = dailyDataRaw.map((r) => ({
+        timestamp: new Date(r.snapshotDate).getTime(),
+        label: r.snapshotDate,
+        totalValue: r.totalValue,
+        totalCostBasis: r.totalCostBasis
+      }))
+
+      // For now, just return a ValidationError, placeholder for future implementation
+      return Result.ok(dailyData);
     } else {
       return Result.err(new ValidationError({ field: "range", message: "Unsupported time range for chart data" }));
     }

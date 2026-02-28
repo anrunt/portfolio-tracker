@@ -59,7 +59,7 @@ export default async function WalletPage({ params }: WalletPageProps) {
       <div className="flex flex-1 flex-col">
         <div className="px-8 pt-8">
           <div className="max-w-6xl mx-auto">
-            <WalletChart walletId={wallet.id} range={"1D"} />
+            <WalletChart walletId={wallet.id} range={"1W"} />
           </div>
         </div>
         <WalletPositions {...walletProps} />
