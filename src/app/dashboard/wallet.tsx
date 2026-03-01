@@ -1,10 +1,6 @@
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -19,7 +15,7 @@ interface WalletProps {
     id: string;
     name: string;
     currency: string;
-    totalValue: number 
+    totalValue: number;
   };
 }
 
@@ -33,46 +29,83 @@ export default function Wallet({ wallet }: WalletProps) {
   }).format(wallet.totalValue);
 
   return (
-    <div className="w-full flex items-stretch justify-center gap-2">
+    <div className="group w-full flex items-stretch gap-1.5">
       <Link
         href={`/dashboard/${wallet.id}`}
-        className="flex h-12 flex-1 items-center justify-between rounded-md border border-border px-4 hover:bg-secondary transition-colors"
+        className="flex h-10 flex-1 items-center justify-between rounded border border-border bg-card px-4 hover:border-primary/50 hover:bg-secondary/50 transition-all duration-150"
       >
-        <span>{wallet.name}</span>
-        <span className="text-muted-foreground">{formattedValue} {wallet.currency}</span>
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-1 rounded-full bg-primary group-hover:bg-primary transition-colors" />
+          <span className="font-(family-name:--font-jb-mono) text-[12px] text-foreground tracking-wide">
+            {wallet.name}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-(family-name:--font-jb-mono) text-[12px] tabular-nums text-muted-foreground">
+            {formattedValue}
+          </span>
+          <span className="font-(family-name:--font-jb-mono) text-[9px] text-muted-foreground font-semibold">
+            {wallet.currency}
+          </span>
+        </div>
       </Link>
 
       <RenameWallet walletId={wallet.id} walletName={wallet.name} />
 
       <Dialog key={wallet.id}>
         <DialogTrigger asChild>
-          <button
-            className="h-12 w-12 shrink-0 flex items-center justify-center rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
-          >
-            <Trash2 className="size-4.5" />
+          <button className="h-10 w-10 shrink-0 flex items-center justify-center rounded border border-destructive/30 text-destructive hover:bg-destructive/15 hover:border-destructive/50 transition-all duration-150">
+            <Trash2 className="size-3.5" />
           </button>
         </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Wallet - {wallet.name}</DialogTitle>
-            <DialogDescription className="text-md">
-              Are you sure you want to delete this wallet? This will delete <span className="font-semibold">all positions</span> in it!
-            </DialogDescription>
+
+        <DialogContent
+          className="sm:max-w-[420px] bg-background border-border/50 p-0 gap-0 overflow-hidden"
+          aria-describedby={undefined}
+        >
+          <DialogHeader className="px-6 pt-5 pb-0">
+            <DialogTitle className="font-(family-name:--font-jb-mono) text-sm font-bold tracking-wide text-foreground">
+              DELETE_WALLET
+            </DialogTitle>
+            <p className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-wider mt-1">
+              Target:{" "}
+              <span className="text-destructive font-semibold">
+                {wallet.name}
+              </span>
+            </p>
           </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <form action={deleteWalletWithId}>
-              <button
-                type="submit"
-                className="h-9 px-4 py-2 flex items-center justify-center gap-1 rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors text-sm font-medium"
-              >
-                Delete
-                <Trash2 className="size-4" />
-              </button>
-            </form>
-          </DialogFooter>
+
+          <div className="px-6 pt-4 pb-6 space-y-4">
+            <div className="rounded border border-destructive/20 bg-destructive/5 px-4 py-3">
+              <p className="font-(family-name:--font-jb-mono) text-[11px] text-foreground leading-relaxed">
+                This action will permanently delete this wallet and{" "}
+                <span className="text-destructive font-semibold">
+                  all positions
+                </span>{" "}
+                within it. This cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/30">
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-all duration-150"
+                >
+                  Cancel
+                </button>
+              </DialogTrigger>
+              <form action={deleteWalletWithId}>
+                <button
+                  type="submit"
+                  className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition-all duration-150 flex items-center gap-1.5"
+                >
+                  Delete
+                  <Trash2 className="size-3" />
+                </button>
+              </form>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
