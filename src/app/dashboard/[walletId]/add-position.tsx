@@ -1,7 +1,6 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { addPosition } from "@/server/actions/dashboard-actions";
 import { useParams } from "next/navigation";
 import AddPositionInputs from "./add-position-inputs";
@@ -10,7 +9,7 @@ const initialState = {
   message: "",
   success: false,
   timestamp: 0,
-  fieldErrors: undefined
+  fieldErrors: undefined,
 };
 
 interface AddPositionProps {
@@ -27,13 +26,23 @@ export default function AddPosition({
   onBack,
   onClose,
 }: AddPositionProps) {
-  const { walletId } = useParams<{walletId: string}>();
+  const { walletId } = useParams<{ walletId: string }>();
 
-  const addPositionData = addPosition.bind(null, selectedCompany.name, selectedCompany.symbol, walletId);
+  const addPositionData = addPosition.bind(
+    null,
+    selectedCompany.name,
+    selectedCompany.symbol,
+    walletId
+  );
 
-  const [state, formAction, pending] = useActionState(addPositionData, initialState);
+  const [state, formAction, pending] = useActionState(
+    addPositionData,
+    initialState
+  );
 
-  const [positionIds, setPositionIds] = useState<string[]>([crypto.randomUUID()]);
+  const [positionIds, setPositionIds] = useState<string[]>([
+    crypto.randomUUID(),
+  ]);
 
   function addPositionRow() {
     setPositionIds((prev) => [...prev, crypto.randomUUID()]);
@@ -56,13 +65,13 @@ export default function AddPosition({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="p-1 hover:bg-muted rounded-md transition-colors"
+          className="p-1 hover:bg-muted rounded transition-colors"
           aria-label="Go back to search"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -74,8 +83,11 @@ export default function AddPosition({
             <path d="M12 19l-7-7 7-7" />
           </svg>
         </button>
-        <p className="text-base text-muted-foreground">
-          Adding position for <span className="font-mono font-semibold text-foreground">{selectedCompany.symbol}</span>
+        <p className="font-(family-name:--font-jb-mono) text-[11px] text-muted-foreground tracking-wider">
+          Adding position for{" "}
+          <span className="font-semibold text-foreground">
+            {selectedCompany.symbol}
+          </span>
         </p>
       </div>
 
@@ -84,9 +96,9 @@ export default function AddPosition({
           {positionIds.map((id, index) => (
             <div key={id}>
               {index > 0 && (
-                <div className="border-t border-border/50 my-2" />
+                <div className="border-t border-border/30 my-2" />
               )}
-              <AddPositionInputs 
+              <AddPositionInputs
                 errors={state.fieldErrors?.[index]}
                 onRemove={() => removePositionRow(id)}
                 showRemove={positionIds.length > 1}
@@ -95,13 +107,22 @@ export default function AddPosition({
           ))}
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
-          <Button onClick={() => addPositionRow()} disabled={pending} type="button" variant="outline" >
-            Another position
-          </Button>
-          <Button disabled={pending} type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
-            Add
-          </Button>
+        <div className="flex justify-end gap-2 pt-2 border-t border-border/30">
+          <button
+            onClick={() => addPositionRow()}
+            disabled={pending}
+            type="button"
+            className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            + Another
+          </button>
+          <button
+            disabled={pending}
+            type="submit"
+            className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/60 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {pending ? "Adding..." : "Add"}
+          </button>
         </div>
       </form>
     </div>

@@ -1,3 +1,4 @@
+import { JetBrains_Mono } from "next/font/google";
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
@@ -6,8 +7,13 @@ import type { PriceResultData, TimeRange } from "@/server/actions/types";
 import { Result } from "better-result";
 import type { SerializedError } from "@/server/actions/types";
 import WalletPositions from "./wallet-positions";
-import WalletSidebar from "./wallet-sidebar";
+import WalletHeader from "./wallet-header";
 import WalletChart from "./wallet-chart";
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jb-mono",
+});
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
@@ -16,7 +22,7 @@ interface WalletPageProps {
 
 export default async function WalletPage({ params, searchParams }: WalletPageProps) {
   const { walletId } = await params;
-  const range = (await searchParams).range ?? "1D"; // Default to 1 day if missing
+  const range = (await searchParams).range ?? "1D";
 
   const session = await getSession();
   if (!session) {
@@ -56,16 +62,25 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
   };
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground">
-      <WalletSidebar {...walletProps} />
-      <div className="flex flex-1 flex-col">
-        <div className="px-8 pt-8">
-          <div className="max-w-6xl mx-auto">
-            <WalletChart walletId={wallet.id} range={range} />
-          </div>
-        </div>
+    <div className={`${mono.variable} min-h-screen bg-background relative`}>
+      <div
+        className="fixed inset-0 opacity-[0.025] pointer-events-none dark:opacity-[0.04]"
+        style={{
+          backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.3) 1px, transparent 1px),
+                            linear-gradient(90deg, hsl(var(--foreground) / 0.3) 1px, transparent 1px)`,
+          backgroundSize: "48px 48px",
+        }}
+      />
+
+      <WalletHeader {...walletProps} />
+
+      <main className="relative max-w-7xl mx-auto px-6 py-8 space-y-6">
+        <section className="rounded-lg border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
+          <WalletChart walletId={wallet.id} range={range} />
+        </section>
+
         <WalletPositions {...walletProps} />
-      </div>
+      </main>
     </div>
   );
 }

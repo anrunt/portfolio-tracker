@@ -15,12 +15,15 @@ export default async function WalletChart({ walletId, range }: Props) {
   if (!deserialized || Result.isError(deserialized)) {
     const error = deserialized ? deserialized.error : {message: "Unknown error"};
     return (
-      <p>Error loading chart: {error.message}</p>
-    )
+      <div className="px-5 py-8 text-center">
+        <p className="font-(family-name:--font-jb-mono) text-[11px] text-destructive tracking-wider">
+          ERROR: {error.message}
+        </p>
+      </div>
+    );
   }
 
   const chartData = deserialized.value;
-  console.log("Chart data: ", chartData);
 
   return <WalletChartClient walletId={walletId} range={range} data={chartData} />;
 }
