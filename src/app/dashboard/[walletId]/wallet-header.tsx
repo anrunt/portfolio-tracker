@@ -55,7 +55,7 @@ export default function WalletHeader({
             className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors group"
           >
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="font-(family-name:--font-jb-mono) text-[10px] tracking-[0.1em] uppercase">
+            <span className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase">
               Back
             </span>
           </Link>
