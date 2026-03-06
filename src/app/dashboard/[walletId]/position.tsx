@@ -4,12 +4,10 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { deletePosition } from "@/server/actions/dashboard-actions";
 
