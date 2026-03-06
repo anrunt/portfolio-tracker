@@ -539,6 +539,11 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
       return Result.err(new UnauthenticatedError());
     }
 
+    const isUserWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+    if (!isUserWallet) {
+      return Result.err(new UnauthorizedError({ resource: `wallet ${walletId}` }))
+    }
+
     if (range === "1D") {
       const start = new Date();
       start.setUTCHours(0,0,0,0);

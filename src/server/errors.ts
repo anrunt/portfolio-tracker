@@ -132,6 +132,7 @@ export type WalletChartError =
   | UnauthenticatedError
   | NotFoundError
   | ValidationError
+  | UnauthorizedError
 
 export type PositionError =
   | UnauthenticatedError
