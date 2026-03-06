@@ -1,12 +1,9 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -58,7 +55,7 @@ export default function Position({
 
   const plColor =
     unrealizedPl !== undefined && unrealizedPl > 0
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-emerald-500"
       : unrealizedPl !== undefined && unrealizedPl < 0
         ? "text-red-500 dark:text-red-400"
         : "text-muted-foreground";
@@ -75,86 +72,118 @@ export default function Position({
 
   return (
     <div
-      className={`w-full ${gridLayoutClass} p-4 transition-colors group/item border-b border-border/50 last:border-0 hover:bg-accent/50 dark:bg-secondary dark:hover:bg-primary/20`}
+      className={`w-full ${gridLayoutClass} px-4 py-2 transition-colors group/item border-b border-border/50 last:border-0 hover:bg-primary/5`}
     >
-      <div className="text-muted-foreground/70 font-mono text-sm flex items-center">
-        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 mr-2 group-hover/item:bg-muted-foreground/70 transition-colors" />
-      </div>
-      
-      <div className="text-muted-foreground text-sm truncate">
+      <div className="font-(family-name:--font-jb-mono) text-[11px] text-muted-foreground/50 flex items-center">
+        <div className="w-1 h-1 rounded-full bg-muted-foreground/30 mr-2 group-hover/item:bg-muted-foreground/60 transition-colors" />
       </div>
 
-      <div className="text-right font-mono text-sm text-foreground/70">
+      <div className="font-(family-name:--font-jb-mono) text-[11px] text-muted-foreground/50 truncate"></div>
+
+      <div className="text-right font-(family-name:--font-jb-mono) text-[11px] tabular-nums text-foreground/60">
         {quantity}
       </div>
-      
-      <div className="text-right font-mono text-sm text-foreground">
+
+      <div className="text-right font-(family-name:--font-jb-mono) text-[11px] tabular-nums text-foreground/70">
         {formatNumber(totalValue)}{" "}
-        <span className="text-[10px] text-foreground/70">{currency}</span>
+        <span className="text-[9px] text-muted-foreground font-semibold">
+          {currency}
+        </span>
       </div>
 
-      <div className="text-right font-mono text-sm text-foreground">
+      <div className="text-right font-(family-name:--font-jb-mono) text-[11px] tabular-nums text-foreground/70">
         {formatNumber(pricePerShare)}{" "}
-        <span className="text-[10px] text-foreground/70">{currency}</span>
+        <span className="text-[9px] text-muted-foreground font-semibold">
+          {currency}
+        </span>
       </div>
 
-      <div className="text-right font-mono text-sm text-foreground">
+      <div className="text-right font-(family-name:--font-jb-mono) text-[11px] tabular-nums text-foreground/70">
         {typeof currentPrice === "number" ? (
           <>
             {formatNumber(currentPrice)}{" "}
-            <span className="text-[10px] text-foreground/70">{currency}</span>
+            <span className="text-[9px] text-muted-foreground font-semibold">
+              {currency}
+            </span>
           </>
         ) : (
-          "N/A"
+          <span className="text-muted-foreground/40">N/A</span>
         )}
       </div>
 
-      <div className={`text-right font-mono text-sm ${plColor}`}>
+      <div
+        className={`text-right font-(family-name:--font-jb-mono) text-[11px] tabular-nums ${plColor}`}
+      >
         {typeof unrealizedPl === "number" ? (
           <div className="flex flex-col items-end leading-snug">
             <span>
               {formatPl(unrealizedPl)}{" "}
-              <span className="text-[10px] text-foreground/70">{currency}</span>
+              <span className="text-[9px] text-muted-foreground font-semibold">
+                {currency}
+              </span>
             </span>
             {typeof unrealizedPlPercent === "number" && (
-              <span className="text-sm">{formatPlPercent(unrealizedPlPercent)}</span>
+              <span className="text-[10px]">
+                {formatPlPercent(unrealizedPlPercent)}
+              </span>
             )}
           </div>
         ) : (
-          <span className="text-muted-foreground">N/A</span>
+          <span className="text-muted-foreground/40">N/A</span>
         )}
       </div>
 
       <div className="flex justify-end">
         <Dialog>
           <DialogTrigger asChild>
-            <button
-              className="flex items-center justify-center text-muted-foreground/70 hover:text-destructive transition-colors shrink-0 p-2"
-            >
-              <Trash2 className="size-4" />
+            <button className="flex items-center justify-center text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 p-1">
+              <Trash2 className="size-3.5" />
             </button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Position - {companySymbol}</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this position?
-              </DialogDescription>
+          <DialogContent
+            className="sm:max-w-[420px] bg-background border-border/50 p-0 gap-0 overflow-hidden"
+            aria-describedby={undefined}
+          >
+            <DialogHeader className="px-6 pt-5 pb-0">
+              <DialogTitle className="font-(family-name:--font-jb-mono) text-sm font-bold tracking-wide text-foreground">
+                DELETE_POSITION
+              </DialogTitle>
+              <p className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-wider mt-1">
+                Target:{" "}
+                <span className="text-destructive font-semibold">
+                  {companySymbol}
+                </span>
+              </p>
             </DialogHeader>
-            <DialogFooter className="gap-2">
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <form action={deletePositionWithId}>
-                <button
-                  type="submit"
-                  className="h-9 px-4 py-2 flex items-center justify-center gap-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-sm font-medium w-full sm:w-auto"
-                >
-                  Delete
-                  <Trash2 className="size-4" />
-                </button>
-              </form>
-            </DialogFooter>
+
+            <div className="px-6 pt-4 pb-6 space-y-4">
+              <div className="rounded border border-destructive/20 bg-destructive/5 px-4 py-3">
+                <p className="font-(family-name:--font-jb-mono) text-[11px] text-foreground leading-relaxed">
+                  This action will permanently delete this position. This cannot
+                  be undone.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border/30">
+                <DialogClose asChild>
+                  <button
+                    type="button"
+                    className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-all duration-150"
+                  >
+                    Cancel
+                  </button>
+                </DialogClose>
+                <form action={deletePositionWithId}>
+                  <button
+                    type="submit"
+                    className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition-all duration-150 flex items-center gap-1.5"
+                  >
+                    Delete
+                    <Trash2 className="size-3" />
+                  </button>
+                </form>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

@@ -35,9 +35,13 @@ export default function MainPosition({
 
   const totalQuantity = positions.reduce((sum, pos) => sum + pos.quantity, 0);
 
-  const totalValue = positions.reduce((sum, pos) => sum + pos.pricePerShare * pos.quantity,0);
+  const totalValue = positions.reduce(
+    (sum, pos) => sum + pos.pricePerShare * pos.quantity,
+    0
+  );
 
-  const weightedAveragePrice = totalQuantity > 0 ? totalValue / totalQuantity : 0;
+  const weightedAveragePrice =
+    totalQuantity > 0 ? totalValue / totalQuantity : 0;
 
   const formatNumber = (value: number) =>
     value.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
@@ -57,7 +61,7 @@ export default function MainPosition({
 
   const plColor =
     unrealizedPl !== undefined && unrealizedPl > 0
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-emerald-500"
       : unrealizedPl !== undefined && unrealizedPl < 0
         ? "text-red-500 dark:text-red-400"
         : "text-muted-foreground";
@@ -74,53 +78,77 @@ export default function MainPosition({
 
   return (
     <div
-      className={`group border rounded-xl overflow-hidden mb-3 transition-colors duration-300 ${
+      className={`group border rounded overflow-hidden mb-1 transition-all duration-150 ${
         isExpanded
-          ? "border-primary bg-card dark:bg-background"
-          : "border-border bg-card dark:bg-background hover:border-muted-foreground/50 dark:hover:border-primary/50"
+          ? "border-primary/50 bg-card/60"
+          : "border-border bg-card/30 hover:border-primary/50"
       }`}
     >
       <div
-        className={`${gridLayoutClass} w-full p-4 cursor-pointer select-none`}
+        className={`${gridLayoutClass} w-full px-4 py-2.5 cursor-pointer select-none`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="font-semibold text-foreground text-sm">{companySymbol}</div>
-        <div className="text-foreground/70 truncate font-light text-sm">{companyName}</div>
-        <div className="text-right font-mono text-sm text-foreground">{totalQuantity}</div>
-        <div className="text-right font-mono font-medium text-sm text-foreground">
-          {formatNumber(totalValue)} <span className="text-[10px] text-foreground/70">{currency}</span>
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-1 rounded-full bg-primary group-hover:bg-primary transition-colors" />
+          <span className="font-(family-name:--font-jb-mono) text-[12px] font-bold text-foreground tracking-wide">
+            {companySymbol}
+          </span>
         </div>
-        <div className="text-right font-mono text-sm text-foreground">
-          {formatNumber(weightedAveragePrice)} <span className="text-[10px] text-foreground/70">{currency}</span>
+        <div className="font-(family-name:--font-jb-mono) text-[12px] text-foreground/60 truncate">
+          {companyName}
         </div>
-        <div className="text-right font-mono text-sm text-foreground">
+        <div className="text-right font-(family-name:--font-jb-mono) text-[12px] tabular-nums text-foreground">
+          {totalQuantity}
+        </div>
+        <div className="text-right font-(family-name:--font-jb-mono) text-[12px] tabular-nums font-medium text-foreground">
+          {formatNumber(totalValue)}{" "}
+          <span className="text-[9px] text-muted-foreground font-semibold">
+            {currency}
+          </span>
+        </div>
+        <div className="text-right font-(family-name:--font-jb-mono) text-[12px] tabular-nums text-foreground">
+          {formatNumber(weightedAveragePrice)}{" "}
+          <span className="text-[9px] text-muted-foreground font-semibold">
+            {currency}
+          </span>
+        </div>
+        <div className="text-right font-(family-name:--font-jb-mono) text-[12px] tabular-nums text-foreground">
           {typeof currentPrice === "number" ? (
             <>
-              {formatNumber(currentPrice)} <span className="text-[10px] text-foreground/70">{currency}</span>
+              {formatNumber(currentPrice)}{" "}
+              <span className="text-[9px] text-muted-foreground font-semibold">
+                {currency}
+              </span>
             </>
           ) : (
-            "N/A"
+            <span className="text-muted-foreground/40">N/A</span>
           )}
         </div>
-        <div className={`text-right font-mono text-sm ${plColor}`}>
+        <div
+          className={`text-right font-(family-name:--font-jb-mono) text-[12px] tabular-nums ${plColor}`}
+        >
           {typeof unrealizedPl === "number" ? (
             <div className="flex flex-col items-end leading-snug">
               <span>
                 {formatPl(unrealizedPl)}{" "}
-                <span className="text-[10px] text-foreground/70">{currency}</span>
+                <span className="text-[9px] text-muted-foreground font-semibold">
+                  {currency}
+                </span>
               </span>
               {typeof unrealizedPlPercent === "number" && (
-                <span className="text-sm">{formatPlPercent(unrealizedPlPercent)}</span>
+                <span className="text-[11px]">
+                  {formatPlPercent(unrealizedPlPercent)}
+                </span>
               )}
             </div>
           ) : (
-            <span className="text-muted-foreground">N/A</span>
+            <span className="text-muted-foreground/40">N/A</span>
           )}
         </div>
         <div className="flex justify-end">
           <ChevronDown
-            className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${
-              isExpanded ? "rotate-180 text-foreground" : ""
+            className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${
+              isExpanded ? "rotate-180 text-primary" : ""
             }`}
           />
         </div>
@@ -132,7 +160,7 @@ export default function MainPosition({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="flex flex-col border-t border-border">
+          <div className="flex flex-col border-t border-border/50">
             {positions.map((pos) => (
               <Position
                 key={pos.id}
