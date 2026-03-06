@@ -19,7 +19,7 @@ interface Props {
   }>;
 }
 
-export default function DashboardV1({ wallets }: Props) {
+export default function Dashboard({ wallets }: Props) {
   const totalsByCurrency: Record<string, number> = {};
   for (const w of wallets) {
     totalsByCurrency[w.currency] =
@@ -81,8 +81,8 @@ export default function DashboardV1({ wallets }: Props) {
       </header>
 
       <main className="relative max-w-7xl mx-auto px-6 py-8 space-y-6">
-        <section className="rounded-lg border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden">
-          <div className="px-5 py-2.5 border-b border-border/30 flex items-center justify-between">
+        <section className="rounded-lg border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
+          <div className="px-5 py-2.5 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
               <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
@@ -142,7 +142,7 @@ export default function DashboardV1({ wallets }: Props) {
           </div>
 
           {wallets.length === 0 ? (
-            <div className="py-20 text-center border border-dashed border-border/40 rounded-lg">
+            <div className="py-20 text-center border border-dashed border-border/70 rounded-lg">
               <p className="font-(family-name:--font-jb-mono) text-xs text-muted-foreground/40 tracking-wider">
                 NO_WALLETS_FOUND
               </p>

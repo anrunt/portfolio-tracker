@@ -1,9 +1,9 @@
 import { getSession } from "@/server/better-auth/session";
 import { redirect } from "next/navigation";
 import { QUERIES } from "@/server/db/queries";
-import DashboardLayout from "./dashboard-v1";
+import Dashboard from "./dashboard";
 
-export default async function Dashboard() {
+export default async function DashboardPage() {
   const session = await getSession();
   if (!session) {
     redirect("/login");
@@ -18,5 +18,5 @@ export default async function Dashboard() {
     totalValue: w.totalValue,
   }));
 
-  return <DashboardLayout wallets={wallets} />;
+  return <Dashboard wallets={wallets} />;
 }
