@@ -602,3 +602,74 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
     }
   })
 }
+
+export async function getAllWalletsPortfolioData(range: TimeRange): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
+  const result = await getAllWalletsPortfolioDataResult(range);
+  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
+}
+
+async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Result<ChartDataPoint[], WalletChartError>>{
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    if (range === "1D") {
+      const start = new Date();
+      start.setUTCHours(0,0,0,0);
+
+      const intradayPortfolioDataRaw = await QUERIES.getAllWalletsIntradayPortfolioData(user.session.userId, start);
+      if (!intradayPortfolioDataRaw) {
+        return Result.err(new NotFoundError({resource: "Wallet Snapshots"}));
+      }
+
+      const intradayData = intradayPortfolioDataRaw.map((r) => ({
+        timestamp: r.snapshotAt.getTime(),
+        totalValue: r.totalValue,
+        totalCostBasis: r.totalCostBasis
+      }));
+
+      console.log("Intraday data: ", intradayData);
+
+      return Result.ok(intradayData);
+    } else if (["1W", "1M", "3M", "6M", "1YR"].includes(range)) {
+      const start = new Date();
+
+      switch (range) {
+        case "1W":
+          start.setDate(start.getDate() - 7);
+          break;
+        case "1M":
+          start.setMonth(start.getMonth() - 1);
+          break;
+        case "3M":
+          start.setMonth(start.getMonth() - 3);
+          break;
+        case "6M":
+          start.setMonth(start.getMonth() - 6);
+          break;
+        case "1YR":
+          start.setFullYear(start.getFullYear() - 1);
+          break;
+      }
+
+      const startDateStr = start.toISOString().split("T")[0];
+      const dailyPortfolioDataRaw = await QUERIES.getAllWalletsDailyPortfolioData(user.session.userId, startDateStr);
+      if (!dailyPortfolioDataRaw) {
+        return Result.err(new NotFoundError({resource: "Wallet Snapshots"}));
+      }
+      
+      const dailyData = dailyPortfolioDataRaw.map((r) => ({
+        timestamp: new Date(r.snapshotDate).getTime(),
+        label: r.snapshotDate,
+        totalValue: r.totalValue,
+        totalCostBasis: r.totalCostBasis
+      }))
+
+      return Result.ok(dailyData);
+    } else {
+      return Result.err(new ValidationError({ field: "range", message: "Unsupported time range for chart data" }));
+    }
+  })
+}

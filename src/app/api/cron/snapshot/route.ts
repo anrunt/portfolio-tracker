@@ -66,6 +66,10 @@ export async function GET(request: NextRequest) {
   const dailyRows = [];
   const intradayRows = [];
 
+  // This is to make sql aggregation work when we query portfolio data for all wallets - the date will be exactly the same in each snapshot
+  const snapshotAt = new Date();
+  const snapshotDate = new Date().toISOString().split("T")[0];
+
   walletLoop: for (const [walletId, data] of Object.entries(grouped)) {
     let totalValue = 0;
     let totalCostBasis = 0;
@@ -81,9 +85,9 @@ export async function GET(request: NextRequest) {
     }
     
     if (type === "daily") {
-      dailyRows.push({ id: crypto.randomUUID(), walletId, totalValue, totalCostBasis, snapshotDate: new Date().toISOString().split("T")[0] });
+      dailyRows.push({ id: crypto.randomUUID(), walletId, totalValue, totalCostBasis, snapshotDate: snapshotDate });
     } else {
-      intradayRows.push({ id: crypto.randomUUID(), walletId, totalValue, totalCostBasis, snapshotAt: new Date() });
+      intradayRows.push({ id: crypto.randomUUID(), walletId, totalValue, totalCostBasis, snapshotAt: snapshotAt });
     }
   };
 
