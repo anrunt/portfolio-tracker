@@ -78,7 +78,7 @@ export default function Wallet({ wallet }: WalletProps) {
           <div className="px-6 pt-4 pb-6 space-y-4">
             <div className="rounded border border-destructive/20 bg-destructive/5 px-4 py-3">
               <p className="font-(family-name:--font-jb-mono) text-[11px] text-foreground leading-relaxed">
-                This action will permanently delete this wallet and{" "}
+                This action will delete this wallet and{" "}
                 <span className="text-destructive font-semibold">
                   all positions
                 </span>{" "}

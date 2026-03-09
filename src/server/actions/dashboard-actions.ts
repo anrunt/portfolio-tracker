@@ -460,7 +460,10 @@ export async function deleteWalletResult(
       Result.tryPromise({
         try: async () => {
           await db
-            .delete(wallet)
+            .update(wallet)
+            .set({
+              deletedAt: new Date()
+            })
             .where(
               and(
                 eq(wallet.id, walletId),

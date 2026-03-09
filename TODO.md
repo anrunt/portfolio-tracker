@@ -13,7 +13,7 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] FEATURE: Portfolio progress chart -> /dashboard and /dashboard/walletId for independent wallets
   -[x] Added cron portfolsio snapshots
   -[x] Added charts
--[] FEATURE: Soft-deleting wallets -> now when user deletes wallet, all snapshots are deleted which is not an expected behavior due to fact that we want to preserve portfolio historic performance and still show it on charts even though the wallet was deleted
-  -[] Add a deleted_at flag to wallet table -> null (not deleted) | date (deleted)
-  -[] Update wallet deletion logic from db.delete to db.update
-  -[] Update the queries to exclude soft deleted wallets
+-[x] FEATURE: Soft-deleting wallets -> now when user deletes wallet, all snapshots are deleted which is not an expected behavior due to fact that we want to preserve portfolio historic performance and still show it on charts even though the wallet was deleted
+  -[x] Add a deleted_at flag to wallet table -> null (not deleted) | date (deleted)
+  -[x] Update wallet deletion logic from db.delete to db.update
+  -[x] Update the queries to exclude soft deleted wallets

@@ -82,6 +82,7 @@ export const wallet = pgTable("wallet", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   currency: currencyEnum("currency").notNull(),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

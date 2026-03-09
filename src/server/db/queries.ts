@@ -1,10 +1,13 @@
-import { and, asc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from ".";
 import { position, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
-    return db.select().from(wallet).where(eq(wallet.userId, userId));
+    return db
+      .select()
+      .from(wallet)
+      .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)));
   },
 
   getWalletsWithTotalValue: function (userId: string) {
@@ -19,7 +22,7 @@ export const QUERIES = {
       })
       .from(wallet)
       .leftJoin(position, eq(wallet.id, position.walletId))
-      .where(eq(wallet.userId, userId))
+      .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)))
       .groupBy(wallet.id)
   },
 
@@ -27,7 +30,7 @@ export const QUERIES = {
     return db
       .select()
       .from(wallet)
-      .where(and(eq(wallet.id, walletId), eq(wallet.userId, userId)))
+      .where(and(eq(wallet.id, walletId), eq(wallet.userId, userId), isNull(wallet.deletedAt)))
       .limit(1)
       .then((result) => result[0]);
   },
@@ -44,7 +47,7 @@ export const QUERIES = {
       })
       .from(position)
       .innerJoin(wallet, eq(position.walletId, wallet.id))
-      .where(and(eq(position.walletId, walletId), eq(wallet.userId, userId)));
+      .where(and(eq(position.walletId, walletId), eq(wallet.userId, userId), isNull(wallet.deletedAt)));
   },
 
   getAllWalletsWithPositions: function() {
@@ -69,6 +72,7 @@ export const QUERIES = {
       })
       .from(wallet)
       .innerJoin(position, eq(wallet.id, position.walletId))
+      .where(isNull(wallet.deletedAt))
   },
 
   getDailyPortfolioData: function(walletId: string, startDate: string) {
@@ -109,7 +113,7 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
-          gte(walletIntradaySnapshot.snapshotAt, startOfToday)
+          gte(walletIntradaySnapshot.snapshotAt, startOfToday),
         )
       )
       .groupBy(walletIntradaySnapshot.snapshotAt)
@@ -128,7 +132,7 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
-          gte(walletDailySnapshot.snapshotDate, startDate)
+          gte(walletDailySnapshot.snapshotDate, startDate),
         )
       )
       .groupBy(walletDailySnapshot.snapshotDate)
