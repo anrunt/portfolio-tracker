@@ -123,13 +123,11 @@ export default function Search({ exchange }: SearchProps) {
             {selectedCompany ? "ADD_POSITION" : "SEARCH_COMPANY"}
           </DialogTitle>
           <p className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-wider mt-1">
-            {selectedCompany
-              ? `Adding to ${selectedCompany.symbol}`
-              : "Find a company to add to your portfolio"}
+            {!selectedCompany && "Find a company to add to your portfolio"}
           </p>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 px-6 pt-4 pb-6">
+        <div className={`flex flex-col gap-4 px-6 pb-6 ${selectedCompany ? "pt-1" : "pt-4"}`}>
           {!selectedCompany ? (
             <>
               <input
