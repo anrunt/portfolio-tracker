@@ -1,13 +1,8 @@
-import { Result, SerializedResult } from "better-result";
+import { Result } from "better-result";
 import { FinnhubQuote, PriceFetchFailure, PriceResultData, PriceSuccess, SerializedError } from "../actions/types";
 import { ApiError, ConfigError, PriceError, ValidationError } from "../errors";
 
-export async function getPriceInternal(companySymbols: string[], exchange: string): Promise<SerializedResult<PriceResultData, SerializedError>> {
-  const result = await getPriceResult(companySymbols, exchange);
-  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
-}
-
-async function getPriceResult(companySymbols: string[], exchange: string): Promise<Result<PriceResultData, PriceError>> {
+export async function getPriceInternalResult(companySymbols: string[], exchange: string): Promise<Result<PriceResultData, PriceError>> {
   return Result.gen(async function* () {
     const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
     if (!FINNHUB_API_KEY) {

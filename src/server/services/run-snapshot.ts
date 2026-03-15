@@ -1,5 +1,5 @@
 import { QUERIES } from "../db/queries";
-import { getPriceInternal } from "./snapshot";
+import { getPriceInternalResult } from "./snapshot";
 import { db } from "../db";
 import { walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
 import { lte, sql } from "drizzle-orm";
@@ -44,8 +44,8 @@ export async function runSnapshot(type: "daily" | "intraday") {
   const walletCount = Object.keys(grouped).length;
   console.log(`[cron/snapshot] Starting ${type} run: ${walletCount} wallets, ${US_Symbols.size} US symbols, ${WA_Symbols.size} WA symbols`);
 
-  const usPriceData = toPriceData(await getPriceInternal([...US_Symbols], "US"), "US");
-  const waPriceData = toPriceData(await getPriceInternal([...WA_Symbols], "WA"), "WA");
+  const usPriceData = await getPriceInternalResult([...US_Symbols], "US");
+  const waPriceData = await getPriceInternalResult([...WA_Symbols], "WA");
 
   const allPrices = new Map([...usPriceData.prices, ...waPriceData.prices].map(p => [p.symbol, p.price]));
   const allFailures = [...usPriceData.failures, ...waPriceData.failures];
