@@ -1,5 +1,3 @@
-import "server-only";
-
 import { Result, SerializedResult } from "better-result";
 import { FinnhubQuote, PriceFetchFailure, PriceResultData, PriceSuccess, SerializedError } from "../actions/types";
 import { ApiError, ConfigError, PriceError, ValidationError } from "../errors";
