@@ -14,6 +14,10 @@ export async function runSnapshot(type: "daily" | "intraday") {
 
   const flat = await QUERIES.getAllWalletsWithPositions();
 
+  if (!flat) {
+    throw new Error("[cron] DB_ERR: Cant get wallets with their positions!");
+  }
+
   const grouped = flat.reduce((acc, row) => {
     const {wallet, position} = row;
 
@@ -44,8 +48,30 @@ export async function runSnapshot(type: "daily" | "intraday") {
   const walletCount = Object.keys(grouped).length;
   console.log(`[cron/snapshot] Starting ${type} run: ${walletCount} wallets, ${US_Symbols.size} US symbols, ${WA_Symbols.size} WA symbols`);
 
-  const usPriceData = await getPriceInternalResult([...US_Symbols], "US");
-  const waPriceData = await getPriceInternalResult([...WA_Symbols], "WA");
+//  const usPriceData = await getPriceInternalResult([...US_Symbols], "US");
+//  const waPriceData = await getPriceInternalResult([...WA_Symbols], "WA");
+
+  const [usResult, waResult] = await Promise.all([
+    getPriceInternalResult([...US_Symbols], "US"),
+    getPriceInternalResult([...WA_Symbols], "WA"),
+  ])
+
+
+  const usError = Result.isError(usResult);
+  const waError = Result.isError(waResult);
+
+  if (usError && waError) {
+    console.error("[cron] Error with US prices fetching: " + usResult.error.message);
+    console.error("[cron] Error with WA prices fetching: " + waResult.error.message);
+    throw new Error("[cron] Error with US and WA prices fetching");
+  } else if (usError) {
+    throw new Error("[cron] Error with US prices fetching: " + usResult.error.message);
+  } else if (waError) {
+    throw new Error("[cron] Error with WA prices fetching: " + waResult.error.message);
+  }
+
+  const usPriceData: PriceResultData = usResult.value;
+  const waPriceData: PriceResultData = usResult.value;
 
   const allPrices = new Map([...usPriceData.prices, ...waPriceData.prices].map(p => [p.symbol, p.price]));
   const allFailures = [...usPriceData.failures, ...waPriceData.failures];

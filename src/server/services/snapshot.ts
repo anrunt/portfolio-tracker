@@ -1,5 +1,5 @@
 import { Result } from "better-result";
-import { FinnhubQuote, PriceFetchFailure, PriceResultData, PriceSuccess, SerializedError } from "../actions/types";
+import { FinnhubQuote, PriceFetchFailure, PriceResultData, PriceSuccess } from "../actions/types";
 import { ApiError, ConfigError, PriceError, ValidationError } from "../errors";
 
 export async function getPriceInternalResult(companySymbols: string[], exchange: string): Promise<Result<PriceResultData, PriceError>> {
