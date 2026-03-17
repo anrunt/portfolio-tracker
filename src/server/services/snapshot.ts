@@ -29,7 +29,7 @@ export async function getPriceInternalResult(companySymbols: string[], exchange:
               );
 
               if (!response.ok) {
-                throw new Error(`${symbol}: HTTP ${response.status}`)
+                throw new Error(`Finnhub ${symbol}: HTTP ${response.status}`)
               }
 
               const data = (await response.json()) as FinnhubQuote;
@@ -68,7 +68,7 @@ export async function getPriceInternalResult(companySymbols: string[], exchange:
             );
 
             if (!response.ok) {
-              throw new Error(`Stoq HTTP: ${response.status}`);
+              throw new Error(`Stooq HTTP: ${response.status}`);
             }
 
             const text = await response.text();
@@ -95,7 +95,10 @@ export async function getPriceInternalResult(companySymbols: string[], exchange:
         catch: (e) =>
           e instanceof ApiError
             ? e
-            : new ApiError({ service: "Finnhub", cause: e })
+            : new ApiError({
+                service: exchange === "US" ? "Finnhub" : "Stooq",
+                cause: e 
+              })
       })
     )
 
