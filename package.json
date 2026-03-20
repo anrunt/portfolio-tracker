@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "cron:intraday": "tsx src/cron/snapshot-runner.ts intraday",
-    "cron:daily": "tsx src/cron/snapshot-runner.ts daily"
+    "cron:intraday": "node --import tsx src/cron/snapshot-runner.ts intraday",
+    "cron:daily": "node --import tsx src/cron/snapshot-runner.ts daily"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
