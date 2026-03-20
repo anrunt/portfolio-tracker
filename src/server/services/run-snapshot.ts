@@ -1,21 +1,18 @@
 import { QUERIES } from "../db/queries";
-import { getPriceInternalResult } from "./snapshot";
+import { getPriceData } from "./snapshot";
 import { db } from "../db";
 import { walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
 import { lte, sql } from "drizzle-orm";
-import { Result } from "better-result";
 import { PriceResultData } from "../actions/types";
 
 export async function runSnapshot(type: "daily" | "intraday") {
-  if (type !== "daily" && type !== "intraday") {
-    console.log("Wrong type, should be daily or intraday");
-    return; 
-  }
+  let flat;
 
-  const flat = await QUERIES.getAllWalletsWithPositions();
-
-  if (!flat) {
-    throw new Error("[cron] DB_ERR: Cant get wallets with their positions!");
+  try {
+    flat = await QUERIES.getAllWalletsWithPositions();
+  } catch (error) {
+    console.error("[cron/snapshot] Failed to load wallets with positions", error);
+    throw new Error("[cron/snapshot] DB_ERR: Failed to load wallets with positions");
   }
 
   const grouped = flat.reduce((acc, row) => {
@@ -48,22 +45,25 @@ export async function runSnapshot(type: "daily" | "intraday") {
   const walletCount = Object.keys(grouped).length;
   console.log(`[cron/snapshot] Starting ${type} run: ${walletCount} wallets, ${US_Symbols.size} US symbols, ${WA_Symbols.size} WA symbols`);
 
-  const [usResult, waResult] = await Promise.all([
-    getPriceInternalResult([...US_Symbols], "US"),
-    getPriceInternalResult([...WA_Symbols], "WA"),
-  ])
+  const [usResult, waResult] = await Promise.allSettled([
+    getPriceData([...US_Symbols], "US"),
+    getPriceData([...WA_Symbols], "WA"),
+  ]);
 
-  const usError = Result.isError(usResult);
-  const waError = Result.isError(waResult);
+  if (usResult.status === "rejected" && waResult.status === "rejected") {
+    console.error("[cron/snapshot] Finnhub fetch failed", usResult.reason);
+    console.error("[cron/snapshot] Stooq fetch failed", waResult.reason);
+    throw new Error("[cron/snapshot] Price fetch failed for Finnhub and Stooq");
+  }
 
-  if (usError && waError) {
-    console.error("[cron] Error with US prices fetching: " + usResult.error.message);
-    console.error("[cron] Error with WA prices fetching: " + waResult.error.message);
-    throw new Error("[cron] Error with US and WA prices fetching");
-  } else if (usError) {
-    throw new Error("[cron] Error with US prices fetching: " + usResult.error.message);
-  } else if (waError) {
-    throw new Error("[cron] Error with WA prices fetching: " + waResult.error.message);
+  if (usResult.status === "rejected") {
+    console.error("[cron/snapshot] Finnhub fetch failed", usResult.reason);
+    throw new Error(`[cron/snapshot] Finnhub price fetch failed: ${toErrorMessage(usResult.reason)}`);
+  }
+
+  if (waResult.status === "rejected") {
+    console.error("[cron/snapshot] Stooq fetch failed", waResult.reason);
+    throw new Error(`[cron/snapshot] Stooq price fetch failed: ${toErrorMessage(waResult.reason)}`);
   }
 
   const usPriceData: PriceResultData = usResult.value;
@@ -159,4 +159,8 @@ export async function runSnapshot(type: "daily" | "intraday") {
   console.log(`[cron/snapshot] Completed: ${inserted} snapshots inserted, ${skipped} wallets skipped`);
 
   return summary;
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

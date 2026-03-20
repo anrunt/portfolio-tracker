@@ -1,107 +1,106 @@
-import { Result } from "better-result";
-import { FinnhubQuote, PriceFetchFailure, PriceResultData, PriceSuccess } from "../actions/types";
-import { ApiError, ConfigError, PriceError, ValidationError } from "../errors";
+import type {
+  FinnhubQuote,
+  PriceFetchFailure,
+  PriceResultData,
+  PriceSuccess,
+} from "../actions/types";
 
-export async function getPriceInternalResult(companySymbols: string[], exchange: string): Promise<Result<PriceResultData, PriceError>> {
-  return Result.gen(async function* () {
-    const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
-    if (!FINNHUB_API_KEY) {
-      return Result.err(new ConfigError({ key: "FINNHUB_API_KEY" }));
+type Exchange = "US" | "WA";
+
+export async function getPriceData(
+  companySymbols: string[],
+  exchange: Exchange
+): Promise<PriceResultData> {
+  if (companySymbols.length === 0) {
+    return { prices: [], failures: [] };
+  }
+
+  const finnhubApiKey = process.env.FINNHUB_API_KEY;
+  if (!finnhubApiKey) {
+    throw new Error("[cron/snapshot] Missing configuration: FINNHUB_API_KEY");
+  }
+
+  if (exchange === "US") {
+    return getFinnhubPrices(companySymbols, finnhubApiKey);
+  }
+
+  return getStooqPrices(companySymbols);
+}
+
+async function getFinnhubPrices(
+  companySymbols: string[],
+  finnhubApiKey: string
+): Promise<PriceResultData> {
+  const requests = companySymbols.map(async (symbol) => {
+    const response = await fetch(
+      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubApiKey}`,
+      { next: { revalidate: 60 } }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Finnhub ${symbol}: HTTP ${response.status}`);
     }
 
-    if (exchange !== "US" && exchange !== "WA") {
-      return Result.err(
-        new ValidationError({
-          field: "exchange",
-          message: "Unsupported exchange. Must be 'US' or 'WA'.",
-        })
-      );
+    const data = (await response.json()) as FinnhubQuote;
+
+    return {
+      symbol,
+      price: data.c,
+    } satisfies PriceSuccess;
+  });
+
+  const settledRequests = await Promise.allSettled(requests);
+  const prices: PriceSuccess[] = [];
+  const failures: PriceFetchFailure[] = [];
+
+  for (let i = 0; i < settledRequests.length; i++) {
+    const result = settledRequests[i];
+
+    if (result.status === "fulfilled") {
+      prices.push(result.value);
+      continue;
     }
 
-    const fetchPrices = yield* Result.await(
-      Result.tryPromise({
-        try: async () => {
-          if (exchange === "US") {
-            const promises = companySymbols.map(async (symbol) => {
-              const response = await fetch(
-                `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
-                { next: { revalidate: 60 } }
-              );
+    failures.push({
+      symbol: companySymbols[i],
+      reason: toErrorMessage(result.reason),
+    });
+  }
 
-              if (!response.ok) {
-                throw new Error(`Finnhub ${symbol}: HTTP ${response.status}`)
-              }
+  return { prices, failures };
+}
 
-              const data = (await response.json()) as FinnhubQuote;
+async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData> {
+  const stooqSymbols = companySymbols.map((symbol) => symbol.replace(".WA", ""));
 
-              return {
-                symbol: symbol,
-                price: data.c
-              }
-            })
-            const settledPromises = await Promise.allSettled(promises);
+  const response = await fetch(
+    `https://stooq.pl/q/l/?s=${stooqSymbols.join("+")}&f=sc&e=csv`,
+    { next: { revalidate: 60 } }
+  );
 
-            const prices: PriceSuccess[] = [];
-            const failures: PriceFetchFailure[] = [];
+  if (!response.ok) {
+    throw new Error(`Stooq HTTP: ${response.status}`);
+  }
 
-            for (let i = 0; i < settledPromises.length; i++) {
-              const res = settledPromises[i];
-              if (res.status === "fulfilled") {
-                prices.push(res.value);
-              } else {
-                failures.push({
-                  symbol: companySymbols[i],
-                  reason: res.reason instanceof Error
-                    ? res.reason.message
-                    : String(res.reason)
-                })
-              }
-            }
+  const text = await response.text();
+  const lines = text.trim().split("\n");
+  const prices: PriceSuccess[] = [];
+  const failures: PriceFetchFailure[] = [];
 
-            return { prices, failures } satisfies PriceResultData;
-          } else {
-            const stoqSymbols = companySymbols.map((s) => s.replace(".WA", ""));
+  for (const line of lines) {
+    const [stooqSymbol, priceStr] = line.split(",");
+    const originalSymbol = `${stooqSymbol}.WA`;
 
-            const response = await fetch(
-              `https://stooq.pl/q/l/?s=${stoqSymbols.join("+")}&f=sc&e=csv`,
-              { next: { revalidate: 60 } }
-            );
+    if (priceStr === "B/D" || isNaN(Number(priceStr))) {
+      failures.push({ symbol: originalSymbol, reason: "No data available" });
+    } else {
+      prices.push({ symbol: originalSymbol, price: Number(priceStr) });
+    }
+  }
 
-            if (!response.ok) {
-              throw new Error(`Stooq HTTP: ${response.status}`);
-            }
+  return { prices, failures };
+}
 
-            const text = await response.text();
-
-            const lines = text.trim().split("\n");
-
-            const prices: PriceSuccess[] = [];
-            const failures: PriceFetchFailure[] = [];
-
-            for (const line of lines) {
-              const [stoqSymbol, priceStr] = line.split(",");
-              const originalSymbol = `${stoqSymbol}.WA`
-
-              if (priceStr === "B/D" || isNaN(Number(priceStr))) {
-                failures.push({symbol: originalSymbol, reason: "No data avaiable"})
-              } else {
-                prices.push({symbol: originalSymbol, price: Number(priceStr)})
-              }
-            }
-
-            return { prices, failures } satisfies PriceResultData;
-          }
-        },
-        catch: (e) =>
-          e instanceof ApiError
-            ? e
-            : new ApiError({
-                service: exchange === "US" ? "Finnhub" : "Stooq",
-                cause: e 
-              })
-      })
-    )
-
-    return Result.ok(fetchPrices);
-  })
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
