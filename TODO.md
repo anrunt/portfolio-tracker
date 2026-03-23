@@ -17,4 +17,4 @@ add multiple positions for the same company from the Add Position dialog.
   -[x] Add a deleted_at flag to wallet table -> null (not deleted) | date (deleted)
   -[x] Update wallet deletion logic from db.delete to db.update
   -[x] Update the queries to exclude soft deleted wallets
--[] FIX: Total value is shown in no PLN or USD it just adds two currencies together which is wrong
+-[] FIX: Total value is shown in no PLN or USD it just adds two currencies together which is wrong -> make so user can choose what currency he wants to see total value of his portfolio

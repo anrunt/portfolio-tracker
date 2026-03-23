@@ -1,27 +1,19 @@
-import { PriceResultData, SerializedError } from "@/server/actions/types";
-import { db } from "@/server/db";
-import { QUERIES } from "@/server/db/queries";
-import { walletDailySnapshot, walletIntradaySnapshot } from "@/server/db/schema";
-import { getPriceInternal } from "@/server/services/snapshot";
-import { Result, SerializedResult } from "better-result";
+import { QUERIES } from "../db/queries";
+import { getPriceData } from "./snapshot";
+import { db } from "../db";
+import { walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
 import { lte, sql } from "drizzle-orm";
-import { NextRequest, NextResponse } from "next/server";
+import { PriceResultData } from "../actions/types";
 
-export async function GET(request: NextRequest) {
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  const secret = process.env.CRON_JOB_SECRET;
+export async function runSnapshot(type: "daily" | "intraday") {
+  let flat;
 
-  if (!secret || token !== secret) {
-    return NextResponse.json({ error: "Not Authorized" }, { status: 401 });
+  try {
+    flat = await QUERIES.getAllWalletsWithPositions();
+  } catch (error) {
+    console.error("[cron/snapshot] Failed to load wallets with positions", error);
+    throw new Error("[cron/snapshot] DB_ERR: Failed to load wallets with positions");
   }
-
-  const type = request.nextUrl.searchParams.get("type");
-
-  if (type !== "daily" && type !== "intraday") {
-    return NextResponse.json({error: "Invalid param: must be 'daily' or 'intraday'"}, {status: 400});
-  }
-
-  const flat = await QUERIES.getAllWalletsWithPositions();
 
   const grouped = flat.reduce((acc, row) => {
     const {wallet, position} = row;
@@ -34,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     return acc;
   }, {} as Record<string, {currency: string, positions: typeof flat[number]["position"][]}>);
-  
+
   const US_Symbols = new Set<string>();
   const WA_Symbols = new Set<string>();
 
@@ -53,8 +45,29 @@ export async function GET(request: NextRequest) {
   const walletCount = Object.keys(grouped).length;
   console.log(`[cron/snapshot] Starting ${type} run: ${walletCount} wallets, ${US_Symbols.size} US symbols, ${WA_Symbols.size} WA symbols`);
 
-  const usPriceData = toPriceData(await getPriceInternal([...US_Symbols], "US"), "US");
-  const waPriceData = toPriceData(await getPriceInternal([...WA_Symbols], "WA"), "WA");
+  const [usResult, waResult] = await Promise.allSettled([
+    getPriceData([...US_Symbols], "US"),
+    getPriceData([...WA_Symbols], "WA"),
+  ]);
+
+  if (usResult.status === "rejected" && waResult.status === "rejected") {
+    console.error("[cron/snapshot] Finnhub fetch failed", usResult.reason);
+    console.error("[cron/snapshot] Stooq fetch failed", waResult.reason);
+    throw new Error("[cron/snapshot] Price fetch failed for Finnhub and Stooq");
+  }
+
+  if (usResult.status === "rejected") {
+    console.error("[cron/snapshot] Finnhub fetch failed", usResult.reason);
+    throw new Error(`[cron/snapshot] Finnhub price fetch failed: ${toErrorMessage(usResult.reason)}`);
+  }
+
+  if (waResult.status === "rejected") {
+    console.error("[cron/snapshot] Stooq fetch failed", waResult.reason);
+    throw new Error(`[cron/snapshot] Stooq price fetch failed: ${toErrorMessage(waResult.reason)}`);
+  }
+
+  const usPriceData: PriceResultData = usResult.value;
+  const waPriceData: PriceResultData = waResult.value;
 
   const allPrices = new Map([...usPriceData.prices, ...waPriceData.prices].map(p => [p.symbol, p.price]));
   const allFailures = [...usPriceData.failures, ...waPriceData.failures];
@@ -92,28 +105,43 @@ export async function GET(request: NextRequest) {
   };
 
   if (dailyRows.length > 0) {
-    await db
-      .insert(walletDailySnapshot)
-      .values(dailyRows)
-      .onConflictDoUpdate({
-        target: [walletDailySnapshot.walletId, walletDailySnapshot.snapshotDate],
-        set: {
-          totalValue: sql`excluded.total_value`,
-          totalCostBasis: sql`excluded.total_cost_basis`,
-        },
-      });
+    try {
+      await db
+        .insert(walletDailySnapshot)
+        .values(dailyRows)
+        .onConflictDoUpdate({
+          target: [walletDailySnapshot.walletId, walletDailySnapshot.snapshotDate],
+          set: {
+            totalValue: sql`excluded.total_value`,
+            totalCostBasis: sql`excluded.total_cost_basis`,
+          },
+        });
+    } catch (error) {
+      console.error("[cron/snapshot] Failed to insert daily snapshots", error);
+      throw new Error("[cron/snapshot] DB_ERR: Failed to insert daily snapshots");
+    }
   }
-  
+
   if (intradayRows.length > 0) {
-    await db.insert(walletIntradaySnapshot).values(intradayRows);
+    try {
+      await db.insert(walletIntradaySnapshot).values(intradayRows);
+    } catch (error) {
+      console.error("[cron/snapshot] Failed to insert intraday snapshots", error);
+      throw new Error("[cron/snapshot] DB_ERR: Failed to insert intraday snapshots");
+    }
   }
 
   if (type === "daily") {
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
-    await db.delete(walletIntradaySnapshot).where(
-      lte(walletIntradaySnapshot.snapshotAt, cutoff)
-    );
+    try {
+      await db.delete(walletIntradaySnapshot).where(
+        lte(walletIntradaySnapshot.snapshotAt, cutoff)
+      );
+    } catch (error) {
+      console.error("[cron/snapshot] Failed to delete old intraday snapshots", error);
+      throw new Error("[cron/snapshot] DB_ERR: Failed to delete old intraday snapshots");
+    }
   }
 
   const inserted = type === "daily" ? dailyRows.length : intradayRows.length;
@@ -130,22 +158,9 @@ export async function GET(request: NextRequest) {
 
   console.log(`[cron/snapshot] Completed: ${inserted} snapshots inserted, ${skipped} wallets skipped`);
 
-  return NextResponse.json(summary);
+  return summary;
 }
 
-
-function toPriceData(
-  serialized: SerializedResult<PriceResultData, SerializedError>,
-  label: string
-): PriceResultData {
-  const deserialized = Result.deserialize<PriceResultData, SerializedError>(serialized);
-  if (deserialized && Result.isOk(deserialized)) {
-    return deserialized.value;
-  }
-  if (deserialized && Result.isError(deserialized)) {
-    console.error(`[cron/snapshot] ${label} price fetch error:`, deserialized.error);
-  } else {
-    console.error(`[cron/snapshot] ${label} price deserialize failed:`, serialized);
-  }
-  return { prices: [], failures: [] };
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
