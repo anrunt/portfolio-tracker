@@ -101,6 +101,7 @@ export const QUERIES = {
       .orderBy(asc(walletIntradaySnapshot.snapshotAt))
   },
 
+  // Need to change this -> Now i just sum wallet and dont care about currency which is wrong
   getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date) {
     return db
       .select({
