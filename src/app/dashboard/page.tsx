@@ -24,7 +24,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     id: w.id,
     name: w.name,
     currency: w.currency,
-    totalValue: w.totalValue,
+    totalValue: Number(w.totalValue),
   }));
 
   const chartPortfolioDataSerialized = await getAllWalletsPortfolioData(range);

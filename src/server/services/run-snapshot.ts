@@ -84,6 +84,9 @@ export async function runSnapshot(type: "daily" | "intraday") {
   const snapshotAt = new Date();
   const snapshotDate = new Date().toISOString().split("T")[0];
 
+  // get fxRate for USD->PLN
+
+
   walletLoop: for (const [walletId, data] of Object.entries(grouped)) {
     let totalValue = 0;
     let totalCostBasis = 0;

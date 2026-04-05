@@ -16,6 +16,23 @@ export type FinnhubQuote = {
   t: number;  // timestamp
 };
 
+export interface FinnhubCandlesResponse {
+  c: number[]; // Close prices
+  h: number[]; // High prices
+  l: number[]; // Low prices
+  o: number[]; // Open prices
+  s: string;   // Status (zazwyczaj 'ok' lub 'no_data')
+  t: number[]; // Timestamps (UNIX)
+  v: number[]; // Volume (tick volume w przypadku forexu)
+}
+
+export interface ForexCandlesParams {
+  symbol: string;            
+  resolution: FinnhubResolution;
+  from: number;              // UNIX timestamp (w sekundach)
+  to: number;                // UNIX timestamp (w sekundach)
+}
+
 export type PriceSuccess = { 
   symbol: string; 
   price: number; 
@@ -48,6 +65,7 @@ export type FieldErrors = {
 };
 
 export type TimeRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1YR";
+export type FinnhubResolution = '15' | 'D' | 'W' | 'M';
 
 export type ChartDataPoint = {
   timestamp: number;

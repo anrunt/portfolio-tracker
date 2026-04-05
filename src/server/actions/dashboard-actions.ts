@@ -559,8 +559,8 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
 
       const intradayData = intradayDataRaw.map((r) => ({
         timestamp: r.snapshotAt.getTime(),
-        totalValue: r.totalValue,
-        totalCostBasis: r.totalCostBasis
+        totalValue: Number(r.totalValue),
+        totalCostBasis: Number(r.totalCostBasis),
       }));
 
       console.log("Intraday data: ", intradayData);
@@ -596,8 +596,8 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
       const dailyData = dailyDataRaw.map((r) => ({
         timestamp: new Date(r.snapshotDate).getTime(),
         label: r.snapshotDate,
-        totalValue: r.totalValue,
-        totalCostBasis: r.totalCostBasis
+        totalValue: Number(r.totalValue),
+        totalCostBasis: Number(r.totalCostBasis),
       }))
 
       return Result.ok(dailyData);
@@ -630,8 +630,8 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
 
       const intradayData = intradayPortfolioDataRaw.map((r) => ({
         timestamp: r.snapshotAt.getTime(),
-        totalValue: r.totalValue,
-        totalCostBasis: r.totalCostBasis
+        totalValue: Number(r.totalValue),
+        totalCostBasis: Number(r.totalCostBasis),
       }));
 
       console.log("Intraday data: ", intradayData);
@@ -667,8 +667,8 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
       const dailyData = dailyPortfolioDataRaw.map((r) => ({
         timestamp: new Date(r.snapshotDate).getTime(),
         label: r.snapshotDate,
-        totalValue: r.totalValue,
-        totalCostBasis: r.totalCostBasis
+        totalValue: Number(r.totalValue),
+        totalCostBasis: Number(r.totalCostBasis),
       }))
 
       return Result.ok(dailyData);
