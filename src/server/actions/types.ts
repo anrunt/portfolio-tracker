@@ -52,7 +52,9 @@ export type TimeRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1YR";
 export type ChartDataPoint = {
   timestamp: number;
   label?: string;
+  /** From `numeric` snapshot columns; queries cast to `double precision` for JS. */
   totalValue: number;
+  /** From `numeric` snapshot columns; queries cast to `double precision` for JS. */
   totalCostBasis: number;
 };
 
@@ -60,7 +62,9 @@ export interface PositionData {
   id: string;
   companySymbol: string;
   companyName: string;
+  /** From `numeric`; queries cast to `double precision` for JS. */
   quantity: number;
+  /** From `numeric`; queries cast to `double precision` for JS. */
   pricePerShare: number;
   createdAt: Date;
 }

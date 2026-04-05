@@ -18,7 +18,7 @@ export const QUERIES = {
         userId: wallet.userId,
         currency: wallet.currency,
         createdAt: wallet.createdAt,
-        totalValue: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0)`
+        totalValue: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0::numeric)::double precision`
       })
       .from(wallet)
       .leftJoin(position, eq(wallet.id, position.walletId))
@@ -41,8 +41,8 @@ export const QUERIES = {
         id: position.id,
         companyName: position.companyName,
         companySymbol: position.companySymbol,
-        pricePerShare: position.pricePerShare,
-        quantity: position.quantity,
+        pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+        quantity: sql<number>`(${position.quantity})::double precision`,
         createdAt: position.createdAt,
       })
       .from(position)
@@ -65,8 +65,8 @@ export const QUERIES = {
           walletId: position.walletId,
           companyName: position.companyName,
           companySymbol: position.companySymbol,
-          pricePerShare: position.pricePerShare,
-          quantity: position.quantity,
+          pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+          quantity: sql<number>`(${position.quantity})::double precision`,
           createdAt: position.createdAt,
         },
       })
@@ -77,7 +77,14 @@ export const QUERIES = {
 
   getDailyPortfolioData: function(walletId: string, startDate: string) {
     return db
-      .select()
+      .select({
+        id: walletDailySnapshot.id,
+        walletId: walletDailySnapshot.walletId,
+        totalValue: sql<number>`(${walletDailySnapshot.totalValue})::double precision`,
+        totalCostBasis: sql<number>`(${walletDailySnapshot.totalCostBasis})::double precision`,
+        snapshotDate: walletDailySnapshot.snapshotDate,
+        createdAt: walletDailySnapshot.createdAt,
+      })
       .from(walletDailySnapshot)
       .where(
         and(
@@ -90,7 +97,14 @@ export const QUERIES = {
 
   getIntradayPortfolioData: function(walletId: string, startOfToday: Date) {
     return db
-      .select()
+      .select({
+        id: walletIntradaySnapshot.id,
+        walletId: walletIntradaySnapshot.walletId,
+        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`,
+        totalCostBasis: sql<number>`(${walletIntradaySnapshot.totalCostBasis})::double precision`,
+        snapshotAt: walletIntradaySnapshot.snapshotAt,
+        createdAt: walletIntradaySnapshot.createdAt,
+      })
       .from(walletIntradaySnapshot)
       .where(
         and(
@@ -106,8 +120,8 @@ export const QUERIES = {
     return db
       .select({
         snapshotAt: walletIntradaySnapshot.snapshotAt,
-        totalValue: sql<number>`sum(${walletIntradaySnapshot.totalValue})`,
-        totalCostBasis: sql<number>`sum(${walletIntradaySnapshot.totalCostBasis})`
+        totalValue: sql<number>`coalesce(sum(${walletIntradaySnapshot.totalValue}), 0::numeric)::double precision`,
+        totalCostBasis: sql<number>`coalesce(sum(${walletIntradaySnapshot.totalCostBasis}), 0::numeric)::double precision`
       })
       .from(walletIntradaySnapshot)
       .innerJoin(wallet, eq(wallet.id, walletIntradaySnapshot.walletId))
@@ -125,8 +139,8 @@ export const QUERIES = {
     return db
       .select({
         snapshotDate: walletDailySnapshot.snapshotDate,
-        totalValue: sql<number>`sum(${walletDailySnapshot.totalValue})`,
-        totalCostBasis: sql<number>`sum(${walletDailySnapshot.totalCostBasis})`
+        totalValue: sql<number>`coalesce(sum(${walletDailySnapshot.totalValue}), 0::numeric)::double precision`,
+        totalCostBasis: sql<number>`coalesce(sum(${walletDailySnapshot.totalCostBasis}), 0::numeric)::double precision`
       })
       .from(walletDailySnapshot)
       .innerJoin(wallet, eq(wallet.id, walletDailySnapshot.walletId))

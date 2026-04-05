@@ -3,6 +3,7 @@
 import { getSession } from "../better-auth/session";
 import { z } from "zod";
 import { db } from "../db";
+import { numToNumericString } from "../db/numeric";
 import { position, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
@@ -419,10 +420,10 @@ async function addPositionResult(
         walletId: walletId,
         companyName: companyName,
         companySymbol: companySymbol,
-        pricePerShare: data.price,
-        quantity: data.shares
-      }
-    })
+        pricePerShare: numToNumericString(data.price),
+        quantity: numToNumericString(data.shares),
+      };
+    });
 
     yield* Result.await(
       Result.tryPromise({
