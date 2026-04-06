@@ -2,9 +2,10 @@ import { QUERIES } from "../db/queries";
 import { getPriceData } from "./snapshot";
 import { db } from "../db";
 import { numFromDb, numToNumericString } from "../db/numeric";
-import { walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
+import { fxRates, walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
 import { lte, sql } from "drizzle-orm";
 import { PriceResultData } from "../actions/types";
+import { getUsdPlnRate } from "./getUsdPlnRate";
 
 export async function runSnapshot(type: "daily" | "intraday") {
   let flat;
@@ -85,7 +86,23 @@ export async function runSnapshot(type: "daily" | "intraday") {
   const snapshotDate = new Date().toISOString().split("T")[0];
 
   // get fxRate for USD->PLN
-  // getUsdPlnRate(type, snapshotAt)
+  const {rate, effectiveDate} = await getUsdPlnRate(snapshotAt);
+  try {
+    await db
+      .insert(fxRates)
+      .values({
+        id: crypto.randomUUID(),
+        baseCurrency: "USD",
+        quoteCurrency: "PLN",
+        rate: numToNumericString(rate),
+        asOf: new Date(effectiveDate),
+        granularity: "daily",
+        source: "nbp"
+      })
+      .onConflictDoNothing();
+  } catch (error) {
+    console.error("[cron/snapshot] Error with inserting fx rates into the db:", error);
+  }
 
   walletLoop: for (const [walletId, data] of Object.entries(grouped)) {
     let totalValue = 0;
