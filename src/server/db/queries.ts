@@ -164,7 +164,7 @@ export const QUERIES = {
         snapshotDate: walletDailySnapshot.snapshotDate,
         walletId: walletDailySnapshot.walletId,
         walletCurrency: wallet.currency,
-        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`,
+        totalValue: sql<number>`(${walletDailySnapshot.totalValue})::double precision`,
         totalCostBasis: sql<number>`(${walletDailySnapshot.totalCostBasis}):: double precision`
       })
       .from(walletDailySnapshot)

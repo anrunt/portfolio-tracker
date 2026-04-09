@@ -537,7 +537,6 @@ export async function getWalletChartData(walletId: string, range: TimeRange): Pr
   return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
 }
 
-// Here also change it for fx conversion
 async function getWalletChartDataResult(walletId: string, range: TimeRange): Promise<Result<ChartDataPoint[], WalletChartError>> {
   return Result.gen(async function* () {
     const user = await getSession();
@@ -630,24 +629,53 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
         return Result.err(new NotFoundError({resource: "Wallet Snapshots"}));
       }
 
-      //get displayCurrency, get fx_rates, convert and sum up
       const displayCurrencyRaw = await QUERIES.getUserDisplayCurrency(user.session.userId);
       if (!displayCurrencyRaw) {
         return Result.err(new NotFoundError({resource: "User displayCurrency"}));
       }
 
       const displayCurrency = displayCurrencyRaw[0].displayCurrency;
-      const fx = await QUERIES.getFxRate(start) // This should be outside of the loop, we got only one fx rate and it doesnt change depending on snapshotAt
+      const fx = await QUERIES.getFxRate(start);
 
-      const intradayData = intradayPortfolioDataRaw.map((r) => {
-        
-      })
+      if (!fx) {
+        return Result.err(new NotFoundError({resource: "Fx rate"}));
+      }
 
-//      const intradayData = intradayPortfolioDataRaw.map((r) => ({
-//        timestamp: r.snapshotAt.getTime(),
-//        totalValue: Number(r.totalValue),
-//        totalCostBasis: Number(r.totalCostBasis),
-//      }));
+      const byTimestamp = new Map<number, {timestamp: number, totalValue: number, totalCostBasis:number}>();
+
+      for (const r of intradayPortfolioDataRaw) {
+        const timestamp = r.snapshotAt.getTime();
+
+        let totalValue = Number(r.totalValue);
+        let totalCostBasis = Number(r.totalCostBasis);
+
+        if (r.walletCurrency !== displayCurrency) {
+          if (r.walletCurrency === "USD") {
+            totalValue = totalValue * fx.rate;
+            totalCostBasis = totalCostBasis * fx.rate;
+          } else {
+            totalValue = totalValue / fx.rate;
+            totalCostBasis = totalCostBasis / fx.rate;
+          }
+        }
+
+        const existingPoint = byTimestamp.get(timestamp);
+
+        if (existingPoint) {
+          existingPoint.totalValue += totalValue;
+          existingPoint.totalCostBasis += totalCostBasis;
+        } else {
+          byTimestamp.set(timestamp, {
+            timestamp,
+            totalValue,
+            totalCostBasis,
+          });
+        }
+      }
+
+      const intradayData = Array.from(byTimestamp.values()).sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
 
       console.log("Intraday data: ", intradayData);
 
