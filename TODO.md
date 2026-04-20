@@ -19,3 +19,4 @@ add multiple positions for the same company from the Add Position dialog.
   -[x] Update the queries to exclude soft deleted wallets
 -[] FIX: Total value is shown in no PLN or USD it just adds two currencies together which is wrong -> make so user can choose what currency he wants to see total value of his portfolio
 -[] FIX: If one symbol fails the wallet gets skipped which makes a terrible drop on the chart ui which is really misleading for the user.
+-[] Feature: Maybe make a portfolio snapshot when user adds new company so he can see his new chart instead of waiting for the snapshot?
