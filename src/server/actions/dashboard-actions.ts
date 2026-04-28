@@ -25,7 +25,6 @@ import {
   WalletChartError,
 } from "../errors";
 import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData, TimeRange, ChartDataPoint } from "./types";
-import { getUsdPlnRate } from "../services/getUsdPlnRate";
 
 export async function searchTicker(
   query: string,
@@ -635,7 +634,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
       }
 
       const displayCurrency = displayCurrencyRaw[0].displayCurrency;
-      const fx = await QUERIES.getFxRate(start);
+      const fx = await QUERIES.getFxRateBefore(start);
 
       if (!fx) {
         return Result.err(new NotFoundError({resource: "Fx rate"}));
@@ -677,42 +676,109 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
         (a, b) => a.timestamp - b.timestamp
       );
 
-      console.log("Intraday data: ", intradayData);
-
       return Result.ok(intradayData);
     } else if (["1W", "1M", "3M", "6M", "1YR"].includes(range)) {
-      const start = new Date();
+      const startDate = new Date();
+      const currentDate = new Date();
 
       switch (range) {
         case "1W":
-          start.setDate(start.getDate() - 7);
+          startDate.setDate(startDate.getDate() - 7);
           break;
         case "1M":
-          start.setMonth(start.getMonth() - 1);
+          startDate.setMonth(startDate.getMonth() - 1);
           break;
         case "3M":
-          start.setMonth(start.getMonth() - 3);
+          startDate.setMonth(startDate.getMonth() - 3);
           break;
         case "6M":
-          start.setMonth(start.getMonth() - 6);
+          startDate.setMonth(startDate.getMonth() - 6);
           break;
         case "1YR":
-          start.setFullYear(start.getFullYear() - 1);
+          startDate.setFullYear(startDate.getFullYear() - 1);
           break;
       }
+      // Now i need to work on this
 
-      const startDateStr = start.toISOString().split("T")[0];
+      const startDateStr = startDate.toISOString().split("T")[0];
       const dailyPortfolioDataRaw = await QUERIES.getAllWalletsDailyPortfolioData(user.session.userId, startDateStr);
       if (!dailyPortfolioDataRaw) {
         return Result.err(new NotFoundError({resource: "Wallet Snapshots"}));
       }
-      
-      const dailyData = dailyPortfolioDataRaw.map((r) => ({
-        timestamp: new Date(r.snapshotDate).getTime(),
-        label: r.snapshotDate,
-        totalValue: Number(r.totalValue),
-        totalCostBasis: Number(r.totalCostBasis),
-      }))
+
+      const displayCurrencyRaw = await QUERIES.getUserDisplayCurrency(user.session.userId);
+      if (!displayCurrencyRaw) {
+        return Result.err(new NotFoundError({resource: "User displayCurrency"}));
+      }
+
+      const displayCurrency = displayCurrencyRaw[0].displayCurrency;
+
+      const [ratesInRange, fallbackRate] = await Promise.all([
+        QUERIES.getFxRatesInRange(startDate, currentDate),
+        QUERIES.getFxRateBefore(startDate)
+      ])
+
+      const allRates = [
+        ...(fallbackRate ? [fallbackRate] : []),
+        ...ratesInRange,
+      ]
+        .sort((a, b) => a.asOf.getTime() - b.asOf.getTime())
+        .map((r) => ({ ...r, dateStr: r.asOf.toISOString().split("T")[0] }));
+
+      if (allRates.length === 0) {
+        return Result.err(new NotFoundError({resource: "Currency rates"}));
+      }
+
+      const byDate = new Map<string, {
+        timestamp: number,
+        totalValue: number,
+        totalCostBasis: number
+      }>();
+
+      let currentRate: typeof allRates[number] | null = null;
+      let rateIdx = 0;
+      for (const data of dailyPortfolioDataRaw) {
+        const snapshotDate = data.snapshotDate;
+
+        while (rateIdx < allRates.length && allRates[rateIdx].dateStr <= snapshotDate) {
+          currentRate = allRates[rateIdx];
+          rateIdx += 1;
+        }
+
+        if (currentRate == null) {
+          return Result.err(new NotFoundError({resource: "Current Rate missing"}));
+        }
+
+        let totalValue = Number(data.totalValue);
+        let totalCostBasis = Number(data.totalCostBasis);
+
+        if (data.walletCurrency !== displayCurrency) {
+          if (data.walletCurrency === "USD") {
+            totalValue = totalValue * currentRate.rate;
+            totalCostBasis = totalCostBasis * currentRate.rate;
+          } else {
+            totalValue = totalValue / currentRate.rate;
+            totalCostBasis = totalCostBasis / currentRate.rate;
+          }
+        }
+
+        const existingPoint = byDate.get(snapshotDate);
+
+        if (existingPoint) {
+          existingPoint.totalValue += totalValue;
+          existingPoint.totalCostBasis += totalCostBasis;
+        } else {
+          byDate.set(snapshotDate, {
+            timestamp: new Date(snapshotDate).getTime(),
+            totalValue,
+            totalCostBasis,
+          });
+        }
+      }
+
+      const dailyData = Array.from(byDate.values()).sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
 
       return Result.ok(dailyData);
     } else {

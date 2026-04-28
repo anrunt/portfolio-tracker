@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNull, lte, sql } from "drizzle-orm";
 import { db } from ".";
 import { fxRates, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
 
@@ -208,7 +208,7 @@ export const QUERIES = {
       .where(eq(user.id, userId))
   },
 
-  getFxRate: async function (at: Date) {
+  getFxRateBefore: async function (startDate: Date) {
     return db
       .select({
         rate: sql<number>`(${fxRates.rate})::double precision`,
@@ -223,11 +223,34 @@ export const QUERIES = {
           eq(fxRates.quoteCurrency, "PLN"),
           eq(fxRates.granularity, "daily"),
           eq(fxRates.source, "nbp"),
-          lte(fxRates.asOf, at)
+          lte(fxRates.asOf, startDate)
         )
       )
       .orderBy(desc(fxRates.asOf))
       .limit(1)
       .then((rows) => rows[0] ?? null)
+  },
+
+
+  getFxRatesInRange: function(startDate: Date, endDate: Date) {
+    return db
+      .select({
+        rate: sql<number>`(${fxRates.rate})::double precision`,
+        asOf: fxRates.asOf,
+        baseCurrency: fxRates.baseCurrency,
+        quoteCurrency: fxRates.quoteCurrency,
+      })
+      .from(fxRates)
+      .where(
+        and(
+          eq(fxRates.baseCurrency, "USD"),
+          eq(fxRates.quoteCurrency, "PLN"),
+          eq(fxRates.granularity, "daily"),
+          eq(fxRates.source, "nbp"),
+          gt(fxRates.asOf, startDate),
+          lte(fxRates.asOf, endDate)
+        )
+      )
+      .orderBy(asc(fxRates.asOf))
   }
 };
