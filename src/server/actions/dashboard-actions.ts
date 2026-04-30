@@ -725,7 +725,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
         .map((r) => ({ ...r, dateStr: r.asOf.toISOString().split("T")[0] }));
 
       if (allRates.length === 0) {
-        return Result.err(new NotFoundError({resource: "Currency rates"}));
+        return Result.err(new NotFoundError({resource: "No currency rates"}));
       }
 
       const byDate = new Map<string, {
@@ -745,7 +745,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
         }
 
         if (currentRate == null) {
-          return Result.err(new NotFoundError({resource: "Current Rate missing"}));
+          currentRate = allRates[0];
         }
 
         let totalValue = Number(data.totalValue);
