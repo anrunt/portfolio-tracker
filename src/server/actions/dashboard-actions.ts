@@ -698,7 +698,6 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
           startDate.setFullYear(startDate.getFullYear() - 1);
           break;
       }
-      // Now i need to work on this
 
       const startDateStr = startDate.toISOString().split("T")[0];
       const dailyPortfolioDataRaw = await QUERIES.getAllWalletsDailyPortfolioData(user.session.userId, startDateStr);
