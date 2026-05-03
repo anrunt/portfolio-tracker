@@ -727,7 +727,10 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
       const needsFxRates = dailyPortfolioDataRaw.some(
         (data) => data.walletCurrency !== displayCurrency
       );
-      let allRates: Array<{ rate: number; dateStr: string }> = [];
+      type FxRateWithDateStr = Awaited<ReturnType<typeof QUERIES.getFxRatesInRange>>[number] & {
+        dateStr: string;
+      };
+      let allRates: FxRateWithDateStr[] = [];
 
       if (needsFxRates) {
         const [ratesInRange, fallbackRate] = await Promise.all([
@@ -740,7 +743,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
           ...ratesInRange,
         ]
           .sort((a, b) => a.asOf.getTime() - b.asOf.getTime())
-          .map((r) => ({ rate: r.rate, dateStr: r.asOf.toISOString().split("T")[0] }));
+          .map((r) => ({ ...r, dateStr: r.asOf.toISOString().split("T")[0] }));
 
         if (allRates.length === 0) {
           return Result.err(new NotFoundError({resource: "No currency rates"}));
