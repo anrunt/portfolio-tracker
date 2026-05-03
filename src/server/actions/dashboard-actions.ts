@@ -634,10 +634,19 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
       }
 
       const displayCurrency = displayCurrencyRaw[0].displayCurrency;
-      const fx = await QUERIES.getFxRateBefore(start);
+      const needsFxRates = intradayPortfolioDataRaw.some(
+        (r) => r.walletCurrency !== displayCurrency
+      );
+      let fxRate: number | null = null;
 
-      if (!fx) {
-        return Result.err(new NotFoundError({resource: "Fx rate"}));
+      if (needsFxRates) {
+        const fx = await QUERIES.getFxRateBefore(start);
+
+        if (!fx) {
+          return Result.err(new NotFoundError({resource: "Fx rate"}));
+        }
+
+        fxRate = fx.rate;
       }
 
       const byTimestamp = new Map<number, {timestamp: number, totalValue: number, totalCostBasis:number}>();
@@ -649,12 +658,16 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
         let totalCostBasis = Number(r.totalCostBasis);
 
         if (r.walletCurrency !== displayCurrency) {
+          if (fxRate === null) {
+            return Result.err(new NotFoundError({resource: "Fx rate"}));
+          }
+
           if (r.walletCurrency === "USD") {
-            totalValue = totalValue * fx.rate;
-            totalCostBasis = totalCostBasis * fx.rate;
+            totalValue = totalValue * fxRate;
+            totalCostBasis = totalCostBasis * fxRate;
           } else {
-            totalValue = totalValue / fx.rate;
-            totalCostBasis = totalCostBasis / fx.rate;
+            totalValue = totalValue / fxRate;
+            totalCostBasis = totalCostBasis / fxRate;
           }
         }
 
@@ -711,21 +724,27 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
       }
 
       const displayCurrency = displayCurrencyRaw[0].displayCurrency;
+      const needsFxRates = dailyPortfolioDataRaw.some(
+        (data) => data.walletCurrency !== displayCurrency
+      );
+      let allRates: Array<{ rate: number; dateStr: string }> = [];
 
-      const [ratesInRange, fallbackRate] = await Promise.all([
-        QUERIES.getFxRatesInRange(startDate, currentDate),
-        QUERIES.getFxRateBefore(startDate)
-      ])
+      if (needsFxRates) {
+        const [ratesInRange, fallbackRate] = await Promise.all([
+          QUERIES.getFxRatesInRange(startDate, currentDate),
+          QUERIES.getFxRateBefore(startDate)
+        ])
 
-      const allRates = [
-        ...(fallbackRate ? [fallbackRate] : []),
-        ...ratesInRange,
-      ]
-        .sort((a, b) => a.asOf.getTime() - b.asOf.getTime())
-        .map((r) => ({ ...r, dateStr: r.asOf.toISOString().split("T")[0] }));
+        allRates = [
+          ...(fallbackRate ? [fallbackRate] : []),
+          ...ratesInRange,
+        ]
+          .sort((a, b) => a.asOf.getTime() - b.asOf.getTime())
+          .map((r) => ({ rate: r.rate, dateStr: r.asOf.toISOString().split("T")[0] }));
 
-      if (allRates.length === 0) {
-        return Result.err(new NotFoundError({resource: "No currency rates"}));
+        if (allRates.length === 0) {
+          return Result.err(new NotFoundError({resource: "No currency rates"}));
+        }
       }
 
       const byDate = new Map<string, {
@@ -739,19 +758,25 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
       for (const data of dailyPortfolioDataRaw) {
         const snapshotDate = data.snapshotDate;
 
-        while (rateIdx < allRates.length && allRates[rateIdx].dateStr <= snapshotDate) {
-          currentRate = allRates[rateIdx];
-          rateIdx += 1;
-        }
+        if (needsFxRates) {
+          while (rateIdx < allRates.length && allRates[rateIdx].dateStr <= snapshotDate) {
+            currentRate = allRates[rateIdx];
+            rateIdx += 1;
+          }
 
-        if (currentRate == null) {
-          currentRate = allRates[0];
+          if (currentRate == null) {
+            currentRate = allRates[0];
+          }
         }
 
         let totalValue = Number(data.totalValue);
         let totalCostBasis = Number(data.totalCostBasis);
 
         if (data.walletCurrency !== displayCurrency) {
+          if (currentRate == null) {
+            return Result.err(new NotFoundError({resource: "No currency rates"}));
+          }
+
           if (data.walletCurrency === "USD") {
             totalValue = totalValue * currentRate.rate;
             totalCostBasis = totalCostBasis * currentRate.rate;
