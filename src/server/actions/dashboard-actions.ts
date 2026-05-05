@@ -191,7 +191,7 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
         catch: (e) =>
           e instanceof ApiError
             ? e
-            : new ApiError({ service: "Finnhub", cause: e })
+            : new ApiError({ service: "Finnhub / Stoq", cause: e })
       })
     )
 
