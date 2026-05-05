@@ -563,8 +563,6 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
         totalCostBasis: Number(r.totalCostBasis),
       }));
 
-      console.log("Intraday data: ", intradayData);
-
       return Result.ok(intradayData);
     } else if (["1W", "1M", "3M", "6M", "1YR"].includes(range)) {
       const start = new Date();
