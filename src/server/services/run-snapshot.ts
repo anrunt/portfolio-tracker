@@ -1,9 +1,11 @@
 import { QUERIES } from "../db/queries";
 import { getPriceData } from "./snapshot";
 import { db } from "../db";
-import { walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
+import { numFromDb, numToNumericString } from "../db/numeric";
+import { fxRates, walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
 import { lte, sql } from "drizzle-orm";
 import { PriceResultData } from "../actions/types";
+import { getUsdPlnRate } from "./getUsdPlnRate";
 
 export async function runSnapshot(type: "daily" | "intraday") {
   let flat;
@@ -83,6 +85,25 @@ export async function runSnapshot(type: "daily" | "intraday") {
   const snapshotAt = new Date();
   const snapshotDate = new Date().toISOString().split("T")[0];
 
+  // get fxRate for USD->PLN
+  const {rate, effectiveDate} = await getUsdPlnRate(snapshotAt);
+  try {
+    await db
+      .insert(fxRates)
+      .values({
+        id: crypto.randomUUID(),
+        baseCurrency: "USD",
+        quoteCurrency: "PLN",
+        rate: numToNumericString(rate),
+        asOf: new Date(effectiveDate),
+        granularity: "daily",
+        source: "nbp"
+      })
+      .onConflictDoNothing();
+  } catch (error) {
+    console.error("[cron/snapshot] Error with inserting fx rates into the db:", error);
+  }
+
   walletLoop: for (const [walletId, data] of Object.entries(grouped)) {
     let totalValue = 0;
     let totalCostBasis = 0;
@@ -93,14 +114,26 @@ export async function runSnapshot(type: "daily" | "intraday") {
         console.warn(`[cron/snapshot] Missing price for ${pos.companySymbol}, skipping wallet ${walletId}`);
         continue walletLoop;
       };
-      totalValue += pos.quantity * price;
-      totalCostBasis += pos.quantity * pos.pricePerShare;
+      totalValue += numFromDb(pos.quantity) * price;
+      totalCostBasis += numFromDb(pos.quantity) * numFromDb(pos.pricePerShare);
     }
     
     if (type === "daily") {
-      dailyRows.push({ id: crypto.randomUUID(), walletId, totalValue, totalCostBasis, snapshotDate: snapshotDate });
+      dailyRows.push({
+        id: crypto.randomUUID(),
+        walletId,
+        totalValue: numToNumericString(totalValue),
+        totalCostBasis: numToNumericString(totalCostBasis),
+        snapshotDate: snapshotDate,
+      });
     } else {
-      intradayRows.push({ id: crypto.randomUUID(), walletId, totalValue, totalCostBasis, snapshotAt: snapshotAt });
+      intradayRows.push({
+        id: crypto.randomUUID(),
+        walletId,
+        totalValue: numToNumericString(totalValue),
+        totalCostBasis: numToNumericString(totalCostBasis),
+        snapshotAt: snapshotAt,
+      });
     }
   };
 

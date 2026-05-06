@@ -1,7 +1,8 @@
-import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index, pgEnum, doublePrecision, date, uniqueIndex } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { pgTable, text, timestamp, boolean, index, pgEnum, date, uniqueIndex, numeric, check } from "drizzle-orm/pg-core";
 
 export const currencyEnum = pgEnum("currency_enum", ["USD", "PLN"]);
+export const granularityEnum = pgEnum("granularity_enum", ["daily", "intraday"]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -9,6 +10,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  displayCurrency: currencyEnum("display_currency").default("PLN").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -93,8 +95,8 @@ export const position = pgTable("position", {
     .references(() => wallet.id, { onDelete: "cascade" }),
   companyName: text("company_name").notNull(),
   companySymbol: text("company_symbol").notNull(),
-  pricePerShare: doublePrecision("price_per_share").notNull(),
-  quantity: doublePrecision("quantity").notNull(),
+  pricePerShare: numeric("price_per_share", { precision: 20, scale: 10 }).notNull(),
+  quantity: numeric("quantity", { precision: 20, scale: 10 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -103,8 +105,8 @@ export const walletDailySnapshot = pgTable("wallet_daily_snapshot", {
   walletId: text("wallet_id")
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
-  totalValue: doublePrecision("total_value").notNull(),
-  totalCostBasis: doublePrecision("total_cost_basis").notNull(),
+  totalValue: numeric("total_value", { precision: 20, scale: 10 }).notNull(),
+  totalCostBasis: numeric("total_cost_basis", { precision: 20, scale: 10 }).notNull(),
   snapshotDate: date("snapshot_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -116,11 +118,42 @@ export const walletIntradaySnapshot = pgTable("wallet_intraday_snapshot", {
   walletId: text("wallet_id")
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
-  totalValue: doublePrecision("total_value").notNull(),
-  totalCostBasis: doublePrecision("total_cost_basis").notNull(),
+  totalValue: numeric("total_value", { precision: 20, scale: 10 }).notNull(),
+  totalCostBasis: numeric("total_cost_basis", { precision: 20, scale: 10 }).notNull(),
   snapshotAt: timestamp("snapshot_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const fxRates = pgTable("fx_rates", {
+  id: text("id").primaryKey(),
+  baseCurrency: currencyEnum("base_currency").notNull(), // np. USD
+  quoteCurrency: currencyEnum("quote_currency").notNull(), // np. PLN
+  rate: numeric("rate", {precision: 20, scale: 10}).notNull(), // USD -> PLN so 1 USD = 3,6 PLN  <- this is rate
+  asOf: timestamp("as_of").notNull(),
+  granularity: granularityEnum("granularity").notNull(), // daily or intraday
+  source: text("source").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+},
+  (table) => [
+    uniqueIndex("fx_rates_pair_time_source_uq").on(
+      table.baseCurrency,
+      table.quoteCurrency,
+      table.asOf,
+      table.granularity,
+      table.source
+    ),
+    index("fx_rates_lookup_idx").on(
+      table.baseCurrency,
+      table.quoteCurrency,
+      table.granularity,
+      table.asOf,
+    ),
+    check(
+      "fx_rates_base_ne_quote",
+      sql`${table.baseCurrency} <> ${table.quoteCurrency}`
+    )
+  ]
+);
 
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),

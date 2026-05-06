@@ -34,7 +34,12 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
     redirect("/dashboard");
   }
 
-  const positions = await QUERIES.getWalletPositions(walletId, session.user.id);
+  const positionsRaw = await QUERIES.getWalletPositions(walletId, session.user.id);
+  const positions = positionsRaw.map((pos) => ({
+    ...pos,
+    quantity: Number(pos.quantity),
+    pricePerShare: Number(pos.pricePerShare),
+  }));
 
   const groupedPositions: Record<string, typeof positions> = {};
   for (const pos of positions) {

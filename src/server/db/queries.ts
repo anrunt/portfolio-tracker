@@ -1,6 +1,6 @@
-import { and, asc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNull, lte, sql } from "drizzle-orm";
 import { db } from ".";
-import { position, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
+import { fxRates, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
@@ -18,7 +18,7 @@ export const QUERIES = {
         userId: wallet.userId,
         currency: wallet.currency,
         createdAt: wallet.createdAt,
-        totalValue: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0)`
+        totalValue: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0::numeric)::double precision`
       })
       .from(wallet)
       .leftJoin(position, eq(wallet.id, position.walletId))
@@ -41,8 +41,8 @@ export const QUERIES = {
         id: position.id,
         companyName: position.companyName,
         companySymbol: position.companySymbol,
-        pricePerShare: position.pricePerShare,
-        quantity: position.quantity,
+        pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+        quantity: sql<number>`(${position.quantity})::double precision`,
         createdAt: position.createdAt,
       })
       .from(position)
@@ -65,8 +65,8 @@ export const QUERIES = {
           walletId: position.walletId,
           companyName: position.companyName,
           companySymbol: position.companySymbol,
-          pricePerShare: position.pricePerShare,
-          quantity: position.quantity,
+          pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+          quantity: sql<number>`(${position.quantity})::double precision`,
           createdAt: position.createdAt,
         },
       })
@@ -77,7 +77,14 @@ export const QUERIES = {
 
   getDailyPortfolioData: function(walletId: string, startDate: string) {
     return db
-      .select()
+      .select({
+        id: walletDailySnapshot.id,
+        walletId: walletDailySnapshot.walletId,
+        totalValue: sql<number>`(${walletDailySnapshot.totalValue})::double precision`,
+        totalCostBasis: sql<number>`(${walletDailySnapshot.totalCostBasis})::double precision`,
+        snapshotDate: walletDailySnapshot.snapshotDate,
+        createdAt: walletDailySnapshot.createdAt,
+      })
       .from(walletDailySnapshot)
       .where(
         and(
@@ -90,7 +97,14 @@ export const QUERIES = {
 
   getIntradayPortfolioData: function(walletId: string, startOfToday: Date) {
     return db
-      .select()
+      .select({
+        id: walletIntradaySnapshot.id,
+        walletId: walletIntradaySnapshot.walletId,
+        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`,
+        totalCostBasis: sql<number>`(${walletIntradaySnapshot.totalCostBasis})::double precision`,
+        snapshotAt: walletIntradaySnapshot.snapshotAt,
+        createdAt: walletIntradaySnapshot.createdAt,
+      })
       .from(walletIntradaySnapshot)
       .where(
         and(
@@ -101,41 +115,142 @@ export const QUERIES = {
       .orderBy(asc(walletIntradaySnapshot.snapshotAt))
   },
 
+  
   getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date) {
     return db
       .select({
         snapshotAt: walletIntradaySnapshot.snapshotAt,
-        totalValue: sql<number>`sum(${walletIntradaySnapshot.totalValue})`,
-        totalCostBasis: sql<number>`sum(${walletIntradaySnapshot.totalCostBasis})`
+        walletId: walletIntradaySnapshot.walletId,
+        walletCurrency: wallet.currency,
+        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`,
+        totalCostBasis: sql<number>`(${walletIntradaySnapshot.totalCostBasis})::double precision`,
       })
       .from(walletIntradaySnapshot)
       .innerJoin(wallet, eq(wallet.id, walletIntradaySnapshot.walletId))
       .where(
         and(
           eq(wallet.userId, userId),
-          gte(walletIntradaySnapshot.snapshotAt, startOfToday),
+          isNull(wallet.deletedAt),
+          gte(walletIntradaySnapshot.snapshotAt, startOfToday)
         )
       )
-      .groupBy(walletIntradaySnapshot.snapshotAt)
-      .orderBy(asc(walletIntradaySnapshot.snapshotAt))
+      .orderBy(
+        asc(walletIntradaySnapshot.snapshotAt),
+      );
   },
-
+  // Need to change this -> Now i just sum wallet and dont care about currency which is wrong
+//  getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date) {
+//    return db
+//      .select({
+//        snapshotAt: walletIntradaySnapshot.snapshotAt,
+//        totalValue: sql<number>`coalesce(sum(${walletIntradaySnapshot.totalValue}), 0::numeric)::double precision`,
+//        totalCostBasis: sql<number>`coalesce(sum(${walletIntradaySnapshot.totalCostBasis}), 0::numeric)::double precision`
+//      })
+//      .from(walletIntradaySnapshot)
+//      .innerJoin(wallet, eq(wallet.id, walletIntradaySnapshot.walletId))
+//      .where(
+//        and(
+//          eq(wallet.userId, userId),
+//          gte(walletIntradaySnapshot.snapshotAt, startOfToday),
+//        )
+//      )
+//      .groupBy(walletIntradaySnapshot.snapshotAt)
+//      .orderBy(asc(walletIntradaySnapshot.snapshotAt))
+//  },
+//
   getAllWalletsDailyPortfolioData: function(userId: string, startDate: string) {
     return db
       .select({
         snapshotDate: walletDailySnapshot.snapshotDate,
-        totalValue: sql<number>`sum(${walletDailySnapshot.totalValue})`,
-        totalCostBasis: sql<number>`sum(${walletDailySnapshot.totalCostBasis})`
+        walletId: walletDailySnapshot.walletId,
+        walletCurrency: wallet.currency,
+        totalValue: sql<number>`(${walletDailySnapshot.totalValue})::double precision`,
+        totalCostBasis: sql<number>`(${walletDailySnapshot.totalCostBasis}):: double precision`
       })
       .from(walletDailySnapshot)
       .innerJoin(wallet, eq(wallet.id, walletDailySnapshot.walletId))
       .where(
         and(
           eq(wallet.userId, userId),
-          gte(walletDailySnapshot.snapshotDate, startDate),
+          isNull(wallet.deletedAt),
+          gte(walletDailySnapshot.snapshotDate, startDate)
         )
       )
-      .groupBy(walletDailySnapshot.snapshotDate)
-      .orderBy(asc(walletDailySnapshot.snapshotDate))
+      .orderBy(
+        asc(walletDailySnapshot.snapshotDate),
+      )
+  },
+//  getAllWalletsDailyPortfolioData: function(userId: string, startDate: string) {
+//    return db
+//      .select({
+//        snapshotDate: walletDailySnapshot.snapshotDate,
+//        totalValue: sql<number>`coalesce(sum(${walletDailySnapshot.totalValue}), 0::numeric)::double precision`,
+//        totalCostBasis: sql<number>`coalesce(sum(${walletDailySnapshot.totalCostBasis}), 0::numeric)::double precision`
+//      })
+//      .from(walletDailySnapshot)
+//      .innerJoin(wallet, eq(wallet.id, walletDailySnapshot.walletId))
+//      .where(
+//        and(
+//          eq(wallet.userId, userId),
+//          gte(walletDailySnapshot.snapshotDate, startDate),
+//        )
+//      )
+//      .groupBy(walletDailySnapshot.snapshotDate)
+//      .orderBy(asc(walletDailySnapshot.snapshotDate))
+//  }
+
+  getUserDisplayCurrency: function (userId: string) {
+    return db
+      .select({
+        displayCurrency: user.displayCurrency
+      })
+      .from(user)  
+      .where(eq(user.id, userId))
+  },
+
+  getFxRateBefore: async function (startDate: Date) {
+    return db
+      .select({
+        rate: sql<number>`(${fxRates.rate})::double precision`,
+        asOf: fxRates.asOf,
+        baseCurrency: fxRates.baseCurrency,
+        quoteCurrency: fxRates.quoteCurrency,
+      })
+      .from(fxRates)
+      .where(
+        and(
+          eq(fxRates.baseCurrency, "USD"),
+          eq(fxRates.quoteCurrency, "PLN"),
+          eq(fxRates.granularity, "daily"),
+          eq(fxRates.source, "nbp"),
+          lte(fxRates.asOf, startDate)
+        )
+      )
+      .orderBy(desc(fxRates.asOf))
+      .limit(1)
+      .then((rows) => rows[0] ?? null)
+  },
+
+
+  getFxRatesInRange: function(startDate: Date, endDate: Date) {
+    return db
+      .select({
+        rate: sql<number>`(${fxRates.rate})::double precision`,
+        asOf: fxRates.asOf,
+        baseCurrency: fxRates.baseCurrency,
+        quoteCurrency: fxRates.quoteCurrency,
+      })
+      .from(fxRates)
+      .where(
+        and(
+          eq(fxRates.baseCurrency, "USD"),
+          eq(fxRates.quoteCurrency, "PLN"),
+          eq(fxRates.granularity, "daily"),
+          eq(fxRates.source, "nbp"),
+          gt(fxRates.asOf, startDate),
+          lte(fxRates.asOf, endDate)
+        )
+      )
+      .orderBy(asc(fxRates.asOf))
   }
 };

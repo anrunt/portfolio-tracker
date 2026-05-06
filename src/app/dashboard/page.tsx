@@ -24,16 +24,39 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     id: w.id,
     name: w.name,
     currency: w.currency,
-    totalValue: w.totalValue,
+    totalValue: Number(w.totalValue),
   }));
 
-  const chartPortfolioDataSerialized = await getAllWalletsPortfolioData(range);
+
+  const [displayCurrencyRaw] = await QUERIES.getUserDisplayCurrency(session.session.userId);
+
+  if (!displayCurrencyRaw) {
+    throw new Error("Display currency is not configured for this account.");
+  }
+
+  const displayCurrency = displayCurrencyRaw.displayCurrency;
+
+  const chartPortfolioDataSerialized = await getAllWalletsPortfolioData(range, displayCurrency);
   const deserialized = Result.deserialize<ChartDataPoint[], SerializedError>(chartPortfolioDataSerialized);
 
   if (!deserialized || Result.isError(deserialized)) {
     const error = deserialized ? deserialized.error : {message: "Unknown error"};
-    return <Dashboard wallets={wallets} range={range} chartError={error.message}/>;
+    return (
+      <Dashboard
+        wallets={wallets}
+        range={range}
+        displayCurrency={displayCurrency}
+        chartError={error.message}
+      />
+    );
   }
 
-  return <Dashboard wallets={wallets} range={range} chartData={deserialized.value} />;
+  return (
+    <Dashboard
+      wallets={wallets}
+      range={range}
+      displayCurrency={displayCurrency}
+      chartData={deserialized.value}
+    />
+  );
 }
