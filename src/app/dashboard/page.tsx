@@ -27,7 +27,16 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     totalValue: Number(w.totalValue),
   }));
 
-  const chartPortfolioDataSerialized = await getAllWalletsPortfolioData(range);
+
+  const [displayCurrencyRaw] = await QUERIES.getUserDisplayCurrency(session.session.userId);
+
+  if (!displayCurrencyRaw) {
+    throw new Error("Display currency is not configured for this account.");
+  }
+
+  const displayCurrency = displayCurrencyRaw.displayCurrency;
+
+  const chartPortfolioDataSerialized = await getAllWalletsPortfolioData(range, displayCurrency);
   const deserialized = Result.deserialize<ChartDataPoint[], SerializedError>(chartPortfolioDataSerialized);
 
   if (!deserialized || Result.isError(deserialized)) {

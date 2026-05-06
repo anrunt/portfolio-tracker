@@ -605,12 +605,12 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
   })
 }
 
-export async function getAllWalletsPortfolioData(range: TimeRange): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
-  const result = await getAllWalletsPortfolioDataResult(range);
+export async function getAllWalletsPortfolioData(range: TimeRange, displayCurrency: "PLN" | "USD"): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
+  const result = await getAllWalletsPortfolioDataResult(range, displayCurrency);
   return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
 }
 
-async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Result<ChartDataPoint[], WalletChartError>>{
+async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrency: "PLN" | "USD"): Promise<Result<ChartDataPoint[], WalletChartError>>{
   return Result.gen(async function* () {
     const user = await getSession();
     if (!user) {
@@ -626,12 +626,6 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
         return Result.err(new NotFoundError({resource: "Wallet Snapshots"}));
       }
 
-      const displayCurrencyRaw = await QUERIES.getUserDisplayCurrency(user.session.userId);
-      if (!displayCurrencyRaw) {
-        return Result.err(new NotFoundError({resource: "User displayCurrency"}));
-      }
-
-      const displayCurrency = displayCurrencyRaw[0].displayCurrency;
       const needsFxRates = intradayPortfolioDataRaw.some(
         (r) => r.walletCurrency !== displayCurrency
       );
