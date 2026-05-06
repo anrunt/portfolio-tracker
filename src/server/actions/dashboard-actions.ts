@@ -722,14 +722,16 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
       }
 
       const displayCurrency = displayCurrencyRaw[0].displayCurrency;
+
       const needsFxRates = dailyPortfolioDataRaw.some(
         (data) => data.walletCurrency !== displayCurrency
       );
+
       type FxRateWithDateStr = Awaited<ReturnType<typeof QUERIES.getFxRatesInRange>>[number] & {
         dateStr: string;
       };
-      let allRates: FxRateWithDateStr[] = [];
 
+      let allRates: FxRateWithDateStr[] = [];
       if (needsFxRates) {
         const [ratesInRange, fallbackRate] = await Promise.all([
           QUERIES.getFxRatesInRange(startDate, currentDate),
