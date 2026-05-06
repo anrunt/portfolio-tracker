@@ -752,6 +752,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
 
       const byDate = new Map<string, {
         timestamp: number,
+        label: string,
         totalValue: number,
         totalCostBasis: number
       }>();
@@ -797,6 +798,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange): Promise<Resul
         } else {
           byDate.set(snapshotDate, {
             timestamp: new Date(snapshotDate).getTime(),
+            label: snapshotDate,
             totalValue,
             totalCostBasis,
           });

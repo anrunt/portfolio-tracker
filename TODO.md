@@ -18,10 +18,9 @@ add multiple positions for the same company from the Add Position dialog.
   -[x] Update wallet deletion logic from db.delete to db.update
   -[x] Update the queries to exclude soft deleted wallets
 -[] FIX: Total value is shown in no PLN or USD it just adds two currencies together which is wrong -> make so user can choose what currency he wants to see total value of his portfolio
-  -Check if you actually need FX.
-    • If all records have walletCurrency === displayCurrency, we don't need to fetch FX rates.
+  •[x] If all records have walletCurrency === displayCurrency, we don't need to fetch FX rates.
 -[] FIX: If one symbol fails the wallet gets skipped which makes a terrible drop on the chart ui which is really misleading for the user.
--[] FIX: When the dashboard page loads first, the data is outdated so user needs to refresh to see latest data.
+-[] FIX: When the dashboard page loads first, the data is outdated so user needs to refresh to see latest data - only happens for USA.
 -[] Feature: Maybe make a portfolio snapshot when user adds new company so he can see his new chart instead of waiting for the snapshot?
 -[] Feature: Add delete all positions button so i can delete all my positions on one company with ease.
 -[] Feature: Think about better cost basis - when i close the position and reopen a new one, my cost basis is not accurate because if i lose money on some position i cant see how much i've spent overall but i see only how much i've spent on current shares only.
