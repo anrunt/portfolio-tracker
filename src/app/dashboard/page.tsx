@@ -41,8 +41,22 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   if (!deserialized || Result.isError(deserialized)) {
     const error = deserialized ? deserialized.error : {message: "Unknown error"};
-    return <Dashboard wallets={wallets} range={range} chartError={error.message}/>;
+    return (
+      <Dashboard
+        wallets={wallets}
+        range={range}
+        displayCurrency={displayCurrency}
+        chartError={error.message}
+      />
+    );
   }
 
-  return <Dashboard wallets={wallets} range={range} chartData={deserialized.value} />;
+  return (
+    <Dashboard
+      wallets={wallets}
+      range={range}
+      displayCurrency={displayCurrency}
+      chartData={deserialized.value}
+    />
+  );
 }

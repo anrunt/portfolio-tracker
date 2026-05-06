@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { CartesianGrid, Line, LineChart } from "recharts";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
+import { DisplayCurrency } from "@/server/actions/dashboard-actions";
 import {
   ChartContainer,
   ChartTooltip,
@@ -11,6 +12,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
+import DisplayCurrencyToggle from "./display-currency-toggle";
 
 const TIME_RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "6M", "1YR"];
 
@@ -35,9 +37,10 @@ function formatTimestamp(value: number) {
 interface Props {
   range: TimeRange;
   data: ChartDataPoint[];
+  displayCurrency: DisplayCurrency;
 }
 
-export default function DashboardChartClient({ range, data }: Props) {
+export default function DashboardChartClient({ range, data, displayCurrency }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -54,29 +57,33 @@ export default function DashboardChartClient({ range, data }: Props) {
         isPending && "opacity-60"
       )}
     >
-      <div className="px-5 py-2.5 border-b border-border flex items-center justify-between">
+      <div className="px-5 py-2.5 border-b border-border flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
           <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
             Performance Overview
           </span>
         </div>
-        <div className="flex gap-0.5">
-          {TIME_RANGES.map((r) => (
-            <button
-              key={r}
-              onClick={() => handleRangeChange(r)}
-              disabled={isPending}
-              className={cn(
-                "px-2.5 py-1 font-(family-name:--font-jb-mono) text-[10px] rounded transition-all duration-150 cursor-pointer disabled:cursor-wait",
-                r === range
-                  ? "bg-primary text-primary-foreground font-semibold"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              {r}
-            </button>
-          ))}
+        <div className="flex items-center gap-2.5">
+          <DisplayCurrencyToggle displayCurrency={displayCurrency} />
+          <div className="h-4 w-px bg-border/60" />
+          <div className="flex gap-0.5">
+            {TIME_RANGES.map((r) => (
+              <button
+                key={r}
+                onClick={() => handleRangeChange(r)}
+                disabled={isPending}
+                className={cn(
+                  "px-2.5 py-1 font-(family-name:--font-jb-mono) text-[10px] rounded transition-all duration-150 cursor-pointer disabled:cursor-wait",
+                  r === range
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

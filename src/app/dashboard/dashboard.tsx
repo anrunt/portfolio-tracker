@@ -5,7 +5,9 @@ import Wallet from "./wallet";
 import AddWallet from "./add-wallet";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
+import { DisplayCurrency } from "@/server/actions/dashboard-actions";
 import DashboardChartClient from "./dashboard-chart-client";
+import DisplayCurrencyToggle from "./display-currency-toggle";
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -20,11 +22,12 @@ interface Props {
     totalValue: number;
   }>;
   range: TimeRange;
+  displayCurrency: DisplayCurrency;
   chartData?: ChartDataPoint[];
   chartError?: string;
 }
 
-export default function Dashboard({ wallets, range, chartData, chartError }: Props) {
+export default function Dashboard({ wallets, range, displayCurrency, chartData, chartError }: Props) {
   const totalsByCurrency: Record<string, number> = {};
   for (const w of wallets) {
     totalsByCurrency[w.currency] =
@@ -89,11 +92,14 @@ export default function Dashboard({ wallets, range, chartData, chartError }: Pro
         <section className="rounded-lg border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
           {chartError ? (
             <>
-              <div className="px-5 py-2.5 border-b border-border flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
-                <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
-                  Performance Overview
-                </span>
+              <div className="px-5 py-2.5 border-b border-border flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
+                  <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
+                    Performance Overview
+                  </span>
+                </div>
+                <DisplayCurrencyToggle displayCurrency={displayCurrency} />
               </div>
               <div className="px-5 py-8 text-center">
                 <p className="font-(family-name:--font-jb-mono) text-[11px] text-destructive tracking-wider">
@@ -102,14 +108,21 @@ export default function Dashboard({ wallets, range, chartData, chartError }: Pro
               </div>
             </>
           ) : chartData ? (
-            <DashboardChartClient range={range} data={chartData} />
+            <DashboardChartClient
+              range={range}
+              data={chartData}
+              displayCurrency={displayCurrency}
+            />
           ) : (
             <>
-              <div className="px-5 py-2.5 border-b border-border flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
-                  Performance Overview
-                </span>
+              <div className="px-5 py-2.5 border-b border-border flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                  <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
+                    Performance Overview
+                  </span>
+                </div>
+                <DisplayCurrencyToggle displayCurrency={displayCurrency} />
               </div>
               <div className="h-[360px] flex items-center justify-center relative">
                 <div

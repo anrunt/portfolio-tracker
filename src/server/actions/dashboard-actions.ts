@@ -4,7 +4,7 @@ import { getSession } from "../better-auth/session";
 import { z } from "zod";
 import { db } from "../db";
 import { numToNumericString } from "../db/numeric";
-import { position, wallet } from "../db/schema";
+import { position, user, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
@@ -24,7 +24,7 @@ import {
   PriceError,
   WalletChartError,
 } from "../errors";
-import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData, TimeRange, ChartDataPoint } from "./types";
+import type { FinnhubStock, FinnhubQuote, SerializedError, FieldErrors, PriceSuccess, PriceFetchFailure, PriceResultData, TimeRange, ChartDataPoint, DisplayCurrency } from "./types";
 
 export async function searchTicker(
   query: string,
@@ -603,6 +603,52 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
       return Result.err(new ValidationError({ field: "range", message: "Unsupported time range for chart data" }));
     }
   })
+}
+
+
+
+export async function setDisplayCurrency(
+  currency: DisplayCurrency
+): Promise<SerializedResult<void, SerializedError>> {
+  const result = await setDisplayCurrencyResult(currency);
+  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
+}
+
+async function setDisplayCurrencyResult(
+  currency: DisplayCurrency
+): Promise<Result<void, UnauthenticatedError | ValidationError | DatabaseError>> {
+  return Result.gen(async function* () {
+    const session = await getSession();
+    if (!session) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    if (currency !== "USD" && currency !== "PLN") {
+      return Result.err(
+        new ValidationError({
+          field: "currency",
+          message: "Display currency must be USD or PLN.",
+        })
+      );
+    }
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db
+            .update(user)
+            .set({ displayCurrency: currency })
+            .where(eq(user.id, session.session.userId));
+        },
+        catch: (e) =>
+          new DatabaseError({ operation: "update displayCurrency", cause: e }),
+      })
+    );
+
+    revalidatePath("/dashboard");
+
+    return Result.ok(undefined);
+  });
 }
 
 export async function getAllWalletsPortfolioData(range: TimeRange, displayCurrency: "PLN" | "USD"): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
