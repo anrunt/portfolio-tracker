@@ -73,9 +73,24 @@ export async function runSnapshot(type: "daily" | "intraday") {
 
   const allPrices = new Map([...usPriceData.prices, ...waPriceData.prices].map(p => [p.symbol, p.price]));
   const allFailures = [...usPriceData.failures, ...waPriceData.failures];
+  const requestedSymbols = new Set([...US_Symbols, ...WA_Symbols]);
 
   if (allFailures.length > 0) {
-    console.warn(`[cron/snapshot] Price fetch failures: `, allFailures);
+    console.error(`[cron/snapshot] Price fetch failures: `, allFailures);
+    throw new Error(
+      `[cron/snapshot] Aborting ${type} run because some prices failed: ${allFailures
+        .map((failure) => `${failure.symbol} (${failure.reason})`)
+        .join(", ")}`
+    );
+  }
+
+  const missingPrices = [...requestedSymbols].filter((symbol) => !allPrices.has(symbol));
+
+  if (missingPrices.length > 0) {
+    console.error(`[cron/snapshot] Missing prices: `, missingPrices);
+    throw new Error(
+      `[cron/snapshot] Aborting ${type} run because prices are missing: ${missingPrices.join(", ")}`
+    );
   }
 
   const dailyRows = [];
@@ -104,15 +119,14 @@ export async function runSnapshot(type: "daily" | "intraday") {
     console.error("[cron/snapshot] Error with inserting fx rates into the db:", error);
   }
 
-  walletLoop: for (const [walletId, data] of Object.entries(grouped)) {
+  for (const [walletId, data] of Object.entries(grouped)) {
     let totalValue = 0;
     let totalCostBasis = 0;
 
     for (const pos of data.positions) {
       const price = allPrices.get(pos.companySymbol);
       if (price === undefined) {
-        console.warn(`[cron/snapshot] Missing price for ${pos.companySymbol}, skipping wallet ${walletId}`);
-        continue walletLoop;
+        throw new Error(`[cron/snapshot] Missing validated price for ${pos.companySymbol}`);
       };
       totalValue += numFromDb(pos.quantity) * price;
       totalCostBasis += numFromDb(pos.quantity) * numFromDb(pos.pricePerShare);
