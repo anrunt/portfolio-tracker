@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { CartesianGrid, Line, LineChart } from "recharts";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
-import { DisplayCurrency } from "@/server/actions/dashboard-actions";
 import {
   ChartContainer,
   ChartTooltip,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import DisplayCurrencyToggle from "./display-currency-toggle";
+import type { DisplayCurrency } from "@/server/actions/types";
 
 const TIME_RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "6M", "1YR"];
 

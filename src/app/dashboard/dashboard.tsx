@@ -5,7 +5,7 @@ import Wallet from "./wallet";
 import AddWallet from "./add-wallet";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
-import { DisplayCurrency } from "@/server/actions/dashboard-actions";
+import type { DisplayCurrency } from "@/server/actions/types";
 import DashboardChartClient from "./dashboard-chart-client";
 import DisplayCurrencyToggle from "./display-currency-toggle";
 
