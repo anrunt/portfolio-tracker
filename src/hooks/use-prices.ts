@@ -12,8 +12,13 @@ export function usePrices({symbols, exchange, initialData} : UsePricesParams) {
   const { data, dataUpdatedAt } = useQuery<PriceResultData>({
     queryKey: ["prices", symbols, exchange],
     queryFn: async () => {
+      const params = new URLSearchParams({
+        symbol: symbols.join(","),
+        exchange,
+      });
+
       const result = await fetch(
-        `/api/stock?symbol=${symbols.join(",")}&exchange=${exchange}`
+        `/api/stock?${params.toString()}`
       );
 
       if (!result.ok) {
