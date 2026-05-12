@@ -85,3 +85,5 @@ export function usePortfolioStats({
     formatPlPercent,
   };
 }
+
+export type PortfolioStats = ReturnType<typeof usePortfolioStats>;

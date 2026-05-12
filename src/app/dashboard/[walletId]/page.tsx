@@ -6,9 +6,8 @@ import { getPrice } from "@/server/actions/dashboard-actions";
 import type { PriceResultData, TimeRange } from "@/server/actions/types";
 import { Result } from "better-result";
 import type { SerializedError } from "@/server/actions/types";
-import WalletPositions from "./wallet-positions";
-import WalletHeader from "./wallet-header";
 import WalletChart from "./wallet-chart";
+import WalletPageClient from "./wallet-page-client";
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -77,15 +76,10 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
         }}
       />
 
-      <WalletHeader {...walletProps} />
-
-      <main className="relative max-w-7xl mx-auto px-6 py-8 space-y-6">
-        <section className="rounded-lg border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
-          <WalletChart walletId={wallet.id} range={range} />
-        </section>
-
-        <WalletPositions {...walletProps} />
-      </main>
+      <WalletPageClient
+        {...walletProps}
+        chart={<WalletChart walletId={wallet.id} range={range} />}
+      />
     </div>
   );
 }

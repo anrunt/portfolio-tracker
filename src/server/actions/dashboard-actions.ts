@@ -121,7 +121,7 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
             const promises = companySymbols.map(async (symbol) => {
               const response = await fetch(
                 `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
-                { next: { revalidate: 60 } } // 60 for now, with tanstack query it might show outdated price but its fine - for now i want to protect my rate limits
+                { cache: "no-store" }
               );
 
               if (!response.ok) {
@@ -160,7 +160,7 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
 
             const response = await fetch(
               `https://stooq.pl/q/l/?s=${stoqSymbols.join("+")}&f=sc&e=csv`,
-              { next: { revalidate: 60 } }
+              { cache: "no-store" }
             );
 
             if (!response.ok) {

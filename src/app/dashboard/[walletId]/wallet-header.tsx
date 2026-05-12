@@ -1,7 +1,6 @@
 "use client";
 
-import { usePortfolioStats } from "@/hooks/use-portfolio-stats";
-import type { PositionData, PriceResultData } from "@/server/actions/types";
+import type { PortfolioStats } from "@/hooks/use-portfolio-stats";
 import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -12,20 +11,12 @@ interface WalletHeaderProps {
     name: string;
     currency: string;
   };
-  positions: PositionData[];
-  groupedPositions: Record<string, PositionData[]>;
-  symbols: string[];
-  exchange: string;
-  initialPriceData: PriceResultData;
+  stats: PortfolioStats;
 }
 
 export default function WalletHeader({
   wallet,
-  positions,
-  groupedPositions,
-  symbols,
-  exchange,
-  initialPriceData,
+  stats,
 }: WalletHeaderProps) {
   const {
     totalCurrentValue,
@@ -37,14 +28,7 @@ export default function WalletHeader({
     formatCurrency,
     formatPl,
     formatPlPercent,
-  } = usePortfolioStats({
-    positions,
-    groupedPositions,
-    symbols,
-    exchange,
-    currency: wallet.currency,
-    initialPriceData,
-  });
+  } = stats;
 
   return (
     <header className="relative border-b border-border/50 bg-card/60 backdrop-blur-md">

@@ -33,8 +33,7 @@ async function getFinnhubPrices(
 ): Promise<PriceResultData> {
   const requests = companySymbols.map(async (symbol) => {
     const response = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubApiKey}`,
-      { next: { revalidate: 60 } }
+      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubApiKey}`
     );
 
     if (!response.ok) {
@@ -74,8 +73,7 @@ async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData
   const stooqSymbols = companySymbols.map((symbol) => symbol.replace(".WA", ""));
 
   const response = await fetch(
-    `https://stooq.pl/q/l/?s=${stooqSymbols.join("+")}&f=sc&e=csv`,
-    { next: { revalidate: 60 } }
+    `https://stooq.pl/q/l/?s=${stooqSymbols.join("+")}&f=sc&e=csv`
   );
 
   if (!response.ok) {

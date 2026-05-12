@@ -1,7 +1,6 @@
 "use client";
 
-import { usePortfolioStats } from "@/hooks/use-portfolio-stats";
-import type { PositionData, PriceResultData } from "@/server/actions/types";
+import type { PositionData } from "@/server/actions/types";
 import MainPosition from "./position-main";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Search from "./search";
@@ -14,28 +13,21 @@ interface WalletPositionsProps {
   };
   positions: PositionData[];
   groupedPositions: Record<string, PositionData[]>;
-  symbols: string[];
   exchange: string;
-  initialPriceData: PriceResultData;
+  pricesBySymbol: Map<string, number>;
+  failedSymbols: Set<string>;
+  lastUpdated: string | null;
 }
 
 export default function WalletPositions({
   wallet,
   positions,
   groupedPositions,
-  symbols,
   exchange,
-  initialPriceData,
+  pricesBySymbol,
+  failedSymbols,
+  lastUpdated,
 }: WalletPositionsProps) {
-  const { pricesBySymbol, failedSymbols, lastUpdated } = usePortfolioStats({
-    positions,
-    groupedPositions,
-    symbols,
-    exchange,
-    currency: wallet.currency,
-    initialPriceData,
-  });
-
   const gridLayoutClass =
     "grid grid-cols-[65px_1.5fr_65px_110px_110px_110px_150px_44px] gap-3 items-center";
 
