@@ -15,18 +15,71 @@ interface WalletProps {
     id: string;
     name: string;
     currency: string;
-    totalValue: number;
+    totalValue: number | null;
+    totalCostBasis: number | null;
+    snapshotAt: Date | null;
+  };
+}
+
+function getWalletPerformance(wallet: WalletProps["wallet"]) {
+  const locale = wallet.currency === "USD" ? "en-US" : "pl-PL";
+  const formatter = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  if (wallet.totalValue === null || wallet.totalCostBasis === null) {
+    return {
+      totalPl: null,
+      formattedValue: "--",
+      formattedPl: "--",
+      formattedPlPercent: "--",
+    };
+  }
+
+  const totalPl = wallet.totalValue - wallet.totalCostBasis;
+  const totalPlPercent =
+    wallet.totalCostBasis > 0
+      ? (totalPl / wallet.totalCostBasis) * 100
+      : null;
+
+  const formatSignedValue = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + formatter.format(Math.abs(value));
+  };
+
+  const formatSignedPercent = (value: number) => {
+    const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+    return sign + Math.abs(value).toFixed(2) + "%";
+  };
+
+  return {
+    totalPl,
+    formattedValue: formatter.format(wallet.totalValue),
+    formattedPl: formatSignedValue(totalPl),
+    formattedPlPercent:
+      totalPlPercent !== null ? formatSignedPercent(totalPlPercent) : "--",
   };
 }
 
 export default function Wallet({ wallet }: WalletProps) {
   const deleteWalletWithId = deleteWallet.bind(null, wallet.id);
 
-  const locale = wallet.currency === "USD" ? "en-US" : "pl-PL";
-  const formattedValue = new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(wallet.totalValue);
+  const {
+    totalPl,
+    formattedValue,
+    formattedPl,
+    formattedPlPercent,
+  } = getWalletPerformance(wallet);
+
+  const performanceClass =
+    totalPl === null
+      ? "text-muted-foreground"
+      : totalPl > 0
+        ? "text-emerald-500"
+        : totalPl < 0
+          ? "text-destructive"
+          : "text-muted-foreground";
 
   return (
     <div className="group w-full flex items-stretch gap-1.5">
@@ -40,12 +93,20 @@ export default function Wallet({ wallet }: WalletProps) {
             {wallet.name}
           </span>
         </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-(family-name:--font-jb-mono) text-[12px] tabular-nums text-muted-foreground">
-            {formattedValue}
+        <div className="flex min-w-0 items-baseline justify-end gap-3 font-(family-name:--font-jb-mono) tabular-nums">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[12px] text-muted-foreground">
+              {formattedValue}
+            </span>
+            <span className="text-[9px] text-muted-foreground font-semibold">
+              {wallet.currency}
+            </span>
+          </div>
+          <span className={`text-[11px] font-semibold ${performanceClass}`}>
+            {formattedPl}
           </span>
-          <span className="font-(family-name:--font-jb-mono) text-[9px] text-muted-foreground font-semibold">
-            {wallet.currency}
+          <span className={`text-[11px] font-semibold ${performanceClass}`}>
+            {formattedPlPercent}
           </span>
         </div>
       </Link>
@@ -60,7 +121,7 @@ export default function Wallet({ wallet }: WalletProps) {
         </DialogTrigger>
 
         <DialogContent
-          className="sm:max-w-[420px] bg-background border-border/50 p-0 gap-0 overflow-hidden"
+          className="sm:max-w-105 bg-background border-border/50 p-0 gap-0 overflow-hidden"
           aria-describedby={undefined}
         >
           <DialogHeader className="px-6 pt-5 pb-0">

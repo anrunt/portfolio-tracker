@@ -26,6 +26,35 @@ export const QUERIES = {
       .groupBy(wallet.id)
   },
 
+  getWalletsWithLatestSnapshot: function (userId: string) {
+    const latestSnapshot = db
+      .select({
+        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value"),
+        totalCostBasis: sql<number>`(${walletIntradaySnapshot.totalCostBasis})::double precision`.as("total_cost_basis"),
+        snapshotAt: walletIntradaySnapshot.snapshotAt,
+      })
+      .from(walletIntradaySnapshot)
+      .where(eq(walletIntradaySnapshot.walletId, wallet.id))
+      .orderBy(desc(walletIntradaySnapshot.snapshotAt))
+      .limit(1)
+      .as("latest_snapshot");
+
+    return db
+      .select({
+        id: wallet.id,
+        name: wallet.name,
+        userId: wallet.userId,
+        currency: wallet.currency,
+        createdAt: wallet.createdAt,
+        totalValue: latestSnapshot.totalValue,
+        totalCostBasis: latestSnapshot.totalCostBasis,
+        snapshotAt: latestSnapshot.snapshotAt,
+      })
+      .from(wallet)
+      .leftJoinLateral(latestSnapshot, sql`true`)
+      .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)));
+  },
+
   getWalletById: async function (walletId: string, userId: string) {
     return db
       .select()
