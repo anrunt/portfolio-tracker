@@ -19,9 +19,10 @@ interface Props {
     id: string;
     name: string;
     currency: string;
-    totalValue: number | null;
+    totalValue: number;
     totalCostBasis: number | null;
     snapshotAt: Date | null;
+    hasSnapshot: boolean;
   }>;
   range: TimeRange;
   displayCurrency: DisplayCurrency;
@@ -33,7 +34,7 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
   const totalsByCurrency: Record<string, number> = {};
   for (const w of wallets) {
     totalsByCurrency[w.currency] =
-      (totalsByCurrency[w.currency] || 0) + (w.totalValue ?? 0);
+      (totalsByCurrency[w.currency] || 0) + w.totalValue;
   }
 
   const fmt = (val: number, currency: string) =>

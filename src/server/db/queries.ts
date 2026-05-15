@@ -39,6 +39,14 @@ export const QUERIES = {
       .limit(1)
       .as("latest_snapshot");
 
+    const walletCostBasis = db
+      .select({
+        fallbackCostBasis: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0::numeric)::double precision`.as("fallback_cost_basis"),
+      })
+      .from(position)
+      .where(eq(position.walletId, wallet.id))
+      .as("wallet_cost_basis");
+
     return db
       .select({
         id: wallet.id,
@@ -46,12 +54,14 @@ export const QUERIES = {
         userId: wallet.userId,
         currency: wallet.currency,
         createdAt: wallet.createdAt,
-        totalValue: latestSnapshot.totalValue,
+        totalValue: sql<number>`coalesce(${latestSnapshot.totalValue}, ${walletCostBasis.fallbackCostBasis})`.as("total_value"),
         totalCostBasis: latestSnapshot.totalCostBasis,
         snapshotAt: latestSnapshot.snapshotAt,
+        hasSnapshot: sql<boolean>`${latestSnapshot.snapshotAt} is not null`.as("has_snapshot"),
       })
       .from(wallet)
       .leftJoinLateral(latestSnapshot, sql`true`)
+      .leftJoinLateral(walletCostBasis, sql`true`)
       .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)));
   },
 

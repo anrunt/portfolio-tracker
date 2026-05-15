@@ -18,7 +18,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const range = (await searchParams).range ?? "1D";
 
-//  const userWallets = await QUERIES.getWalletsWithTotalValue(session.user.id);
   const userWallets = await QUERIES.getWalletsWithLatestSnapshot(session.user.id);
 
   const wallets = userWallets.map((w) => ({
@@ -28,6 +27,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     totalValue: w.totalValue,
     totalCostBasis: w.totalCostBasis,
     snapshotAt: w.snapshotAt,
+    hasSnapshot: w.hasSnapshot,
   }));
 
 

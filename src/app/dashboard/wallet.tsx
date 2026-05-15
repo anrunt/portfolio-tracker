@@ -15,9 +15,10 @@ interface WalletProps {
     id: string;
     name: string;
     currency: string;
-    totalValue: number | null;
+    totalValue: number;
     totalCostBasis: number | null;
     snapshotAt: Date | null;
+    hasSnapshot: boolean;
   };
 }
 
@@ -28,10 +29,12 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
     maximumFractionDigits: 2,
   });
 
-  if (wallet.totalValue === null || wallet.totalCostBasis === null) {
+  const formattedValue = formatter.format(wallet.totalValue);
+
+  if (!wallet.hasSnapshot || wallet.totalCostBasis === null) {
     return {
       totalPl: null,
-      formattedValue: "--",
+      formattedValue,
       formattedPl: "--",
       formattedPlPercent: "--",
     };
@@ -55,7 +58,7 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
 
   return {
     totalPl,
-    formattedValue: formatter.format(wallet.totalValue),
+    formattedValue,
     formattedPl: formatSignedValue(totalPl),
     formattedPlPercent:
       totalPlPercent !== null ? formatSignedPercent(totalPlPercent) : "--",
