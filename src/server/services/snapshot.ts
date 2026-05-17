@@ -69,12 +69,15 @@ async function getFinnhubPrices(
   return { prices, failures };
 }
 
+const STOOQ_RETRIES = 3;
+const RETRY_CODES = [429, 500, 502, 503, 504];
+
 async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData> {
   const stooqSymbols = companySymbols.map((symbol) => symbol.replace(".WA", ""));
 
-  const response = await fetch(
-    `https://stooq.pl/q/l/?s=${stooqSymbols.join("+")}&f=sc&e=csv`
-  );
+  const url = `https://stooq.pl/q/l/?s=${stooqSymbols.join("+")}&f=sc&e=csv`;
+
+  const response = await fetchUrlWithRetry(url, STOOQ_RETRIES);
 
   if (!response.ok) {
     throw new Error(`Stooq HTTP: ${response.status}`);
@@ -97,6 +100,49 @@ async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData
   }
 
   return { prices, failures };
+}
+
+async function fetchUrlWithRetry(url: string, retries: number) {
+  let lastError = undefined;
+
+  for (let i = 0; i<retries; i++) {
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(15000)
+      })
+
+      if (response.ok) {
+        return response;
+      }
+
+      if (RETRY_CODES.includes(response.status)) {
+        lastError = response.status;
+
+        if (i === retries - 1) {
+          return response;
+        }
+        continue;
+      }
+
+      return response; // Here response is always no-retry so we just return it
+
+    } catch(err) {
+      lastError = err;
+      if (err instanceof Error) {
+        if (err.name === "TimeoutError") {
+          console.log("Request timed out");
+        } else if (err.name === "AbortError") {
+          console.log("Request aborted");
+        } else {
+          console.log("Stooq err:", err);
+        }
+      } else {
+        console.log(String(err));
+      }
+    }
+  }
+
+  throw new Error(`Stooq fetching error: ${toErrorMessage(lastError)}`);
 }
 
 function toErrorMessage(error: unknown): string {
