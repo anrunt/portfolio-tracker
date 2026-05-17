@@ -70,6 +70,7 @@ async function getFinnhubPrices(
 }
 
 const STOOQ_RETRIES = 3;
+const RETRY_CODES = [429, 500, 502, 503, 504];
 
 async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData> {
   const stooqSymbols = companySymbols.map((symbol) => symbol.replace(".WA", ""));
@@ -107,10 +108,24 @@ async function fetchUrlWithRetry(url: string, retries: number) {
   for (let i = 0; i<retries; i++) {
     try {
       const response = await fetch(url, {
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(15000)
       })
 
-      return response;
+      if (response.ok) {
+        return response;
+      }
+
+      if (RETRY_CODES.includes(response.status)) {
+        lastError = response.status;
+
+        if (i === retries - 1) {
+          return response;
+        }
+        continue;
+      }
+
+      return response; // Here response is always no-retry so we just return it
+
     } catch(err) {
       lastError = err;
       if (err instanceof Error) {
