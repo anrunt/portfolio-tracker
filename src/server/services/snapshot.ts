@@ -7,9 +7,14 @@ import type {
 
 type Exchange = "US" | "WA";
 
+const STOOQ_RETRIES = 6;
+const RETRY_CODES = [429, 500, 502, 503, 504];
+const STOOQ_BASE_DELAY_MS = 5000;
+const STOOQ_MAX_DELAY_MS = 60000;
+
 export async function getPriceData(
   companySymbols: string[],
-  exchange: Exchange
+  exchange: Exchange,
 ): Promise<PriceResultData> {
   if (companySymbols.length === 0) {
     return { prices: [], failures: [] };
@@ -29,11 +34,11 @@ export async function getPriceData(
 
 async function getFinnhubPrices(
   companySymbols: string[],
-  finnhubApiKey: string
+  finnhubApiKey: string,
 ): Promise<PriceResultData> {
   const requests = companySymbols.map(async (symbol) => {
     const response = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubApiKey}`
+      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubApiKey}`,
     );
 
     if (!response.ok) {
@@ -69,13 +74,12 @@ async function getFinnhubPrices(
   return { prices, failures };
 }
 
-const STOOQ_RETRIES = 6;
-const RETRY_CODES = [429, 500, 502, 503, 504];
-const STOOQ_BASE_DELAY_MS = 5000;
-const STOOQ_MAX_DELAY_MS = 60000;
-
-async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData> {
-  const stooqSymbols = companySymbols.map((symbol) => symbol.replace(".WA", ""));
+async function getStooqPrices(
+  companySymbols: string[],
+): Promise<PriceResultData> {
+  const stooqSymbols = companySymbols.map((symbol) =>
+    symbol.replace(".WA", ""),
+  );
 
   const url = `https://stooq.pl/q/l/?s=${stooqSymbols.join("+")}&f=sc&e=csv`;
 
@@ -107,11 +111,13 @@ async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData
 async function fetchUrlWithRetry(url: string, retries: number) {
   let lastError = undefined;
 
-  for (let i = 0; i<retries; i++) {
+  for (let i = 0; i < retries; i++) {
+    const attempt = i + 1;
+
     try {
       const response = await fetch(url, {
-        signal: AbortSignal.timeout(15000)
-      })
+        signal: AbortSignal.timeout(15000),
+      });
 
       if (response.ok) {
         return response;
@@ -123,13 +129,21 @@ async function fetchUrlWithRetry(url: string, retries: number) {
         if (i === retries - 1) {
           return response;
         }
+
+        const delay = getStooqRetryDelayMs(i);
+        console.log(
+          `[cron/snapshot] Stooq attempt ${attempt}/${retries} returned HTTP ${response.status}. Retrying in ${Math.round(delay)}ms`
+        );
+        await sleep(delay);
+
         continue;
       }
 
       return response; // Here response is always no-retry so we just return it
-
-    } catch(err) {
+    } catch (err) {
       lastError = err;
+      const errorMessage = toErrorMessage(err);
+
       if (err instanceof Error) {
         if (err.name === "TimeoutError") {
           console.log("Request timed out");
@@ -141,6 +155,14 @@ async function fetchUrlWithRetry(url: string, retries: number) {
       } else {
         console.log(String(err));
       }
+
+      if (i !== retries - 1) {
+        const delay = getStooqRetryDelayMs(i);
+        console.log(
+          `[cron/snapshot] Stooq attempt ${attempt}/${retries} failed: ${errorMessage}. Retrying in ${Math.round(delay)}ms`
+        );
+        await sleep(delay);
+      }
     }
   }
 
@@ -149,6 +171,14 @@ async function fetchUrlWithRetry(url: string, retries: number) {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getStooqRetryDelayMs(index: number): number {
+  const delay = STOOQ_BASE_DELAY_MS * Math.pow(2, index);
+  const cappedDelay = Math.min(delay, STOOQ_MAX_DELAY_MS);
+  const jitter = Math.random() * 2000;
+
+  return cappedDelay + jitter;
 }
 
 function toErrorMessage(error: unknown): string {
