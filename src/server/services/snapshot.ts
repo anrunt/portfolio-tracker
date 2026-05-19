@@ -69,8 +69,10 @@ async function getFinnhubPrices(
   return { prices, failures };
 }
 
-const STOOQ_RETRIES = 3;
+const STOOQ_RETRIES = 6;
 const RETRY_CODES = [429, 500, 502, 503, 504];
+const STOOQ_BASE_DELAY_MS = 5000;
+const STOOQ_MAX_DELAY_MS = 60000;
 
 async function getStooqPrices(companySymbols: string[]): Promise<PriceResultData> {
   const stooqSymbols = companySymbols.map((symbol) => symbol.replace(".WA", ""));
@@ -143,6 +145,10 @@ async function fetchUrlWithRetry(url: string, retries: number) {
   }
 
   throw new Error(`Stooq fetching error: ${toErrorMessage(lastError)}`);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toErrorMessage(error: unknown): string {
