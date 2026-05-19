@@ -23,7 +23,7 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] FIX: If one symbol fails the wallet gets skipped which makes a terrible drop on the chart ui which is really misleading for the user.
 -[x] FIX: When the dashboard page loads first, the data is outdated so user needs to refresh to see latest data - only happens for USA.
 -[x] Feature: In the wallets section in the main dashboard, add P/L so user doesnt have to go inside his wallet to see how it is performing
--[x] Feature: Add retry for stoq price fetching
+-[] Feature: Add retry for stoq price fetching
 -[] Feature: Add delete all positions button so i can delete all my positions on one company with ease.
 -[] Feature: Think about better cost basis - when i close the position and reopen a new one, my cost basis is not accurate because if i lose money on some position i cant see how much i've spent overall but i see only how much i've spent on current shares only.
 -[] Feature: Maybe make a portfolio snapshot when user adds new company so he can see his new chart instead of waiting for the snapshot?
