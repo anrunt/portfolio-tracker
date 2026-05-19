@@ -141,7 +141,7 @@ export default function Position({
             </button>
           </DialogTrigger>
           <DialogContent
-            className="sm:max-w-[420px] bg-background border-border/50 p-0 gap-0 overflow-hidden"
+            className="sm:max-w-105 bg-background border-border/50 p-0 gap-0 overflow-hidden"
             aria-describedby={undefined}
           >
             <DialogHeader className="px-6 pt-5 pb-0">
