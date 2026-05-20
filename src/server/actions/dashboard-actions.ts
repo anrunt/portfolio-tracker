@@ -531,6 +531,49 @@ export async function deletePositionResult(
   });
 }
 
+export async function deleteAllPositions(walletId: string, companySymbol: string) {
+  const result = await deleteAllPositionsResult(walletId, companySymbol);
+  if (result.status === "error") {
+    throw new Error(result.error.message);
+  }
+}
+
+export async function deleteAllPositionsResult(walletId: string, companySymbol: string) {
+  return Result.gen(async function *() {
+    const user = await getSession();
+
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    const isUserWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+    if (!isUserWallet) {
+      return Result.err(new UnauthorizedError({ resource: `wallet ${walletId}` }))
+    }
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db
+            .delete(position)
+            .where(
+              and(
+                eq(position.walletId, walletId),
+                eq(position.companySymbol, companySymbol)
+              )
+            )
+        },
+        catch: (e) =>
+          new DatabaseError({ operation: "delete position", cause: e }),
+      })
+    );
+
+    revalidatePath(`/dashboard/${walletId}`);
+
+    return Result.ok(undefined);
+  })
+}
+
 export async function getWalletChartData(walletId: string, range: TimeRange): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
   const result = await getWalletChartDataResult(walletId, range);
   return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
