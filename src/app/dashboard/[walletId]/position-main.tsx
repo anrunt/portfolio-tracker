@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ChevronDown, Trash2 } from "lucide-react";
 import Position from "./position";
 
 interface PositionData {
@@ -30,6 +38,7 @@ export default function MainPosition({
   gridLayoutClass,
 }: MainPositionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const suppressRowToggleRef = useRef(false);
 
   const companyName = positions[0]?.companyName ?? "";
 
@@ -76,6 +85,28 @@ export default function MainPosition({
     return sign + Math.abs(value).toFixed(2) + "%";
   };
 
+  const handleRowClick = () => {
+    if (suppressRowToggleRef.current) {
+      suppressRowToggleRef.current = false;
+      return;
+    }
+
+    setIsExpanded((current) => !current);
+  };
+
+  const suppressNextRowToggle = () => {
+    suppressRowToggleRef.current = true;
+    window.setTimeout(() => {
+      suppressRowToggleRef.current = false;
+    }, 200);
+  };
+
+  const handleDeleteDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      suppressNextRowToggle();
+    }
+  };
+
   return (
     <div
       className={`group border rounded overflow-hidden mb-1 transition-all duration-150 ${
@@ -86,7 +117,7 @@ export default function MainPosition({
     >
       <div
         className={`${gridLayoutClass} w-full px-4 py-2.5 cursor-pointer select-none`}
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleRowClick}
       >
         <div className="flex items-center gap-2">
           <div className="w-1 h-1 rounded-full bg-primary group-hover:bg-primary transition-colors" />
@@ -145,9 +176,73 @@ export default function MainPosition({
             <span className="text-muted-foreground/40">N/A</span>
           )}
         </div>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-1">
+          <Dialog onOpenChange={handleDeleteDialogOpenChange}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
+                className="flex items-center justify-center text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 p-1"
+                aria-label={`Delete all ${companySymbol} positions`}
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </DialogTrigger>
+            <DialogContent
+              className="sm:max-w-105 bg-background border-border/50 p-0 gap-0 overflow-hidden"
+              aria-describedby={undefined}
+              onPointerDownOutside={suppressNextRowToggle}
+              onInteractOutside={suppressNextRowToggle}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <DialogHeader className="px-6 pt-5 pb-0">
+                <DialogTitle className="font-(family-name:--font-jb-mono) text-sm font-bold tracking-wide text-foreground">
+                  DELETE_ALL_POSITIONS
+                </DialogTitle>
+                <p className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-wider mt-1">
+                  Target:{" "}
+                  <span className="text-destructive font-semibold">
+                    {companySymbol}
+                  </span>
+                </p>
+              </DialogHeader>
+
+              <div className="px-6 pt-4 pb-6 space-y-4">
+                <div className="rounded border border-destructive/20 bg-destructive/5 px-4 py-3">
+                  <p className="font-(family-name:--font-jb-mono) text-[11px] text-foreground leading-relaxed">
+                    This action will permanently delete all positions for this
+                    company. This cannot be undone.
+                  </p>
+                  <p className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground/70 leading-relaxed mt-2">
+                    {positions.length} position{positions.length === 1 ? "" : "s"} selected
+                    {companyName ? ` · ${companyName}` : ""}
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-border/30">
+                  <DialogClose asChild>
+                    <button
+                      type="button"
+                      className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-all duration-150"
+                    >
+                      Cancel
+                    </button>
+                  </DialogClose>
+                  <button
+                    type="button"
+                    className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition-all duration-150 flex items-center gap-1.5"
+                  >
+                    Delete All
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <ChevronDown
-            className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 ${
               isExpanded ? "rotate-180 text-primary" : ""
             }`}
           />
