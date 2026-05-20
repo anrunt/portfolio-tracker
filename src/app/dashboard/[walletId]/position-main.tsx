@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { ChevronDown, Trash2 } from "lucide-react";
 import Position from "./position";
+import { deleteAllPositions } from "@/server/actions/dashboard-actions";
 
 interface PositionData {
   id: string;
@@ -38,6 +39,8 @@ export default function MainPosition({
   gridLayoutClass,
 }: MainPositionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const deleteAllPositionsBind = deleteAllPositions.bind(null, walletId, companySymbol);
 
   const companyName = positions[0]?.companyName ?? "";
 
@@ -204,13 +207,15 @@ export default function MainPosition({
                       Cancel
                     </button>
                   </DialogClose>
-                  <button
-                    type="button"
-                    className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition-all duration-150 flex items-center gap-1.5"
-                  >
-                    Delete All
-                    <Trash2 className="size-3" />
-                  </button>
+                  <form action={deleteAllPositionsBind}>
+                    <button
+                      type="submit"
+                      className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition-all duration-150 flex items-center gap-1.5"
+                    >
+                      Delete All
+                      <Trash2 className="size-3" />
+                    </button>
+                  </form>
                 </div>
               </div>
             </DialogContent>
