@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -38,7 +38,6 @@ export default function MainPosition({
   gridLayoutClass,
 }: MainPositionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const suppressRowToggleRef = useRef(false);
 
   const companyName = positions[0]?.companyName ?? "";
 
@@ -85,28 +84,6 @@ export default function MainPosition({
     return sign + Math.abs(value).toFixed(2) + "%";
   };
 
-  const handleRowClick = () => {
-    if (suppressRowToggleRef.current) {
-      suppressRowToggleRef.current = false;
-      return;
-    }
-
-    setIsExpanded((current) => !current);
-  };
-
-  const suppressNextRowToggle = () => {
-    suppressRowToggleRef.current = true;
-    window.setTimeout(() => {
-      suppressRowToggleRef.current = false;
-    }, 200);
-  };
-
-  const handleDeleteDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      suppressNextRowToggle();
-    }
-  };
-
   return (
     <div
       className={`group border rounded overflow-hidden mb-1 transition-all duration-150 ${
@@ -117,7 +94,7 @@ export default function MainPosition({
     >
       <div
         className={`${gridLayoutClass} w-full px-4 py-2.5 cursor-pointer select-none`}
-        onClick={handleRowClick}
+        onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
           <div className="w-1 h-1 rounded-full bg-primary group-hover:bg-primary transition-colors" />
@@ -177,7 +154,7 @@ export default function MainPosition({
           )}
         </div>
         <div className="flex items-center justify-end gap-1">
-          <Dialog onOpenChange={handleDeleteDialogOpenChange}>
+          <Dialog>
             <DialogTrigger asChild>
               <button
                 type="button"
@@ -192,8 +169,6 @@ export default function MainPosition({
             <DialogContent
               className="sm:max-w-105 bg-background border-border/50 p-0 gap-0 overflow-hidden"
               aria-describedby={undefined}
-              onPointerDownOutside={suppressNextRowToggle}
-              onInteractOutside={suppressNextRowToggle}
               onClick={(event) => event.stopPropagation()}
             >
               <DialogHeader className="px-6 pt-5 pb-0">
