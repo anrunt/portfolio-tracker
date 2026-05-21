@@ -26,5 +26,4 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] Feature: Add retry for stoq price fetching
 -[x] Feature: Add delete all positions button so i can delete all my positions on one company with ease.
 -[] Feature: Think about better cost basis - when i close the position and reopen a new one, my cost basis is not accurate because if i lose money on some position i cant see how much i've spent overall but i see only how much i've spent on current shares only.
--[] Feature: Maybe make a portfolio snapshot when user adds new company so he can see his new chart instead of waiting for the snapshot?
 -[] Feature: Deploy on cloudflare instead of railway
