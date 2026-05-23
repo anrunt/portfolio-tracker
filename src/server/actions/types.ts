@@ -69,17 +69,33 @@ export type ChartDataPoint = {
   label?: string;
   /** From `numeric` snapshot columns; queries cast to `double precision` for JS. */
   totalValue: number;
-  /** From `numeric` snapshot columns; queries cast to `double precision` for JS. */
-  totalCostBasis: number;
+  /** Baseline for total performance: totalContributed - totalWithdrawn. */
+  netInvested: number;
+};
+
+export type WalletMetrics = {
+  /** Internal cash left in the wallet after sales and before withdrawals/reinvestments. */
+  cashBalance: number;
+  /** Sum of all BUY costs, including reinvested internal cash. */
+  totalBuyCost: number;
+  /** External capital added by the user. */
+  totalContributed: number;
+  /** Capital withdrawn by the user. */
+  totalWithdrawn: number;
+  /** Sum of realized profit/loss from SELL transactions. */
+  realizedPl: number;
 };
 
 export interface PositionData {
   id: string;
   companySymbol: string;
   companyName: string;
-  /** From `numeric`; queries cast to `double precision` for JS. */
+  /** Remaining quantity from this lot. From `numeric`; queries cast to `double precision` for JS. */
   quantity: number;
+  /** Original quantity bought in this lot. From `numeric`; queries cast to `double precision` for JS. */
+  initialQuantity: number;
   /** From `numeric`; queries cast to `double precision` for JS. */
   pricePerShare: number;
+  closedAt: Date | null;
   createdAt: Date;
 }
