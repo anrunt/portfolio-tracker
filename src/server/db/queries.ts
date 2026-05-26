@@ -26,7 +26,6 @@ export const QUERIES = {
       .groupBy(wallet.id)
   },
 
-  // Look into it later
   getWalletsWithLatestSnapshot: function (userId: string) {
     const latestSnapshot = db
       .select({
@@ -40,13 +39,19 @@ export const QUERIES = {
       .limit(1)
       .as("latest_snapshot");
 
-    const walletCostBasis = db
+    const walletFallback = db
       .select({
-        fallbackCostBasis: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0::numeric)::double precision`.as("fallback_cost_basis"),
+        holdingsValue: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0::numeric)::double precision`.as("holdings_value"),
       })
       .from(position)
-      .where(eq(position.walletId, wallet.id))
-      .as("wallet_cost_basis");
+      .where(
+        and(
+          eq(position.walletId, wallet.id),
+          gt(position.quantity, "0"),
+          isNull(position.closedAt)
+        )
+      )
+      .as("wallet_fallback");
 
     return db
       .select({
@@ -55,14 +60,14 @@ export const QUERIES = {
         userId: wallet.userId,
         currency: wallet.currency,
         createdAt: wallet.createdAt,
-        totalValue: sql<number>`coalesce(${latestSnapshot.totalValue}, ${walletCostBasis.fallbackCostBasis})`.as("total_value"),
-        netInvested: latestSnapshot.netInvested,
+        totalValue: sql<number>`coalesce(${latestSnapshot.totalValue}, ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision)`.as("total_value"),
+        netInvested: sql<number>`coalesce(${latestSnapshot.netInvested}, (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision)`.as("net_invested"),
         snapshotAt: latestSnapshot.snapshotAt,
         hasSnapshot: sql<boolean>`${latestSnapshot.snapshotAt} is not null`.as("has_snapshot"),
       })
       .from(wallet)
       .leftJoinLateral(latestSnapshot, sql`true`)
-      .leftJoinLateral(walletCostBasis, sql`true`)
+      .leftJoinLateral(walletFallback, sql`true`)
       .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)));
   },
 
