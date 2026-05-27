@@ -123,7 +123,7 @@ export const portfolioTransaction = pgTable("portfolio_transaction", {
   companySymbol: text("company_symbol"),
   quantity: numeric("quantity", { precision: 20, scale: 10 }),
   pricePerShare: numeric("price_per_share", { precision: 20, scale: 10 }),
-  amount: numeric("amount", { precision: 20, scale: 10 }).notNull(),
+  transactionValue: numeric("transaction_value", { precision: 20, scale: 10 }).notNull(),
   cashUsed: numeric("cash_used", { precision: 20, scale: 10 }).default("0").notNull(),
   externalContribution: numeric("external_contribution", { precision: 20, scale: 10 }).default("0").notNull(),
   realizedPl: numeric("realized_pl", { precision: 20, scale: 10 }).default("0").notNull(),

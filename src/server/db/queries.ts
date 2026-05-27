@@ -155,7 +155,7 @@ export const QUERIES = {
         companySymbol: portfolioTransaction.companySymbol,
         quantity: sql<number>`(${portfolioTransaction.quantity})::double precision`,
         pricePerShare: sql<number>`(${portfolioTransaction.pricePerShare})::double precision`,
-        amount: sql<number>`(${portfolioTransaction.amount})::double precision`,
+        transactionValue: sql<number>`(${portfolioTransaction.transactionValue})::double precision`,
         cashUsed: sql<number>`(${portfolioTransaction.cashUsed})::double precision`,
         externalContribution: sql<number>`(${portfolioTransaction.externalContribution})::double precision`,
         realizedPl: sql<number>`(${portfolioTransaction.realizedPl})::double precision`,

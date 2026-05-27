@@ -4,11 +4,11 @@ import { getSession } from "../better-auth/session";
 import { z } from "zod";
 import { db } from "../db";
 import { numToNumericString } from "../db/numeric";
-import { position, user, wallet } from "../db/schema";
+import { portfolioTransaction, position, user, wallet } from "../db/schema";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { QUERIES } from "../db/queries";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { Result, SerializedResult } from "better-result";
 import {
   UnauthenticatedError,
@@ -414,24 +414,99 @@ async function addPositionResult(
       );
     }
 
-    const insertData = validatedFields.data.position.map((data) => {
-      return {
-        id: randomUUID(),
-        walletId: walletId,
-        companyName: companyName,
-        companySymbol: companySymbol,
-        pricePerShare: numToNumericString(data.price),
-        quantity: numToNumericString(data.shares),
-      };
-    });
-
     yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          await db.insert(position).values(insertData);
+          await db.transaction(async (tx) => {
+            const freshWallet = await tx
+              .select({
+                cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
+              })
+              .from(wallet)
+              .where(
+                and(
+                  eq(wallet.id, walletId),
+                  eq(wallet.userId, user.session.userId),
+                  isNull(wallet.deletedAt)
+                )
+              )
+              .limit(1)
+              .for("update")
+              .then((rows) => rows[0]);
+
+            if (!freshWallet) {
+              throw new NotFoundError({ resource: "Wallet", id: walletId });
+            }
+
+            let runningCash = freshWallet.cashBalance;
+            let totalBuyCost = 0;
+            let totalExternalContribution = 0;
+
+            const positionRows = [];
+            const transactionRows = [];
+
+            for (const data of validatedFields.data.position) {
+              const positionId = randomUUID();
+              const buyCost = data.price * data.shares;
+              const cashUsed = Math.min(runningCash, buyCost);
+              const externalContribution = buyCost - cashUsed;
+
+              runningCash -= cashUsed;
+              totalBuyCost += buyCost;
+              totalExternalContribution += externalContribution;
+
+              const quantity = numToNumericString(data.shares);
+              const pricePerShare = numToNumericString(data.price);
+
+              positionRows.push({
+                id: positionId,
+                walletId,
+                companyName,
+                companySymbol,
+                pricePerShare,
+                quantity,
+                initialQuantity: quantity,
+              });
+
+              transactionRows.push({
+                id: randomUUID(),
+                walletId,
+                positionId,
+                type: "BUY" as const,
+                companyName,
+                companySymbol,
+                quantity,
+                pricePerShare,
+                transactionValue: numToNumericString(buyCost),
+                cashUsed: numToNumericString(cashUsed),
+                externalContribution: numToNumericString(externalContribution),
+                realizedPl: "0",
+              });
+            }
+
+            await tx.insert(position).values(positionRows);
+            await tx.insert(portfolioTransaction).values(transactionRows);
+
+            await tx
+              .update(wallet)
+              .set({
+                cashBalance: numToNumericString(runningCash),
+                totalBuyCost: sql`${wallet.totalBuyCost} + ${numToNumericString(totalBuyCost)}`,
+                totalContributed: sql`${wallet.totalContributed} + ${numToNumericString(totalExternalContribution)}`,
+              })
+              .where(
+                and(
+                  eq(wallet.id, walletId),
+                  eq(wallet.userId, user.session.userId),
+                  isNull(wallet.deletedAt)
+                )
+              );
+          })
         },
         catch: (e) =>
-          new DatabaseError({ operation: "insert position", cause: e }),
+          e instanceof NotFoundError
+            ? e
+            : new DatabaseError({ operation: "insert position", cause: e }),
       })
     );
 
