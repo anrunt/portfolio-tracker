@@ -586,17 +586,105 @@ export async function deletePositionResult(
       );
     }
 
+
     yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          await db
-            .delete(position)
-            .where(
-              and(eq(position.id, positionId), eq(position.walletId, walletId))
-            );
+          await db.transaction(async (tx) => {
+            const positionToDelete = await tx
+              .select({
+                id: position.id,
+                quantity: sql<number>`(${position.quantity})::double precision`,
+                closedAt: position.closedAt,
+              })
+              .from(position)
+              .innerJoin(wallet, eq(position.walletId, wallet.id))
+              .where(
+                and(
+                  eq(position.id, positionId),
+                  eq(position.walletId, walletId),
+                  eq(wallet.userId, user.session.userId),
+                  isNull(wallet.deletedAt)
+                )
+              )
+              .limit(1)
+              .for("update")
+              .then((rows) => rows[0]);
+
+            if (!positionToDelete) {
+              throw new NotFoundError({ resource: "Position", id: positionId });
+            }
+
+            if (positionToDelete.closedAt !== null || positionToDelete.quantity <= 0) {
+              throw new ValidationError({ message: "Cannot delete a closed position" });
+            }
+
+            const isPositionSold = await tx
+              .select({ id: portfolioTransaction.id })
+              .from(portfolioTransaction)
+              .where(
+                and(
+                  eq(portfolioTransaction.walletId, walletId),
+                  eq(portfolioTransaction.positionId, positionId),
+                  eq(portfolioTransaction.type, "SELL")
+                )
+              );
+
+            if (isPositionSold.length > 0) {
+              throw new ValidationError({ message: "Cannot delete a position that has been sold" });
+            }
+
+            const buyTransaction = await tx
+              .select({
+                id: portfolioTransaction.id,
+                cashUsed: portfolioTransaction.cashUsed,
+                transactionValue: portfolioTransaction.transactionValue,
+                externalContribution: portfolioTransaction.externalContribution,
+              })
+              .from(portfolioTransaction)
+              .where(
+                and(
+                  eq(portfolioTransaction.walletId, walletId),
+                  eq(portfolioTransaction.positionId, positionId),
+                  eq(portfolioTransaction.type, "BUY")
+                )
+              )
+              .limit(1)
+              .then((rows) => rows[0]);
+
+            if (!buyTransaction) {
+              throw new NotFoundError({ resource: "No buy transaction for position", id: positionId });
+            }
+
+            const updatedWallet = await tx
+              .update(wallet)
+              .set({
+                cashBalance: sql`${wallet.cashBalance} + ${buyTransaction.cashUsed}`,
+                totalBuyCost: sql`${wallet.totalBuyCost} - ${buyTransaction.transactionValue}`,
+                totalContributed: sql`${wallet.totalContributed} - ${buyTransaction.externalContribution}`,
+              })
+              .where(
+                and(
+                  eq(wallet.id, walletId),
+                  eq(wallet.userId, user.session.userId),
+                  isNull(wallet.deletedAt)
+                )
+              )
+              .returning({ id: wallet.id });
+
+            if (updatedWallet.length === 0) {
+              throw new NotFoundError({ resource: "Wallet", id: walletId });
+            }
+
+            await tx.delete(portfolioTransaction).where(eq(portfolioTransaction.id, buyTransaction.id));
+
+            await tx.delete(position).where(eq(position.id, positionToDelete.id));
+          });
         },
         catch: (e) =>
-          new DatabaseError({ operation: "delete position", cause: e }),
+          e instanceof NotFoundError || e instanceof ValidationError
+            ? e
+            : new DatabaseError({ operation: "delete position", cause: e }),
       })
     );
 
@@ -606,6 +694,7 @@ export async function deletePositionResult(
   });
 }
 
+/* No longer needed
 export async function deleteAllPositions(walletId: string, companySymbol: string) {
   const result = await deleteAllPositionsResult(walletId, companySymbol);
   if (result.status === "error") {
@@ -648,6 +737,7 @@ export async function deleteAllPositionsResult(walletId: string, companySymbol: 
     return Result.ok(undefined);
   })
 }
+*/
 
 export async function getWalletChartData(walletId: string, range: TimeRange): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
   const result = await getWalletChartDataResult(walletId, range);
