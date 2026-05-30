@@ -57,6 +57,9 @@ export class ValidationError extends TaggedError("ValidationError")<{
       shares?: string; 
       price?: string;
     }
+    quantity?: string;
+    price?: string;
+    withdrawAmount?: string;
   }
 }>() {}
 

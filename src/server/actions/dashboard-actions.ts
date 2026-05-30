@@ -335,8 +335,8 @@ const positionSchema = z.object({
   companyName: z.string(),
   companySymbol: z.string(),
   position: z.array(z.object({
-    shares: z.coerce.number().nonnegative({ message: "Invalid share number, must be nonnegative" }),
-    price: z.coerce.number().nonnegative({ message: "Invalid price number, must be nonnegative" }),
+    shares: z.coerce.number().nonnegative({ error: "Invalid share number, must be nonnegative" }),
+    price: z.coerce.number().nonnegative({ error: "Invalid price number, must be nonnegative" }),
   }))
 });
 
@@ -693,6 +693,102 @@ export async function deletePositionResult(
     return Result.ok(undefined);
   });
 }
+
+type SellPositionState = {
+  message: string;
+  success: boolean;
+  timestamp: number;
+  fieldErrors?: {
+    quantity?: string;
+    price?: string;
+    withdrawAmount?: string;
+  };
+};
+
+const sellPositionSchema = z.object({
+  quantity: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce
+      .number({ error: "Quantity is required" })
+      .positive({ error: "Quantity must be greater than 0" })
+  ),
+  price: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce
+      .number({ error: "Sell price is required" })
+      .positive({ error: "Sell price must be greater than 0" })
+  ),
+  withdrawAfterSale: z.coerce.boolean(),
+  withdrawAmount: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce
+      .number({ error: "Withdrawal amount must be a valid number" })
+      .nonnegative({ error: "Withdrawal amount cannot be negative" })
+  ),
+});
+
+export async function sellPositionLot(positionId: string, walletId: string, prevState: SellPositionState, formData: FormData) {
+
+}
+
+export async function sellPositionLotResult(positionId: string, walletId: string, formData: FormData) {
+  return Result.gen(async function* () {
+    const user = await getSession();
+    if (!user) {
+      return Result.err(new UnauthenticatedError());
+    }
+
+    const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+    if (!userWallet) {
+      return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
+    }
+
+    const position = await QUERIES.getPositionLotById(positionId, walletId, user.session.userId);
+
+    const quantity = formData.get("quantity");
+    const price = formData.get("price");
+    const withdrawAfterSale = formData.get("withdrawAfterSale");
+    const withdrawAmount = withdrawAfterSale !== null ? formData.get("withdrawAmount") : 0;
+
+    const parsed = sellPositionSchema.safeParse({
+      quantity,
+      price,
+      withdrawAfterSale,
+      withdrawAmount,
+    });
+
+    if (!parsed.success) {
+      const errors = z.flattenError(parsed.error);
+      return Result.err(
+        new ValidationError({
+          message: "Invalid input",
+          fieldErrors: {
+            quantity: errors.fieldErrors.quantity?.[0],
+            price: errors.fieldErrors.price?.[0],
+            withdrawAmount: errors.fieldErrors.withdrawAmount?.[0],
+          }
+        })
+      );
+    }
+
+    if (parsed.data.quantity > position.quantity) {
+      return Result.err(
+        new ValidationError({
+          message: "Sell quantity cannot exceed position quantity",
+        })
+      );
+    }
+
+    const proceeds = parsed.data.quantity * parsed.data.price;
+    const costBasisSold = parsed.data.quantity * position.pricePerShare;
+    const realizedPl = proceeds - costBasisSold;
+    const withdrawal = parsed.data.withdrawAfterSale ? parsed.data.withdrawAmount : 0;
+
+
+
+  });
+}
+
 
 /* No longer needed
 export async function deleteAllPositions(walletId: string, companySymbol: string) {
