@@ -925,6 +925,70 @@ export async function sellPositionLotResult(
   });
 }
 
+type SellAllState = {
+  message: string;
+  success: boolean;
+  timestamp: number;
+  fieldErrors?: {
+    price?: string;
+    withdrawAmount?: string;
+  };
+};
+
+const sellAllSchema = z.object({
+  price: z
+    .string({ error: "Sell price is required" })
+    .trim()
+    .min(1, { error: "Sell price is required" })
+    .transform(Number)
+    .pipe(
+      z
+        .number({ error: "Sell price must be a valid number" })
+        .positive({ error: "Sell price must be greater than 0" })
+    ),
+  withdrawAfterSale: z.coerce.boolean(),
+  withdrawAmount: z
+    .string({ error: "Withdrawal amount is required" })
+    .trim()
+    .min(1, { error: "Withdrawal amount is required" })
+    .transform(Number)
+    .pipe(
+      z
+        .number({ error: "Withdrawal amount must be a valid number" })
+        .nonnegative({ error: "Withdrawal amount cannot be negative" })
+    ),
+});
+
+export async function sellAllPositionsForSymbol(
+  walletId: string,
+  companySymbol: string,
+  prevState: SellAllState,
+  formData: FormData
+): Promise<SellAllState> {
+  const result = await sellAllPositionsForSymbolResult(walletId, companySymbol, formData);
+
+  return result.match({
+    ok: () => ({ message: "", success: true as boolean, timestamp: Date.now() }),
+    err: (e) => ({
+      message: e.message,
+      success: false as boolean,
+      timestamp: Date.now(),
+      fieldErrors: "fieldErrors" in e ? {
+        price: e.fieldErrors?.price,
+        withdrawAmount: e.fieldErrors?.withdrawAmount,
+      } : undefined,
+    }),
+  });
+}
+
+async function sellAllPositionsForSymbolResult(
+  walletId: string,
+  companySymbol: string,
+  formData: FormData
+): Promise<Result<void, PositionError>> {
+
+}
+
 
 /* No longer needed
 export async function deleteAllPositions(walletId: string, companySymbol: string) {
