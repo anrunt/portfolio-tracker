@@ -200,11 +200,13 @@ async function getPriceResult(companySymbols: string[], exchange: string): Promi
 }
 
 const walletSchema = z.object({
-  name: z.coerce
-    .string()
-    .max(50, { message: "Wallet name can't be longer than 50 characters!" }),
+  name: z
+    .string({ error: "Wallet name is required" })
+    .trim()
+    .min(2, { error: "Wallet name must be at least 2 characters" })
+    .max(50, { error: "Wallet name can't be longer than 50 characters!" }),
   currency: z.enum(["USD", "PLN"], {
-    message: "Please select a valid currency (USD or PLN)",
+    error: "Please select a valid currency (USD or PLN)",
   }),
 });
 
@@ -235,9 +237,15 @@ async function addWalletResult(
     const parsed = walletSchema.safeParse({ name, currency });
 
     if (!parsed.success) {
+      const errors = z.flattenError(parsed.error);
+
       return Result.err(
         new ValidationError({
-          message: parsed.error.issues[0].message,
+          message: "Invalid wallet data",
+          fieldErrors: {
+            name: errors.fieldErrors.name?.[0],
+            currency: errors.fieldErrors.currency?.[0],
+          },
         })
       );
     }
@@ -264,9 +272,13 @@ async function addWalletResult(
   });
 }
 
-const renameWalletSchema = z.coerce
-  .string()
-  .max(50, { message: "Wallet name can't be longer than 50 characters!" });
+const renameWalletSchema = z.object({
+  name: z
+    .string({ error: "Wallet name is required" })
+    .trim()
+    .min(2, { error: "Wallet name must be at least 2 characters" })
+    .max(50, { error: "Wallet name can't be longer than 50 characters!" }),
+});
 
 export async function renameWallet(
   walletId: string,
@@ -295,17 +307,22 @@ async function renameWalletResult(formData: FormData, walletId: string): Promise
 
     const name = formData.get("name");
 
-    const parsedName = renameWalletSchema.safeParse(name);
+    const parsedName = renameWalletSchema.safeParse({ name });
 
     if (!parsedName.success) {
+      const errors = z.flattenError(parsedName.error);
+
       return Result.err(
         new ValidationError({
-          message: parsedName.error.issues[0].message,
+          message: "Invalid wallet name",
+          fieldErrors: {
+            name: errors.fieldErrors.name?.[0],
+          },
         })
       );
     }
 
-    if (name === userWallet.name) {
+    if (parsedName.data.name === userWallet.name) {
       return Result.err(
         new ValidationError({
           message: "New name must be different from the current name.",
@@ -318,7 +335,7 @@ async function renameWalletResult(formData: FormData, walletId: string): Promise
         try: async () => {
           await db
             .update(wallet)
-            .set({name: parsedName.data})
+            .set({name: parsedName.data.name})
             .where(and(eq(wallet.id, walletId), eq(wallet.userId, user.session.userId)))
         },
         catch: (e) => new DatabaseError({ operation: "insert wallet", cause: e }),
@@ -391,20 +408,25 @@ async function addPositionResult(
     });
 
     if (!validatedFields.success) {
-      //      console.log("Err with validating position: ", validatedFields.error.issues);
+      const tree = z.treeifyError(validatedFields.error);
+      const fieldErrors: FieldErrors = {};
 
-      const fieldErrors = validatedFields.error.issues.reduce<FieldErrors>((acc, err) => {
-        const index = err.path[1] as number;
-        const field = err.path[2] as "shares" | "price";
+      tree.properties?.position?.items?.forEach((item, index) => {
+        const sharesError = item?.properties?.shares?.errors[0];
+        const priceError = item?.properties?.price?.errors[0];
 
-        if (!acc[index]) {
-          acc[index] = {};
+        if (sharesError || priceError) {
+          fieldErrors[index] = {};
+
+          if (sharesError) {
+            fieldErrors[index].shares = sharesError;
+          }
+
+          if (priceError) {
+            fieldErrors[index].price = priceError;
+          }
         }
-
-        acc[index][field] = err.message;
-
-        return acc;
-      }, {});
+      });
 
       return Result.err(
         new ValidationError({
