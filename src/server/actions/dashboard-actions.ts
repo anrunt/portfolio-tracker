@@ -1008,6 +1008,42 @@ async function sellAllPositionsForSymbolResult(
   companySymbol: string,
   formData: FormData
 ): Promise<Result<void, PositionError>> {
+  const session = await getSession();
+  if (!session) {
+    return Result.err(new UnauthenticatedError());
+  }
+
+  const sellPrice = formData.get("sellPrice");
+  const withdrawAfterSale = formData.get("withdrawAfterSale");
+  const withdrawAmount = withdrawAfterSale !== null ? formData.get("withdrawAmount") : "0";
+
+  const parsed = sellAllSchema.safeParse({
+    price: sellPrice,
+    withdrawAfterSale,
+    withdrawAmount,
+  });
+
+  if (!parsed.success) {
+    const errors = z.flattenError(parsed.error);
+    return Result.err(
+      new ValidationError({
+        message: "Invalid input",
+        fieldErrors: {
+          price: errors.fieldErrors.price?.[0],
+          withdrawAmount: errors.fieldErrors.withdrawAmount?.[0],
+        },
+      })
+    );
+  }
+
+  const result = await QUERIES.getActivePositionsBySymbol(walletId, session.session.userId, companySymbol);
+
+  let totalQuantity = 0;
+  for (const pos of result) {
+    totalQuantity += pos.quantity;
+  }
+
+
 }
 
 
