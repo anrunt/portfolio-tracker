@@ -1008,7 +1008,6 @@ async function sellAllPositionsForSymbolResult(
   companySymbol: string,
   formData: FormData
 ): Promise<Result<void, PositionError>> {
-
 }
 
 
@@ -1116,7 +1115,7 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
       if (!dailyDataRaw) {
         return Result.err(new NotFoundError({resource: "Wallet Snapshots", id: walletId}));
       }
-      
+
       const dailyData = dailyDataRaw.map((r) => ({
         timestamp: new Date(r.snapshotDate).getTime(),
         label: r.snapshotDate,
