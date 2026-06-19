@@ -8,9 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  setDisplayCurrency,
-} from "@/server/actions/dashboard-actions";
+import { setDisplayCurrency } from "@/server/actions/dashboard/preference-actions";
 import type { DisplayCurrency } from "@/server/actions/types";
 import { cn } from "@/lib/utils";
 

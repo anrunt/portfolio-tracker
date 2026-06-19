@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { ChevronDown, Trash2 } from "lucide-react";
 import Position from "./position";
-import { deleteAllPositions } from "@/server/actions/dashboard-actions";
 
 interface PositionData {
   id: string;

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
-import { deleteWallet } from "@/server/actions/dashboard-actions";
+import { deleteWallet } from "@/server/actions/dashboard/wallet-actions";
 import RenameWallet from "./rename-wallet";
 
 interface WalletProps {

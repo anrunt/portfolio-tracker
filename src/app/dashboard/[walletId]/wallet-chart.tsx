@@ -1,4 +1,4 @@
-import { getWalletChartData } from "@/server/actions/dashboard-actions";
+import { getWalletChartData } from "@/server/actions/dashboard/chart-actions";
 import { ChartDataPoint, SerializedError, TimeRange } from "@/server/actions/types";
 import { Result } from "better-result";
 import WalletChartClient from "./wallet-chart-client";

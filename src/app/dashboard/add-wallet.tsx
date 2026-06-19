@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { addWallet } from "@/server/actions/dashboard-actions";
+import { addWallet } from "@/server/actions/dashboard/wallet-actions";
 
 const initialState = {
   message: "",

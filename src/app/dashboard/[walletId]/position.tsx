@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
-import { deletePosition } from "@/server/actions/dashboard-actions";
+import { deletePosition } from "@/server/actions/dashboard/position-delete-actions";
 
 interface PositionProps {
   walletId: string;
@@ -27,7 +27,6 @@ export default function Position({
   walletId,
   positionId,
   companySymbol,
-  companyName,
   quantity,
   pricePerShare,
   currency,

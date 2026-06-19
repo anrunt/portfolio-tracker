@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { QUERIES } from "@/server/db/queries";
 import Dashboard from "./dashboard";
 import { ChartDataPoint, SerializedError, TimeRange } from "@/server/actions/types";
-import { getAllWalletsPortfolioData } from "@/server/actions/dashboard-actions";
+import { getAllWalletsPortfolioData } from "@/server/actions/dashboard/chart-actions";
 import { Result } from "better-result";
 
 interface DashboardProps {

@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { searchTicker } from "@/server/actions/dashboard-actions";
+import { searchTicker } from "@/server/actions/dashboard/market-data";
 import type { FinnhubStock } from "@/server/actions/types";
 import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
