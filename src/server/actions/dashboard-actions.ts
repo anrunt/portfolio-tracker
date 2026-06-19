@@ -968,7 +968,7 @@ const sellAllSchema = z.object({
         .number({ error: "Sell price must be a valid number" })
         .positive({ error: "Sell price must be greater than 0" })
     ),
-  withdrawAfterSale: z.coerce.boolean(),
+  withdrawAfterSale: z.boolean(),
   withdrawAmount: z
     .string({ error: "Withdrawal amount is required" })
     .trim()
@@ -1008,42 +1008,172 @@ async function sellAllPositionsForSymbolResult(
   companySymbol: string,
   formData: FormData
 ): Promise<Result<void, PositionError>> {
-  const session = await getSession();
-  if (!session) {
-    return Result.err(new UnauthenticatedError());
-  }
+  return Result.gen(async function* () {
+    const session = await getSession();
+    if (!session) {
+      return Result.err(new UnauthenticatedError());
+    }
 
-  const sellPrice = formData.get("sellPrice");
-  const withdrawAfterSale = formData.get("withdrawAfterSale");
-  const withdrawAmount = withdrawAfterSale !== null ? formData.get("withdrawAmount") : "0";
+    const userWallet = await QUERIES.getWalletById(walletId, session.session.userId);
+    if (!userWallet) {
+      return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
+    }
 
-  const parsed = sellAllSchema.safeParse({
-    price: sellPrice,
-    withdrawAfterSale,
-    withdrawAmount,
-  });
+    const price = formData.get("price");
+    const withdrawAfterSale = formData.has("withdrawAfterSale");
 
-  if (!parsed.success) {
-    const errors = z.flattenError(parsed.error);
-    return Result.err(
-      new ValidationError({
-        message: "Invalid input",
-        fieldErrors: {
-          price: errors.fieldErrors.price?.[0],
-          withdrawAmount: errors.fieldErrors.withdrawAmount?.[0],
+    const parsed = sellAllSchema.safeParse({
+      price,
+      withdrawAfterSale,
+      withdrawAmount: withdrawAfterSale ? formData.get("withdrawAmount") : "0",
+    });
+
+    if (!parsed.success) {
+      const errors = z.flattenError(parsed.error);
+      return Result.err(
+        new ValidationError({
+          message: "Invalid input",
+          fieldErrors: {
+            price: errors.fieldErrors.price?.[0],
+            withdrawAmount: errors.fieldErrors.withdrawAmount?.[0],
+          },
+        })
+      );
+    }
+
+    yield* Result.await(
+      Result.tryPromise({
+        try: async () => {
+          await db.transaction(async (tx) => {
+            const positionsToSell = await tx
+              .select({
+                id: position.id,
+                companyName: position.companyName,
+                companySymbol: position.companySymbol,
+                pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+                quantity: sql<number>`(${position.quantity})::double precision`,
+              })
+              .from(position)
+              .innerJoin(wallet, eq(position.walletId, wallet.id))
+              .where(
+                and(
+                  eq(position.walletId, walletId),
+                  eq(wallet.userId, session.session.userId),
+                  eq(position.companySymbol, companySymbol),
+                  gt(position.quantity, "0"),
+                  isNull(position.closedAt),
+                  isNull(wallet.deletedAt)
+                )
+              )
+              .for("update");
+
+            if (positionsToSell.length === 0) {
+              throw new NotFoundError({ resource: "No active positions for symbol", id: companySymbol });
+            }
+
+            let totalQuantity = 0;
+            let totalRealizedPl = 0;
+
+            for (const pos of positionsToSell) {
+              totalQuantity += pos.quantity;
+              totalRealizedPl += (parsed.data.price - pos.pricePerShare) * pos.quantity;
+            }
+
+            const totalProceeds = totalQuantity * parsed.data.price;
+            const withdrawal = parsed.data.withdrawAfterSale ? parsed.data.withdrawAmount : 0;
+
+            if (withdrawal > totalProceeds) {
+              throw new ValidationError({
+                message: "Withdrawal amount cannot exceed proceeds from sale",
+                fieldErrors: { withdrawAmount: "Withdrawal amount cannot exceed proceeds from sale" },
+              });
+            }
+
+            const closedAt = new Date();
+
+            for (const pos of positionsToSell) {
+              const proceeds = pos.quantity * parsed.data.price;
+              const realizedPl = (parsed.data.price - pos.pricePerShare) * pos.quantity;
+
+              await tx.insert(portfolioTransaction).values({
+                id: randomUUID(),
+                walletId,
+                positionId: pos.id,
+                type: "SELL",
+                companyName: pos.companyName,
+                companySymbol: pos.companySymbol,
+                quantity: numToNumericString(pos.quantity),
+                pricePerShare: numToNumericString(parsed.data.price),
+                transactionValue: numToNumericString(proceeds),
+                cashUsed: "0",
+                externalContribution: "0",
+                realizedPl: numToNumericString(realizedPl),
+              });
+
+              await tx
+                .update(position)
+                .set({
+                  quantity: "0",
+                  closedAt,
+                })
+                .where(
+                  and(
+                    eq(position.walletId, walletId),
+                    eq(position.id, pos.id),
+                    eq(position.companySymbol, companySymbol),
+                    gt(position.quantity, "0"),
+                    isNull(position.closedAt)
+                  )
+                );
+            }
+
+            if (withdrawal > 0) {
+              await tx.insert(portfolioTransaction).values({
+                id: randomUUID(),
+                walletId,
+                positionId: null,
+                type: "WITHDRAWAL",
+                companyName: null,
+                companySymbol: null,
+                quantity: null,
+                pricePerShare: null,
+                transactionValue: numToNumericString(withdrawal),
+                cashUsed: "0",
+                externalContribution: "0",
+                realizedPl: "0",
+              });
+            }
+
+            await tx
+              .update(wallet)
+              .set({
+                cashBalance: sql`${wallet.cashBalance} + ${numToNumericString(totalProceeds - withdrawal)}`,
+                realizedPl: sql`${wallet.realizedPl} + ${numToNumericString(totalRealizedPl)}`,
+                totalWithdrawn: sql`${wallet.totalWithdrawn} + ${numToNumericString(withdrawal)}`,
+              })
+              .where(
+                and(
+                  eq(wallet.id, walletId),
+                  eq(wallet.userId, session.session.userId),
+                  isNull(wallet.deletedAt)
+                )
+              );
+          });
+        },
+        catch: (e) => {
+          if (e instanceof NotFoundError || e instanceof ValidationError) {
+            return e;
+          } else {
+            return new DatabaseError({ operation: "sell all positions for symbol", cause: e });
+          }
         },
       })
     );
-  }
 
-  const result = await QUERIES.getActivePositionsBySymbol(walletId, session.session.userId, companySymbol);
+    revalidatePath(`/dashboard/${walletId}`);
 
-  let totalQuantity = 0;
-  for (const pos of result) {
-    totalQuantity += pos.quantity;
-  }
-
-
+    return Result.ok(undefined);
+  });
 }
 
 
