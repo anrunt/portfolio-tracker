@@ -57,7 +57,16 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
       : { prices: [], failures: [] };
 
   const walletProps = {
-    wallet: { id: wallet.id, name: wallet.name, currency: wallet.currency },
+    wallet: {
+      id: wallet.id,
+      name: wallet.name,
+      currency: wallet.currency,
+      cashBalance: wallet.cashBalance,
+      totalBuyCost: wallet.totalBuyCost,
+      totalContributed: wallet.totalContributed,
+      totalWithdrawn: wallet.totalWithdrawn,
+      realizedPl: wallet.realizedPl,
+    },
     positions,
     groupedPositions,
     symbols: positionsSymbols,

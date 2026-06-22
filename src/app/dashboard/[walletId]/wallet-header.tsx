@@ -19,12 +19,11 @@ export default function WalletHeader({
   stats,
 }: WalletHeaderProps) {
   const {
-    totalCurrentValue,
+    portfolioValue,
     totalPl,
     totalPlPercent,
     totalPositions,
     uniqueSymbols,
-    hasAnyPrice,
     formatCurrency,
     formatPl,
     formatPlPercent,
@@ -57,42 +56,38 @@ export default function WalletHeader({
 
           <div className="flex items-baseline gap-1.5">
             <span className="font-(family-name:--font-jb-mono) text-lg font-bold tabular-nums text-foreground tracking-tight">
-              {formatCurrency(totalCurrentValue)}
+              {formatCurrency(portfolioValue)}
             </span>
             <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground font-semibold">
               {wallet.currency}
             </span>
           </div>
 
-          {hasAnyPrice && (
-            <>
-              <div className="flex items-center gap-1.5">
-                {totalPl >= 0 ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 text-red-500" />
-                )}
-                <span
-                  className={`font-(family-name:--font-jb-mono) text-[11px] font-semibold tabular-nums ${
-                    totalPl >= 0
-                      ? "text-emerald-500"
-                      : "text-red-500 dark:text-red-400"
-                  }`}
-                >
-                  {formatPl(totalPl)}
-                </span>
-                <span
-                  className={`font-(family-name:--font-jb-mono) text-[10px] px-1.5 py-0.5 rounded tabular-nums font-semibold ${
-                    totalPl >= 0
-                      ? "bg-emerald-500/10 text-emerald-500"
-                      : "bg-red-500/10 text-red-500 dark:bg-red-400/10 dark:text-red-400"
-                  }`}
-                >
-                  {formatPlPercent(totalPlPercent)}
-                </span>
-              </div>
-            </>
-          )}
+          <div className="flex items-center gap-1.5">
+            {totalPl >= 0 ? (
+              <TrendingUp className="w-3 h-3 text-emerald-500" />
+            ) : (
+              <TrendingDown className="w-3 h-3 text-red-500" />
+            )}
+            <span
+              className={`font-(family-name:--font-jb-mono) text-[11px] font-semibold tabular-nums ${
+                totalPl >= 0
+                  ? "text-emerald-500"
+                  : "text-red-500 dark:text-red-400"
+              }`}
+            >
+              {formatPl(totalPl)}
+            </span>
+            <span
+              className={`font-(family-name:--font-jb-mono) text-[10px] px-1.5 py-0.5 rounded tabular-nums font-semibold ${
+                totalPl >= 0
+                  ? "bg-emerald-500/10 text-emerald-500"
+                  : "bg-red-500/10 text-red-500 dark:bg-red-400/10 dark:text-red-400"
+              }`}
+            >
+              {formatPlPercent(totalPlPercent)}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">

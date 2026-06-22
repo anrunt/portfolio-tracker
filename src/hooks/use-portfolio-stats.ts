@@ -1,7 +1,8 @@
 import { usePrices } from "@/hooks/use-prices";
-import type { PositionData, PriceResultData } from "@/server/actions/types";
+import type { PositionData, PriceResultData, WalletMetrics } from "@/server/actions/types";
 
 interface UsePortfolioStatsParams {
+  wallet: WalletMetrics;
   positions: PositionData[];
   groupedPositions: Record<string, PositionData[]>;
   symbols: string[];
@@ -11,6 +12,7 @@ interface UsePortfolioStatsParams {
 }
 
 export function usePortfolioStats({
+  wallet,
   positions,
   groupedPositions,
   symbols,
@@ -24,29 +26,34 @@ export function usePortfolioStats({
     initialData: initialPriceData,
   });
 
-  const totalCostBasis = positions.reduce(
+  const holdingsCostBasis = positions.reduce(
     (sum, pos) => sum + pos.pricePerShare * pos.quantity,
     0
   );
   const totalPositions = positions.length;
   const uniqueSymbols = Object.keys(groupedPositions).length;
 
-  let totalCurrentValue = 0;
+  let holdingsValue = 0;
   let hasAnyPrice = false;
   for (const pos of positions) {
     const livePrice = !failedSymbols.has(pos.companySymbol)
       ? pricesBySymbol.get(pos.companySymbol)
       : undefined;
+
     if (typeof livePrice === "number") {
-      totalCurrentValue += livePrice * pos.quantity;
+      holdingsValue += livePrice * pos.quantity;
       hasAnyPrice = true;
     } else {
-      totalCurrentValue += pos.pricePerShare * pos.quantity;
+      holdingsValue += pos.pricePerShare * pos.quantity;
     }
   }
-  const totalPl = totalCurrentValue - totalCostBasis;
-  const totalPlPercent =
-    totalCostBasis > 0 ? (totalPl / totalCostBasis) * 100 : 0;
+
+  const portfolioValue = holdingsValue + wallet.cashBalance;
+  const netInvested = wallet.totalContributed - wallet.totalWithdrawn;
+  const unrealizedPl = holdingsValue - holdingsCostBasis;
+  const realizedPl = wallet.realizedPl;
+  const totalPl = portfolioValue - netInvested;
+  const totalPlPercent = netInvested > 0 ? (totalPl / netInvested) * 100 : 0;
 
   const formatCurrency = (value: number) =>
     value.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
@@ -73,8 +80,12 @@ export function usePortfolioStats({
     failedSymbols,
     dataUpdatedAt,
     lastUpdated,
-    totalCostBasis,
-    totalCurrentValue,
+    holdingsCostBasis,
+    holdingsValue,
+    portfolioValue,
+    netInvested,
+    unrealizedPl,
+    realizedPl,
     totalPl,
     totalPlPercent,
     totalPositions,

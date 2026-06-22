@@ -42,7 +42,7 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
       const intradayData = intradayDataRaw.map((r) => ({
         timestamp: r.snapshotAt.getTime(),
         totalValue: Number(r.totalValue),
-        totalCostBasis: Number(r.totalCostBasis),
+        netInvested: Number(r.netInvested),
       }));
 
       return Result.ok(intradayData);
@@ -77,7 +77,7 @@ async function getWalletChartDataResult(walletId: string, range: TimeRange): Pro
         timestamp: new Date(r.snapshotDate).getTime(),
         label: r.snapshotDate,
         totalValue: Number(r.totalValue),
-        totalCostBasis: Number(r.totalCostBasis),
+        netInvested: Number(r.netInvested),
       }))
 
       return Result.ok(dailyData);
@@ -123,13 +123,13 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
         fxRate = fx.rate;
       }
 
-      const byTimestamp = new Map<number, {timestamp: number, totalValue: number, totalCostBasis:number}>();
+      const byTimestamp = new Map<number, {timestamp: number, totalValue: number, netInvested:number}>();
 
       for (const r of intradayPortfolioDataRaw) {
         const timestamp = r.snapshotAt.getTime();
 
         let totalValue = Number(r.totalValue);
-        let totalCostBasis = Number(r.totalCostBasis);
+        let netInvested = Number(r.netInvested);
 
         if (r.walletCurrency !== displayCurrency) {
           if (fxRate === null) {
@@ -138,10 +138,10 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
 
           if (r.walletCurrency === "USD") {
             totalValue = totalValue * fxRate;
-            totalCostBasis = totalCostBasis * fxRate;
+            netInvested = netInvested * fxRate;
           } else {
             totalValue = totalValue / fxRate;
-            totalCostBasis = totalCostBasis / fxRate;
+            netInvested = netInvested / fxRate;
           }
         }
 
@@ -149,12 +149,12 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
 
         if (existingPoint) {
           existingPoint.totalValue += totalValue;
-          existingPoint.totalCostBasis += totalCostBasis;
+          existingPoint.netInvested += netInvested;
         } else {
           byTimestamp.set(timestamp, {
             timestamp,
             totalValue,
-            totalCostBasis,
+            netInvested,
           });
         }
       }
@@ -230,7 +230,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
         timestamp: number,
         label: string,
         totalValue: number,
-        totalCostBasis: number
+        netInvested: number
       }>();
 
       let currentRate: typeof allRates[number] | null = null;
@@ -250,7 +250,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
         }
 
         let totalValue = Number(data.totalValue);
-        let totalCostBasis = Number(data.totalCostBasis);
+        let netInvested = Number(data.netInvested);
 
         if (data.walletCurrency !== displayCurrency) {
           if (currentRate == null) {
@@ -259,10 +259,10 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
 
           if (data.walletCurrency === "USD") {
             totalValue = totalValue * currentRate.rate;
-            totalCostBasis = totalCostBasis * currentRate.rate;
+            netInvested = netInvested * currentRate.rate;
           } else {
             totalValue = totalValue / currentRate.rate;
-            totalCostBasis = totalCostBasis / currentRate.rate;
+            netInvested = netInvested / currentRate.rate;
           }
         }
 
@@ -270,13 +270,13 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
 
         if (existingPoint) {
           existingPoint.totalValue += totalValue;
-          existingPoint.totalCostBasis += totalCostBasis;
+          existingPoint.netInvested += netInvested;
         } else {
           byDate.set(snapshotDate, {
             timestamp: new Date(snapshotDate).getTime(),
             label: snapshotDate,
             totalValue,
-            totalCostBasis,
+            netInvested,
           });
         }
       }

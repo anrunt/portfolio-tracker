@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { usePortfolioStats } from "@/hooks/use-portfolio-stats";
-import type { PositionData, PriceResultData } from "@/server/actions/types";
+import type { PositionData, PriceResultData, WalletMetrics } from "@/server/actions/types";
 import WalletHeader from "./wallet-header";
 import WalletPositions from "./wallet-positions";
 
@@ -11,7 +11,7 @@ interface WalletPageClientProps {
     id: string;
     name: string;
     currency: string;
-  };
+  } & WalletMetrics;
   positions: PositionData[];
   groupedPositions: Record<string, PositionData[]>;
   symbols: string[];
@@ -30,6 +30,7 @@ export default function WalletPageClient({
   chart,
 }: WalletPageClientProps) {
   const portfolioStats = usePortfolioStats({
+    wallet,
     positions,
     groupedPositions,
     symbols,
