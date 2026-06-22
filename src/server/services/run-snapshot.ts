@@ -1,46 +1,56 @@
 import { QUERIES } from "../db/queries";
 import { getPriceData } from "./snapshot";
 import { db } from "../db";
-import { numFromDb, numToNumericString } from "../db/numeric";
+import { numToNumericString } from "../db/numeric";
 import { fxRates, walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
 import { lte, sql } from "drizzle-orm";
 import { PriceResultData } from "../actions/types";
 import { getUsdPlnRate } from "./getUsdPlnRate";
 
-export async function runSnapshot(type: "daily" | "intraday") {
-  let flat;
+type WalletPositionRow = Awaited<ReturnType<typeof QUERIES.getAllWalletsWithPositions>>[number];
+type WalletSnapshotPosition = NonNullable<WalletPositionRow["position"]>;
+type GroupedWalletSnapshotData = {
+  currency: WalletPositionRow["wallet"]["currency"];
+  cashBalance: number;
+  totalContributed: number;
+  totalWithdrawn: number;
+  positions: WalletSnapshotPosition[];
+};
 
-  try {
-    flat = await QUERIES.getAllWalletsWithPositions();
-  } catch (error) {
+export async function runSnapshot(type: "daily" | "intraday") {
+  const flat = await QUERIES.getAllWalletsWithPositions().catch((error): never => {
     console.error("[cron/snapshot] Failed to load wallets with positions", error);
     throw new Error("[cron/snapshot] DB_ERR: Failed to load wallets with positions");
-  }
+  });
 
-  const grouped = flat.reduce((acc, row) => {
-    const {wallet, position} = row;
+  const grouped: Record<string, GroupedWalletSnapshotData> = {};
 
-    if (!acc[wallet.id]) {
-      acc[wallet.id] = {currency: wallet.currency, positions: []}
+  for (const row of flat) {
+    const { wallet, position } = row;
+
+    if (!grouped[wallet.id]) {
+      grouped[wallet.id] = {
+        currency: wallet.currency,
+        cashBalance: wallet.cashBalance,
+        totalContributed: wallet.totalContributed,
+        totalWithdrawn: wallet.totalWithdrawn,
+        positions: [],
+      };
     }
-    
-    acc[wallet.id].positions.push(position);
 
-    return acc;
-  }, {} as Record<string, {currency: string, positions: typeof flat[number]["position"][]}>);
+    if (position) {
+      grouped[wallet.id].positions.push(position);
+    }
+  }
 
   const US_Symbols = new Set<string>();
   const WA_Symbols = new Set<string>();
 
   for (const wallet of Object.values(grouped)) {
-    if (wallet.currency === "USD") {
-      for (const positions of wallet.positions) {
-        US_Symbols.add(positions.companySymbol);
-      }
-    } else {
-      for (const position of wallet.positions) {
-        WA_Symbols.add(position.companySymbol);
-      }
+    const symbols = wallet.currency === "USD" ? US_Symbols : WA_Symbols;
+
+    for (const position of wallet.positions) {
+      symbols.add(position.companySymbol);
     }
   }
 
@@ -120,24 +130,26 @@ export async function runSnapshot(type: "daily" | "intraday") {
   }
 
   for (const [walletId, data] of Object.entries(grouped)) {
-    let totalValue = 0;
-    let totalCostBasis = 0;
+    let holdingsValue = 0;
 
     for (const pos of data.positions) {
       const price = allPrices.get(pos.companySymbol);
       if (price === undefined) {
         throw new Error(`[cron/snapshot] Missing validated price for ${pos.companySymbol}`);
-      };
-      totalValue += numFromDb(pos.quantity) * price;
-      totalCostBasis += numFromDb(pos.quantity) * numFromDb(pos.pricePerShare);
+      }
+
+      holdingsValue += pos.quantity * price;
     }
+
+    const totalValue = holdingsValue + data.cashBalance;
+    const netInvested = data.totalContributed - data.totalWithdrawn;
     
     if (type === "daily") {
       dailyRows.push({
         id: crypto.randomUUID(),
         walletId,
         totalValue: numToNumericString(totalValue),
-        totalCostBasis: numToNumericString(totalCostBasis),
+        netInvested: numToNumericString(netInvested),
         snapshotDate: snapshotDate,
       });
     } else {
@@ -145,7 +157,7 @@ export async function runSnapshot(type: "daily" | "intraday") {
         id: crypto.randomUUID(),
         walletId,
         totalValue: numToNumericString(totalValue),
-        totalCostBasis: numToNumericString(totalCostBasis),
+        netInvested: numToNumericString(netInvested),
         snapshotAt: snapshotAt,
       });
     }
@@ -160,7 +172,7 @@ export async function runSnapshot(type: "daily" | "intraday") {
           target: [walletDailySnapshot.walletId, walletDailySnapshot.snapshotDate],
           set: {
             totalValue: sql`excluded.total_value`,
-            totalCostBasis: sql`excluded.total_cost_basis`,
+            netInvested: sql`excluded.net_invested`,
           },
         });
     } catch (error) {
