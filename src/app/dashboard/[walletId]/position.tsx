@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
 import { deletePosition } from "@/server/actions/dashboard/position-delete-actions";
+import SellPositionDialog from "./sell-position-dialog";
 
 interface PositionProps {
   walletId: string;
@@ -27,6 +28,7 @@ export default function Position({
   walletId,
   positionId,
   companySymbol,
+  companyName,
   quantity,
   pricePerShare,
   currency,
@@ -132,7 +134,17 @@ export default function Position({
         )}
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-1">
+        <SellPositionDialog
+          positionId={positionId}
+          walletId={walletId}
+          companySymbol={companySymbol}
+          companyName={companyName}
+          quantity={quantity}
+          pricePerShare={pricePerShare}
+          currency={currency}
+          currentPrice={currentPrice}
+        />
         <Dialog>
           <DialogTrigger asChild>
             <button className="flex items-center justify-center text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 p-1">
