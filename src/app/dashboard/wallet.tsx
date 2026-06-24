@@ -16,7 +16,7 @@ interface WalletProps {
     name: string;
     currency: string;
     totalValue: number;
-    totalCostBasis: number | null;
+    netInvested: number;
     snapshotAt: Date | null;
     hasSnapshot: boolean;
   };
@@ -31,7 +31,7 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
 
   const formattedValue = formatter.format(wallet.totalValue);
 
-  if (!wallet.hasSnapshot || wallet.totalCostBasis === null) {
+  if (!wallet.hasSnapshot) {
     return {
       totalPl: null,
       formattedValue,
@@ -40,10 +40,10 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
     };
   }
 
-  const totalPl = wallet.totalValue - wallet.totalCostBasis;
+  const totalPl = wallet.totalValue - wallet.netInvested;
   const totalPlPercent =
-    wallet.totalCostBasis > 0
-      ? (totalPl / wallet.totalCostBasis) * 100
+    wallet.netInvested > 0
+      ? (totalPl / wallet.netInvested) * 100
       : null;
 
   const formatSignedValue = (value: number) => {
