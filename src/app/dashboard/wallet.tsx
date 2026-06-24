@@ -18,7 +18,6 @@ interface WalletProps {
     totalValue: number;
     netInvested: number;
     snapshotAt: Date | null;
-    hasSnapshot: boolean;
   };
 }
 
@@ -30,15 +29,6 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
   });
 
   const formattedValue = formatter.format(wallet.totalValue);
-
-  if (!wallet.hasSnapshot) {
-    return {
-      totalPl: null,
-      formattedValue,
-      formattedPl: "--",
-      formattedPlPercent: "--",
-    };
-  }
 
   const totalPl = wallet.totalValue - wallet.netInvested;
   const totalPlPercent =
@@ -76,13 +66,11 @@ export default function Wallet({ wallet }: WalletProps) {
   } = getWalletPerformance(wallet);
 
   const performanceClass =
-    totalPl === null
-      ? "text-muted-foreground"
-      : totalPl > 0
-        ? "text-emerald-500"
-        : totalPl < 0
-          ? "text-destructive"
-          : "text-muted-foreground";
+    totalPl > 0
+      ? "text-emerald-500"
+      : totalPl < 0
+        ? "text-destructive"
+        : "text-muted-foreground";
 
   return (
     <div className="group w-full flex items-stretch gap-1.5">

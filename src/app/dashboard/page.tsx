@@ -27,7 +27,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     totalValue: w.totalValue,
     netInvested: w.netInvested,
     snapshotAt: w.snapshotAt,
-    hasSnapshot: w.hasSnapshot,
   }));
 
 

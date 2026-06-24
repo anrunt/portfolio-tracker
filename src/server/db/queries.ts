@@ -63,7 +63,6 @@ export const QUERIES = {
         totalValue: sql<number>`coalesce(${latestSnapshot.totalValue}, ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision)`.as("total_value"),
         netInvested: sql<number>`coalesce(${latestSnapshot.netInvested}, (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision)`.as("net_invested"),
         snapshotAt: latestSnapshot.snapshotAt,
-        hasSnapshot: sql<boolean>`${latestSnapshot.snapshotAt} is not null`.as("has_snapshot"),
       })
       .from(wallet)
       .leftJoinLateral(latestSnapshot, sql`true`)
@@ -314,26 +313,7 @@ export const QUERIES = {
         asc(walletIntradaySnapshot.snapshotAt),
       );
   },
-  // Need to change this -> Now i just sum wallet and dont care about currency which is wrong
-//  getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date) {
-//    return db
-//      .select({
-//        snapshotAt: walletIntradaySnapshot.snapshotAt,
-//        totalValue: sql<number>`coalesce(sum(${walletIntradaySnapshot.totalValue}), 0::numeric)::double precision`,
-//        totalCostBasis: sql<number>`coalesce(sum(${walletIntradaySnapshot.totalCostBasis}), 0::numeric)::double precision`
-//      })
-//      .from(walletIntradaySnapshot)
-//      .innerJoin(wallet, eq(wallet.id, walletIntradaySnapshot.walletId))
-//      .where(
-//        and(
-//          eq(wallet.userId, userId),
-//          gte(walletIntradaySnapshot.snapshotAt, startOfToday),
-//        )
-//      )
-//      .groupBy(walletIntradaySnapshot.snapshotAt)
-//      .orderBy(asc(walletIntradaySnapshot.snapshotAt))
-//  },
-//
+
   getAllWalletsDailyPortfolioData: function(userId: string, startDate: string) {
     return db
       .select({
@@ -356,24 +336,6 @@ export const QUERIES = {
         asc(walletDailySnapshot.snapshotDate),
       )
   },
-//  getAllWalletsDailyPortfolioData: function(userId: string, startDate: string) {
-//    return db
-//      .select({
-//        snapshotDate: walletDailySnapshot.snapshotDate,
-//        totalValue: sql<number>`coalesce(sum(${walletDailySnapshot.totalValue}), 0::numeric)::double precision`,
-//        totalCostBasis: sql<number>`coalesce(sum(${walletDailySnapshot.totalCostBasis}), 0::numeric)::double precision`
-//      })
-//      .from(walletDailySnapshot)
-//      .innerJoin(wallet, eq(wallet.id, walletDailySnapshot.walletId))
-//      .where(
-//        and(
-//          eq(wallet.userId, userId),
-//          gte(walletDailySnapshot.snapshotDate, startDate),
-//        )
-//      )
-//      .groupBy(walletDailySnapshot.snapshotDate)
-//      .orderBy(asc(walletDailySnapshot.snapshotDate))
-//  }
 
   getUserDisplayCurrency: function (userId: string) {
     return db

@@ -22,7 +22,6 @@ interface Props {
     totalValue: number;
     netInvested: number;
     snapshotAt: Date | null;
-    hasSnapshot: boolean;
   }>;
   range: TimeRange;
   displayCurrency: DisplayCurrency;

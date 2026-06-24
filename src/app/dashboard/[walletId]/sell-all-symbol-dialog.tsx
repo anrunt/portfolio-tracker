@@ -47,13 +47,13 @@ export default function SellAllSymbolDialog({
   const [open, setOpen] = useState(false);
 
   let totalQuantity = 0;
-  let totalCostBasis = 0;
+  let totalPositionCost = 0;
   for (const position of positions) {
     totalQuantity += position.quantity;
-    totalCostBasis += position.quantity * position.pricePerShare;
+    totalPositionCost += position.quantity * position.pricePerShare;
   }
 
-  const averageBuyPrice = totalQuantity > 0 ? totalCostBasis / totalQuantity : 0;
+  const averageBuyPrice = totalQuantity > 0 ? totalPositionCost / totalQuantity : 0;
   const defaultSellPrice = currentPrice ?? averageBuyPrice;
 
   const [sellPrice, setSellPrice] = useState(String(defaultSellPrice));
