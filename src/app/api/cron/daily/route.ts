@@ -4,7 +4,7 @@ import { runSnapshot } from "@/server/services/run-snapshot";
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
-  if ( req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  if ( req.headers.get("authorization") !== `Bearer ${process.env.CRON_JOB_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
