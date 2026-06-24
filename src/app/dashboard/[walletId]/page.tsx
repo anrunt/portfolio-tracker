@@ -2,7 +2,7 @@ import { JetBrains_Mono } from "next/font/google";
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
-import { getPrice } from "@/server/actions/dashboard-actions";
+import { getPrice } from "@/server/actions/dashboard/market-data";
 import type { PriceResultData, TimeRange } from "@/server/actions/types";
 import { Result } from "better-result";
 import type { SerializedError } from "@/server/actions/types";
@@ -57,7 +57,16 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
       : { prices: [], failures: [] };
 
   const walletProps = {
-    wallet: { id: wallet.id, name: wallet.name, currency: wallet.currency },
+    wallet: {
+      id: wallet.id,
+      name: wallet.name,
+      currency: wallet.currency,
+      cashBalance: wallet.cashBalance,
+      totalBuyCost: wallet.totalBuyCost,
+      totalContributed: wallet.totalContributed,
+      totalWithdrawn: wallet.totalWithdrawn,
+      realizedPl: wallet.realizedPl,
+    },
     positions,
     groupedPositions,
     symbols: positionsSymbols,

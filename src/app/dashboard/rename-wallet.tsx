@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil } from "lucide-react";
-import { renameWallet } from "@/server/actions/dashboard-actions";
+import { renameWallet } from "@/server/actions/dashboard/wallet-actions";
 
 const initialState = {
   message: "",

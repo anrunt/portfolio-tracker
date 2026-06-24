@@ -1,7 +1,7 @@
 "use client";
 
 import type { PortfolioStats } from "@/hooks/use-portfolio-stats";
-import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ModeToggle } from "@/components/mode-toggle";
 
@@ -18,25 +18,15 @@ export default function WalletHeader({
   wallet,
   stats,
 }: WalletHeaderProps) {
-  const {
-    totalCurrentValue,
-    totalPl,
-    totalPlPercent,
-    totalPositions,
-    uniqueSymbols,
-    hasAnyPrice,
-    formatCurrency,
-    formatPl,
-    formatPlPercent,
-  } = stats;
+  const { totalPositions, uniqueSymbols } = stats;
 
   return (
     <header className="relative border-b border-border/50 bg-card/60 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
           <Link
             href="/dashboard"
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors group"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors group shrink-0"
           >
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
             <span className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase">
@@ -44,58 +34,17 @@ export default function WalletHeader({
             </span>
           </Link>
 
-          <div className="h-4 w-px bg-border/60" />
+          <div className="h-4 w-px bg-border/60 shrink-0" />
 
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="font-(family-name:--font-jb-mono) text-[11px] font-bold tracking-[0.2em] uppercase text-primary">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
+            <span className="font-(family-name:--font-jb-mono) text-[11px] font-bold tracking-[0.2em] uppercase text-primary truncate">
               {wallet.name}
             </span>
           </div>
-
-          <div className="h-4 w-px bg-border/60" />
-
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-(family-name:--font-jb-mono) text-lg font-bold tabular-nums text-foreground tracking-tight">
-              {formatCurrency(totalCurrentValue)}
-            </span>
-            <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground font-semibold">
-              {wallet.currency}
-            </span>
-          </div>
-
-          {hasAnyPrice && (
-            <>
-              <div className="flex items-center gap-1.5">
-                {totalPl >= 0 ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 text-red-500" />
-                )}
-                <span
-                  className={`font-(family-name:--font-jb-mono) text-[11px] font-semibold tabular-nums ${
-                    totalPl >= 0
-                      ? "text-emerald-500"
-                      : "text-red-500 dark:text-red-400"
-                  }`}
-                >
-                  {formatPl(totalPl)}
-                </span>
-                <span
-                  className={`font-(family-name:--font-jb-mono) text-[10px] px-1.5 py-0.5 rounded tabular-nums font-semibold ${
-                    totalPl >= 0
-                      ? "bg-emerald-500/10 text-emerald-500"
-                      : "bg-red-500/10 text-red-500 dark:bg-red-400/10 dark:text-red-400"
-                  }`}
-                >
-                  {formatPlPercent(totalPlPercent)}
-                </span>
-              </div>
-            </>
-          )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.15em]">
             {uniqueSymbols} COMPAN{uniqueSymbols !== 1 ? "IES" : "Y"} · {totalPositions} POSITION{totalPositions !== 1 ? "S" : ""}
           </span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useState } from "react";
-import { addPosition } from "@/server/actions/dashboard-actions";
+import { addPosition } from "@/server/actions/dashboard/position-buy-actions";
 import { useParams } from "next/navigation";
 import AddPositionInputs from "./add-position-inputs";
 

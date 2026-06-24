@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { QUERIES } from "@/server/db/queries";
 import Dashboard from "./dashboard";
 import { ChartDataPoint, SerializedError, TimeRange } from "@/server/actions/types";
-import { getAllWalletsPortfolioData } from "@/server/actions/dashboard-actions";
+import { getAllWalletsPortfolioData } from "@/server/actions/dashboard/chart-actions";
 import { Result } from "better-result";
 
 interface DashboardProps {
@@ -25,9 +25,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     name: w.name,
     currency: w.currency,
     totalValue: w.totalValue,
-    totalCostBasis: w.totalCostBasis,
+    netInvested: w.netInvested,
     snapshotAt: w.snapshotAt,
-    hasSnapshot: w.hasSnapshot,
   }));
 
 

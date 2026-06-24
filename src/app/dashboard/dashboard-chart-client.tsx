@@ -18,11 +18,11 @@ const TIME_RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "6M", "1YR"];
 
 const chartConfig = {
   totalValue: {
-    label: "Total Value",
+    label: "Portfolio Value",
     color: "var(--chart-1)",
   },
-  totalCostBasis: {
-    label: "Cost Basis",
+  netInvested: {
+    label: "Net Invested",
     color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
@@ -130,9 +130,9 @@ export default function DashboardChartClient({ range, data, displayCurrency }: P
                 dot={false}
               />
               <Line
-                dataKey="totalCostBasis"
+                dataKey="netInvested"
                 type="monotone"
-                stroke="var(--color-totalCostBasis)"
+                stroke="var(--color-netInvested)"
                 strokeWidth={2}
                 dot={false}
               />

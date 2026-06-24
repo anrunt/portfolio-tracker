@@ -3,6 +3,11 @@ import { pgTable, text, timestamp, boolean, index, pgEnum, date, uniqueIndex, nu
 
 export const currencyEnum = pgEnum("currency_enum", ["USD", "PLN"]);
 export const granularityEnum = pgEnum("granularity_enum", ["daily", "intraday"]);
+export const portfolioTransactionTypeEnum = pgEnum("portfolio_transaction_type_enum", [
+  "BUY",
+  "SELL",
+  "WITHDRAWAL",
+]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -84,6 +89,11 @@ export const wallet = pgTable("wallet", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   currency: currencyEnum("currency").notNull(),
+  cashBalance: numeric("cash_balance", { precision: 20, scale: 10 }).default("0").notNull(),
+  totalBuyCost: numeric("total_buy_cost", { precision: 20, scale: 10 }).default("0").notNull(),
+  totalContributed: numeric("total_contributed", { precision: 20, scale: 10 }).default("0").notNull(),
+  totalWithdrawn: numeric("total_withdrawn", { precision: 20, scale: 10 }).default("0").notNull(),
+  realizedPl: numeric("realized_pl", { precision: 20, scale: 10 }).default("0").notNull(),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -97,6 +107,26 @@ export const position = pgTable("position", {
   companySymbol: text("company_symbol").notNull(),
   pricePerShare: numeric("price_per_share", { precision: 20, scale: 10 }).notNull(),
   quantity: numeric("quantity", { precision: 20, scale: 10 }).notNull(),
+  initialQuantity: numeric("initial_quantity", { precision: 20, scale: 10 }).notNull(),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const portfolioTransaction = pgTable("portfolio_transaction", {
+  id: text("id").primaryKey(),
+  walletId: text("wallet_id")
+    .notNull()
+    .references(() => wallet.id, { onDelete: "cascade" }),
+  positionId: text("position_id").references(() => position.id, { onDelete: "set null" }),
+  type: portfolioTransactionTypeEnum("type").notNull(),
+  companyName: text("company_name"),
+  companySymbol: text("company_symbol"),
+  quantity: numeric("quantity", { precision: 20, scale: 10 }),
+  pricePerShare: numeric("price_per_share", { precision: 20, scale: 10 }),
+  transactionValue: numeric("transaction_value", { precision: 20, scale: 10 }).notNull(),
+  cashUsed: numeric("cash_used", { precision: 20, scale: 10 }).default("0").notNull(),
+  externalContribution: numeric("external_contribution", { precision: 20, scale: 10 }).default("0").notNull(),
+  realizedPl: numeric("realized_pl", { precision: 20, scale: 10 }).default("0").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -106,7 +136,7 @@ export const walletDailySnapshot = pgTable("wallet_daily_snapshot", {
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
   totalValue: numeric("total_value", { precision: 20, scale: 10 }).notNull(),
-  totalCostBasis: numeric("total_cost_basis", { precision: 20, scale: 10 }).notNull(),
+  netInvested: numeric("net_invested", { precision: 20, scale: 10 }).notNull(),
   snapshotDate: date("snapshot_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -119,7 +149,7 @@ export const walletIntradaySnapshot = pgTable("wallet_intraday_snapshot", {
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
   totalValue: numeric("total_value", { precision: 20, scale: 10 }).notNull(),
-  totalCostBasis: numeric("total_cost_basis", { precision: 20, scale: 10 }).notNull(),
+  netInvested: numeric("net_invested", { precision: 20, scale: 10 }).notNull(),
   snapshotAt: timestamp("snapshot_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -175,16 +205,29 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }));
 
-export const walletRelations = relations(wallet, ({ one }) => ({
+export const walletRelations = relations(wallet, ({ one, many }) => ({
   user: one(user, {
     fields: [wallet.userId],
     references: [user.id]
-  })
+  }),
+  transactions: many(portfolioTransaction),
 }))
 
-export const positionRelations = relations(position, ({ one }) => ({
+export const positionRelations = relations(position, ({ one, many }) => ({
   wallet: one(wallet, {
     fields: [position.walletId],
     references: [wallet.id]
-  })
+  }),
+  transactions: many(portfolioTransaction),
+}))
+
+export const portfolioTransactionRelations = relations(portfolioTransaction, ({ one }) => ({
+  wallet: one(wallet, {
+    fields: [portfolioTransaction.walletId],
+    references: [wallet.id],
+  }),
+  position: one(position, {
+    fields: [portfolioTransaction.positionId],
+    references: [position.id],
+  }),
 }))

@@ -20,9 +20,8 @@ interface Props {
     name: string;
     currency: string;
     totalValue: number;
-    totalCostBasis: number | null;
+    netInvested: number;
     snapshotAt: Date | null;
-    hasSnapshot: boolean;
   }>;
   range: TimeRange;
   displayCurrency: DisplayCurrency;

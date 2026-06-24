@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrice } from "@/server/actions/dashboard-actions";
+import { getPrice } from "@/server/actions/dashboard/market-data";
 import { getSession } from "@/server/better-auth/session";
 
 const SUPPORTED_EXCHANGES = new Set(["US", "WA"]);
