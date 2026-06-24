@@ -27,4 +27,4 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] Feature: Add delete all positions button so i can delete all my positions on one company with ease.
 -[x] Feature: Think about better cost basis - when i close the position and reopen a new one, my cost basis is not accurate because if i lose money on some position i cant see how much i've spent overall but i see only how much i've spent on current shares only.
 -[x] Refactor: Split dashboard-actions into smaller files so it will be easier to manage it
--[] Feature: Deploy on vercel and crons on cloudflare worker
+-[x] Feature: Deploy on vercel and crons on cloudflare worker
