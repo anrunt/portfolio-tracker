@@ -1,3 +1,4 @@
+/*This is for testing purposes if i want to test a cron using npm command */
 import { closeDb } from "@/server/db";
 import { runSnapshot } from "@/server/services/run-snapshot";
 
