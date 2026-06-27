@@ -143,7 +143,7 @@ export async function runSnapshot(type: "daily" | "intraday") {
 
     const totalValue = holdingsValue + data.cashBalance;
     const netInvested = data.totalContributed - data.totalWithdrawn;
-    
+
     if (type === "daily") {
       dailyRows.push({
         id: crypto.randomUUID(),
