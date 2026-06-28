@@ -151,3 +151,8 @@ export type PriceError =
   | ConfigError
   | ValidationError
   | ApiError;
+
+export type MarketDataError = 
+  | ConfigError
+  | ValidationError
+  | ApiError;
