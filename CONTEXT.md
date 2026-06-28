@@ -12,6 +12,10 @@ _Avoid_: Account, portfolio account
 The remaining quantity of a company position currently owned inside a wallet.
 _Avoid_: Stock row, asset line
 
+**Company Symbol**:
+The canonical identifier for a listed company inside the app. GPW company symbols include the `.WA` suffix, for example `XTB.WA`.
+_Avoid_: Ticker without exchange suffix for GPW holdings
+
 **Market Price**:
 The current or recent external price for a company symbol used to value holdings.
 _Avoid_: Quote, stock value

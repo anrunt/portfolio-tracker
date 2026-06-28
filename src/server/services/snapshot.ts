@@ -1,3 +1,4 @@
+/*Its deprecated we will be using new service for market-data */
 import type {
   FinnhubQuote,
   PriceFetchFailure,
