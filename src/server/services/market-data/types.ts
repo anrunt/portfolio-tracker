@@ -30,18 +30,26 @@ export type MarketPriceResultData = {
 export type LogLevels = "info" | "warn" | "error";
 
 export type RetryContext = {
-  operationId?: string;
-  provider?: string;
-  symbol?: string;
-  exchange?: Exchange;
-  mode?: MarketDataMode;
+  provider: MarketDataProvider;
+  symbol: string;
+  exchange: Exchange;
+  mode: MarketDataMode;
   [key: string]: unknown;
 }
 
-export type RetryConfig = {
+export type NoRetryConfig = {
+  kind: "no-retry";
   attempts: number;
   timeoutMs: number;
-  baseDelayMs?: number;
-  maxDelayMs?: number;
-  jitterMs?: number;
 }
+
+export type RetryWithBackoffConfig = {
+  kind: "retry-with-backoff"
+  attempts: number;
+  timeoutMs: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  jitterMs: number;
+}
+
+export type RetryConfig = NoRetryConfig | RetryWithBackoffConfig;
