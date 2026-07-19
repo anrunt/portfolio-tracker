@@ -17,8 +17,6 @@ export async function fetchWithRetry(url: string, options: RequestInit, config: 
       })
 
     } catch(error) {
-
-
       if (canRetry) {
         const delay = getRetryDelayMs(i, config);
 
