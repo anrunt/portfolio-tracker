@@ -1,111 +1,210 @@
+import { Result } from "better-result";
 import { logMarketData } from "./logger";
-import { RetryConfig, RetryContext, RetryWithBackoffConfig } from "./types";
+import { RetryConfig, RetryContext } from "./types";
+import {
+  NonRetryableMarketDataError,
+  RetryableMarketDataError,
+  type MarketDataProviderError,
+} from "@/server/errors";
 
 const RETRY_CODES = [408, 425, 429, 500, 502, 503, 504];
 
-export async function fetchWithRetry(url: string, options: RequestInit, config: RetryConfig, context: RetryContext): Promise<Response> {
-  for (let i = 0; i < config.attempts; i++) {
-    const attempt = i + 1;
-    const hasAttemptsLeft = i < config.attempts - 1;
-    const canRetry = config.kind === "retry-with-backoff" && hasAttemptsLeft;
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        ...options,
-        signal: AbortSignal.timeout(config.timeoutMs)
-      })
-
-    } catch(error) {
-      if (canRetry) {
-        const delay = getRetryDelayMs(i, config);
-
-        logMarketData("warn", {
-          event: "market_price_provider_retry",
-          ...context,
-          attempt,
-          maxAttempts: config.attempts,
-          delayMs: Math.round(delay),
-          error: toErrorMessage(error)
-        });
-
-        await sleep(delay);
-
-        continue;
-      } else {
-        logMarketData("error", {
-          event: "market_price_provider_failed",
-          ...context,
-          attempt,
-          maxAttempts: config.attempts,
-          error: toErrorMessage(error),
-          retryable: true,
-        });
-
-        throw new Error("Unhandled error", { cause: error });
-      }
+export async function fetchWithRetry(url: string, options: RequestInit, config: RetryConfig, context: RetryContext): Promise<Result<Response, MarketDataProviderError>> {
+  if (config.kind === "retry-with-backoff") {
+    if (!Number.isInteger(config.attempts) && config.attempts < 2) {
+      throw new RangeError("Retry attempts must be an integer greater than 1");
     }
 
-    if (response.ok) {
-      return response;
-    }
+    let currentAttempt = 0;
 
-    if (RETRY_CODES.includes(response.status)) {
-      if (!canRetry) {
-        logMarketData("error", {
-          event: "market_price_provider_failed",
-          ...context,
-          status: response.status,
-          attempt,
-          maxAttempts: config.attempts,
-          errorMessage: "No more attempts left, fetch failed"
-        });
+    const result = await Result.tryPromise(
+      {
+        try: async ({ attempt }) => {
+          currentAttempt = attempt;
 
-        throw new Error("Failed to fetch price for: " + context.symbol);
+          if (attempt > 1) {
+            const delayMs = config.baseDelayMs * 2 ** (attempt - 2);
 
-      } else {
-        const delay = getRetryDelayMs(i, config);
+            logMarketData("warn", {
+              event: "market_price_provider_retry",
+              ...context,
+              attempt,
+              maxAttempts: config.attempts,
+              delayMs,
+            });
+          }
 
-        logMarketData("warn", {
-          event: "market_price_provider_retry",
-          ...context,
-          attempt,
-          maxAttempts: config.attempts,
-          status: response.status,
-          delayMs: Math.round(delay)
-        });
+          const response = await fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(config.timeoutMs)
+          });
 
-        await sleep(delay);
+          if (!response.ok) {
+            throw createHttpError(response.status, context);
+          }
 
-        continue;
+          return response;
+        },
+        catch: (error) => normalizeMarketDataError(error, context),
+      },
+      {
+        retry: {
+          times: config.attempts - 1,
+          delayMs: config.baseDelayMs,
+          backoff: "exponential",
+          shouldRetry: (error) => RetryableMarketDataError.is(error),
+        }
       }
-    } else {
+    );
+
+    if (Result.isError(result)) {
+      const error = result.error;
+
       logMarketData("error", {
         event: "market_price_provider_failed",
         ...context,
-        status: response.status,
-        errorMessage: "Status not for retry"
+        attempt: currentAttempt,
+        maxAttempts: config.attempts,
+        status: error.status,
+        reason: error.reason,
+        error: error.message,
+        retryable: RetryableMarketDataError.is(error),
       });
-
-      throw new Error("Failed to fetch price for: " + context.symbol);
     }
+
+    return result;
+  } else {
+    return Result.tryPromise({
+      try: async () => {
+        const response = await fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(config.timeoutMs)
+        })
+
+        if (!response.ok) {
+          throw createHttpError(response.status, context);
+        }
+
+        return response;
+      },
+      catch: (e) => {
+        const error = normalizeMarketDataError(e, context);
+
+        logMarketData("error", {
+          event: "market_price_provider_failed",
+          ...context,
+          attempt: 1,
+          maxAttempts: 1,
+          status: error.status,
+          reason: error.reason,
+          error: error.message,
+          retryable: RetryableMarketDataError.is(error),
+        });
+
+        return error;
+      }
+    })
   }
 
-  throw new Error(`fetchWithRetry finished without response for: ${context.symbol}`);
 }
 
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function createHttpError(
+  status: number,
+  context: RetryContext,
+): MarketDataProviderError {
+  const details = {
+    provider: context.provider,
+    symbol: context.symbol,
+    status,
+  };
+
+  if (status === 429) {
+    return new RetryableMarketDataError({
+      ...details,
+      reason: "rate-limit",
+      message: `${context.provider} rate limit exceeded for ${context.symbol}`,
+    });
+  }
+
+  if (status === 408) {
+    return new RetryableMarketDataError({
+      ...details,
+      reason: "timeout",
+      message: `${context.provider} request timed out for ${context.symbol}`,
+    });
+  }
+
+  if (RETRY_CODES.includes(status)) {
+    return new RetryableMarketDataError({
+      ...details,
+      reason: "provider-unavailable",
+      message: `${context.provider} is unavailable (HTTP ${status})`,
+    });
+  }
+
+  const reason =
+    status === 401
+      ? "unauthorized"
+      : status === 403
+        ? "forbidden"
+        : status === 404
+          ? "symbol-not-found"
+          : status >= 400 && status < 500
+            ? "bad-request"
+            : "invalid-response";
+
+  return new NonRetryableMarketDataError({
+    ...details,
+    reason,
+    message: `${context.provider} request failed with HTTP ${status}`,
+  });
 }
 
-function getRetryDelayMs(index: number, config: RetryWithBackoffConfig): number {
-  const delay = config.baseDelayMs * Math.pow(2, index);
-  const cappedDelay = Math.min(delay, config.maxDelayMs);
-  const jitter = Math.random() * config.jitterMs;
+function normalizeMarketDataError(
+  error: unknown,
+  context: RetryContext,
+): MarketDataProviderError {
+  if (
+    RetryableMarketDataError.is(error) ||
+    NonRetryableMarketDataError.is(error)
+  ) {
+    return error;
+  }
 
-  return cappedDelay + jitter;
-}
+  if (error instanceof DOMException && error.name === "TimeoutError") {
+    return new RetryableMarketDataError({
+      provider: context.provider,
+      symbol: context.symbol,
+      reason: "timeout",
+      message: `${context.provider} request timed out for ${context.symbol}`,
+    });
+  }
 
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return new NonRetryableMarketDataError({
+      provider: context.provider,
+      symbol: context.symbol,
+      reason: "unexpected",
+      message: `${context.provider} request was cancelled for ${context.symbol}`,
+    });
+  }
+
+  if (error instanceof TypeError) {
+    return new RetryableMarketDataError({
+      provider: context.provider,
+      symbol: context.symbol,
+      reason: "network",
+      message: `${context.provider} network request failed for ${context.symbol}: ${error.message}`,
+    });
+  }
+
+  return new NonRetryableMarketDataError({
+    provider: context.provider,
+    symbol: context.symbol,
+    reason: "unexpected",
+    message:
+      error instanceof Error
+        ? error.message
+        : `Unexpected market data error: ${String(error)}`,
+  });
 }

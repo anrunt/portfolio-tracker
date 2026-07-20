@@ -39,7 +39,6 @@ export type RetryContext = {
 
 export type NoRetryConfig = {
   kind: "no-retry";
-  attempts: number;
   timeoutMs: number;
 }
 
@@ -48,8 +47,6 @@ export type RetryWithBackoffConfig = {
   attempts: number;
   timeoutMs: number;
   baseDelayMs: number;
-  maxDelayMs: number;
-  jitterMs: number;
 }
 
 export type RetryConfig = NoRetryConfig | RetryWithBackoffConfig;
