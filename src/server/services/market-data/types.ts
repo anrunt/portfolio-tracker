@@ -27,6 +27,12 @@ export type MarketPriceResultData = {
   failures: PriceFetchFailure[];
 };
 
+export type ProviderConfig = {
+  mode: MarketDataMode,
+  operationId: string,
+  cacheStatus: Extract<CacheStatus, "miss" | "bypass">
+}
+
 export type LogLevels = "info" | "warn" | "error";
 
 export type RetryContext = {
