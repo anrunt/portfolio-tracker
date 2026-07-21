@@ -10,7 +10,7 @@ export type GetPricesInput = {
   symbols: string[];
   exchange: Exchange;
   mode: MarketDataMode;
-  operationId?: string;
+  operationId: string;
 };
 
 export type MarketPrice = {
@@ -34,6 +34,19 @@ export type ProviderConfig = {
 }
 
 export type LogLevels = "info" | "warn" | "error";
+
+export type CacheConfig = {
+  url: string;
+  token: string;
+};
+
+export type CacheContext = {
+  operationId: string;
+  mode: MarketDataMode;
+  provider: MarketDataProvider;
+  symbol: string;
+  exchange: Exchange;
+};
 
 export type RetryContext = {
   provider: MarketDataProvider;

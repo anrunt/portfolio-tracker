@@ -1,8 +1,9 @@
 import { Redis } from "@upstash/redis";
 import { z } from "zod";
 import {
+  CacheConfig,
+  CacheContext,
   Exchange,
-  MarketDataMode,
   MarketDataProvider,
   MarketPrice,
 } from "./types";
@@ -12,18 +13,6 @@ const FRESH_CACHE_TTL_MS = 60_000;
 const STALE_CACHE_TTL_SECONDS = 300;
 const STALE_CACHE_MAX_AGE_MS = 300_000;
 
-type CacheConfig = {
-  url: string;
-  token: string;
-};
-
-export type CacheContext = {
-  operationId: string;
-  mode: MarketDataMode;
-  provider: MarketDataProvider;
-  symbol: string;
-  exchange: Exchange;
-};
 
 const CachedMarketPriceSchema = z.object({
   symbol: z.string(),
@@ -39,7 +28,7 @@ type CacheReadResult =
   | {
     kind: "found";
     freshness: "fresh" | "stale";
-    price: CachedMarketPrice;
+    data: CachedMarketPrice;
   }
   | {
     kind: "miss";
@@ -69,10 +58,10 @@ export function createRedisPriceCache(config: CacheConfig) {
       context.symbol,
     );
 
-    let resultPrice: unknown;
+    let cachedData: unknown;
 
     try {
-      resultPrice = await redis.get(key);
+      cachedData = await redis.get(key);
     } catch (error) {
       logMarketData("error", {
         event: "market_price_cache_read_failed",
@@ -86,20 +75,20 @@ export function createRedisPriceCache(config: CacheConfig) {
       };
     }
 
-    if (resultPrice === null) {
+    if (cachedData === null) {
       return {
         kind: "miss",
         reason: "not-found",
       };
     }
 
-    const parsedPrice = CachedMarketPriceSchema.safeParse(resultPrice);
+    const parsedData = CachedMarketPriceSchema.safeParse(cachedData);
 
-    if (!parsedPrice.success) {
+    if (!parsedData.success) {
       logMarketData("warn", {
         event: "market_price_cache_invalid",
         ...context,
-        validationErrors: parsedPrice.error.issues,
+        validationErrors: parsedData.error.issues,
       });
 
       await deleteCachedMarketPrice(key, context);
@@ -110,7 +99,7 @@ export function createRedisPriceCache(config: CacheConfig) {
       };
     }
 
-    const ageMs = Date.now() - Date.parse(parsedPrice.data.fetchedAt);
+    const ageMs = Date.now() - Date.parse(parsedData.data.fetchedAt);
 
     if (ageMs > STALE_CACHE_MAX_AGE_MS) {
       return {
@@ -122,7 +111,7 @@ export function createRedisPriceCache(config: CacheConfig) {
     return {
       kind: "found",
       freshness: ageMs <= FRESH_CACHE_TTL_MS ? "fresh" : "stale",
-      price: parsedPrice.data,
+      data: parsedData.data,
     };
   }
 
@@ -135,7 +124,7 @@ export function createRedisPriceCache(config: CacheConfig) {
       context.exchange,
       context.symbol,
     );
-    const cachedPrice: CachedMarketPrice = {
+    const cachePayload: CachedMarketPrice = {
       symbol: price.symbol,
       price: price.price,
       currency: price.currency,
@@ -144,7 +133,7 @@ export function createRedisPriceCache(config: CacheConfig) {
     };
 
     try {
-      await redis.set(key, cachedPrice, { ex: STALE_CACHE_TTL_SECONDS });
+      await redis.set(key, cachePayload, { ex: STALE_CACHE_TTL_SECONDS });
       return true;
     } catch (error) {
       logMarketData("error", {
