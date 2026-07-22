@@ -47,6 +47,7 @@ export async function fetchYahooWaPrices(
         };
 
   const retryContext: RetryContext = {
+    operationId: options.operationId,
     provider: "yahoo",
     symbol,
     exchange: "WA",
@@ -123,6 +124,7 @@ export async function fetchFinnhubUsPrices(
         };
 
   const retryContext: RetryContext = {
+    operationId: options.operationId,
     provider: "finnhub",
     symbol,
     exchange: "US",

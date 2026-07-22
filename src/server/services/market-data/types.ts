@@ -49,6 +49,7 @@ export type CacheContext = {
 };
 
 export type RetryContext = {
+  operationId: string;
   provider: MarketDataProvider;
   symbol: string;
   exchange: Exchange;
