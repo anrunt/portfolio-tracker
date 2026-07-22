@@ -1,5 +1,4 @@
 import z from "zod";
-import { getFinnhubConfig } from "./config";
 import { fetchWithRetry } from "./retry";
 import type {
   MarketPrice,
@@ -16,13 +15,13 @@ const finnhubPriceSchema = z.object({
   c: z.number().positive(),
 });
 
+type ProviderPrice = Omit<MarketPrice, "cacheStatus">;
+
 export async function fetchYahooWaPrices(
   symbol: string,
   options: ProviderConfig,
 ): Promise<
-  Omit<MarketPrice, "cacheStatus"> & {
-    cacheStatus: ProviderConfig["cacheStatus"];
-  }
+  ProviderPrice
 > {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=15m&range=1d`;
 
@@ -81,8 +80,7 @@ export async function fetchYahooWaPrices(
     currency: "PLN",
     provider: "yahoo",
     fetchedAt: new Date().toISOString(),
-    cacheStatus: options.cacheStatus,
-  } satisfies MarketPrice;
+  } satisfies ProviderPrice;
 
   return marketPrice;
 }
@@ -90,18 +88,11 @@ export async function fetchYahooWaPrices(
 export async function fetchFinnhubUsPrices(
   symbol: string,
   options: ProviderConfig,
+  apiKey: string
 ): Promise<
-  Omit<MarketPrice, "cacheStatus"> & {
-    cacheStatus: ProviderConfig["cacheStatus"];
-  }
+  ProviderPrice
 > {
-  const configResult = getFinnhubConfig();
-
-  if (configResult.isErr()) {
-    throw configResult.error;
-  }
-
-  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(configResult.value.apiKey)}`;
+  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(apiKey)}`;
 
   const requestOptions: RequestInit = {
     method: "GET",
@@ -158,8 +149,7 @@ export async function fetchFinnhubUsPrices(
     currency: "USD",
     provider: "finnhub",
     fetchedAt: new Date().toISOString(),
-    cacheStatus: options.cacheStatus,
-  } satisfies MarketPrice;
+  } satisfies ProviderPrice;
 
   return marketPrice;
 }

@@ -30,7 +30,6 @@ export type MarketPriceResultData = {
 export type ProviderConfig = {
   mode: MarketDataMode,
   operationId: string,
-  cacheStatus: Extract<CacheStatus, "miss" | "bypass">
 }
 
 export type LogLevels = "info" | "warn" | "error";
