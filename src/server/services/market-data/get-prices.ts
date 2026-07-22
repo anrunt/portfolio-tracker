@@ -5,7 +5,7 @@ import { getFinnhubConfig, getRedisConfig } from "./config";
 import { createRedisPriceCache } from "./cache";
 import { fetchFinnhubUsPrices, fetchYahooWaPrices } from "./providers";
 import { logMarketData } from "./logger";
-import { PriceFetchFailure } from "@/server/actions/types";
+import type { PriceFetchFailure } from "@/server/actions/types";
 import pLimit from "p-limit";
 
 export async function getPrices(

@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getPrice } from "@/server/actions/dashboard/market-data";
+import { type NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/server/better-auth/session";
-
-const SUPPORTED_EXCHANGES = new Set(["US", "WA"]);
+import { getPrices } from "@/server/services/market-data/get-prices";
+import { toPriceResultData } from "@/server/services/market-data/mappers";
+import type {
+  Exchange,
+  GetPricesInput,
+} from "@/server/services/market-data/types";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -12,16 +15,20 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const symbolsParam = searchParams.get("symbol");
-  const exchange = searchParams.get("exchange");
+  const exchangeParam = searchParams.get("exchange");
 
-  if (!symbolsParam || !exchange) {
+  if (!symbolsParam || !exchangeParam) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 
-  if (!SUPPORTED_EXCHANGES.has(exchange)) {
-    return NextResponse.json({ error: "Unsupported exchange" }, { status: 400 });
+  if (exchangeParam !== "US" && exchangeParam !== "WA") {
+    return NextResponse.json(
+      { error: "Unsupported exchange" },
+      { status: 400 },
+    );
   }
 
+  const exchange: Exchange = exchangeParam;
   const symbols = symbolsParam
     .split(",")
     .map((symbol) => symbol.trim())
@@ -31,14 +38,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing symbols" }, { status: 400 });
   }
 
-  const result = await getPrice(symbols, exchange);
+  const input: GetPricesInput = {
+    symbols,
+    exchange,
+    mode: "user-refresh",
+    operationId: crypto.randomUUID(),
+  };
 
-  if (result.status === "ok") {
-    return NextResponse.json(result.value);
-  } else {
-    return NextResponse.json(
-      { error: result.error.message },
-      { status: result.error._tag === "UnauthenticatedError" ? 401 : 500 }
-    )
+  const result = await getPrices(input);
+
+  if (result.isOk()) {
+    return NextResponse.json(toPriceResultData(result.value));
   }
+
+  const status =
+    result.error._tag === "ValidationError"
+      ? 400
+      : result.error._tag === "ApiError"
+        ? 502
+        : 500;
+
+  return NextResponse.json(
+    { error: result.error.message },
+    { status },
+  );
 }
