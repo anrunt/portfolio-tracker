@@ -8,7 +8,17 @@ import type {
 } from "./types";
 
 const yahooPriceSchema = z.object({
-  regularMarketPrice: z.number(),
+  chart: z.object({
+    result: z
+      .array(
+        z.object({
+          meta: z.object({
+            regularMarketPrice: z.number(),
+          }),
+        }),
+      )
+      .min(1),
+  }),
 });
 
 const finnhubPriceSchema = z.object({
@@ -76,7 +86,7 @@ export async function fetchYahooWaPrices(
 
   const marketPrice = {
     symbol,
-    price: parsed.data.regularMarketPrice,
+    price: parsed.data.chart.result[0]!.meta.regularMarketPrice,
     currency: "PLN",
     provider: "yahoo",
     fetchedAt: new Date().toISOString(),

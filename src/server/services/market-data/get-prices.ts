@@ -3,9 +3,10 @@ import { CacheContext, GetPricesInput, MarketPrice, MarketPriceResultData } from
 import { Result } from "better-result";
 import { getFinnhubConfig, getRedisConfig } from "./config";
 import { createRedisPriceCache } from "./cache";
-import { fetchFinnhubUsPrices } from "./providers";
+import { fetchFinnhubUsPrices, fetchYahooWaPrices } from "./providers";
 import { logMarketData } from "./logger";
 import { PriceFetchFailure } from "@/server/actions/types";
+import pLimit from "p-limit";
 
 export async function getPrices(
   input: GetPricesInput,
@@ -147,11 +148,135 @@ export async function getPrices(
         }
 
       case "WA":
-        // Yahoo
-        break;
+        const yahooLimit = pLimit(2);
+
+        if (input.mode === "user-refresh") { // user-refresh
+          const redisConfig = yield* getRedisConfig();
+
+          const redis = createRedisPriceCache(redisConfig);
+
+          const promises = input.symbols.map(async (symbol) => {
+            const cacheContext: CacheContext = {
+              operationId: input.operationId,
+              mode: input.mode,
+              provider: "yahoo",
+              symbol: symbol,
+              exchange: input.exchange
+            }
+
+            const cacheResult = await redis.getCachedMarketPrice(cacheContext);
+            if (cacheResult.kind === "found" && cacheResult.freshness === "fresh") {
+              return {
+                symbol: symbol,
+                price: cacheResult.data.price,
+                currency: "PLN",
+                provider: "yahoo",
+                cacheStatus: "hit",
+                fetchedAt: cacheResult.data.fetchedAt
+              } satisfies MarketPrice
+            }
+
+            const staleCacheData = cacheResult.kind === "found" && cacheResult.freshness === "stale"
+              ? cacheResult.data
+              : undefined
+
+            try {
+              const providerPrice = await yahooLimit(() =>
+                fetchYahooWaPrices(symbol, {
+                  mode: input.mode,
+                  operationId: input.operationId,
+                }),
+              );
+
+              const marketPrice: MarketPrice = {
+                ...providerPrice,
+                cacheStatus: "miss"
+              }
+              await redis.setCachedMarketPrice(marketPrice, cacheContext);
+
+              return marketPrice;
+            } catch (e) {
+              if (staleCacheData) {
+                const marketPrice: MarketPrice = {
+                  ...staleCacheData,
+                  cacheStatus: "stale-if-error"
+                }
+
+                logMarketData("warn", {
+                  event: "market_price_stale_if_error_used",
+                  ...cacheContext,
+                  error: e instanceof Error ? e.message : String(e),
+                });
+
+                return marketPrice;
+              }
+
+              throw e;
+            }
+          })
+
+          const settledPromises = await Promise.allSettled(promises);
+
+          const prices: MarketPrice[] = [];
+          const failures: PriceFetchFailure[] = [];
+
+          for (const [index, res] of settledPromises.entries()) {
+            if (res.status === "fulfilled") {
+              prices.push(res.value);
+            } else {
+              failures.push({
+                symbol: input.symbols[index]!,
+                reason:
+                  res.reason instanceof Error
+                    ? res.reason.message
+                    : String(res.reason),
+              });
+            }
+          }
+
+          const data = { prices, failures } satisfies MarketPriceResultData;
+          logBatchCompleted(input, data, startedAt);
+          return Result.ok(data);
+        } else { // snapshot
+          const promises = input.symbols.map(async (symbol) => {
+            const providerPrice = await yahooLimit(() =>
+              fetchYahooWaPrices(symbol, {
+                mode: input.mode,
+                operationId: input.operationId,
+              }),
+            );
+
+            return {
+              ...providerPrice,
+              cacheStatus: "bypass",
+            } satisfies MarketPrice;
+          });
+
+          const settledPromises = await Promise.allSettled(promises);
+          const prices: MarketPrice[] = [];
+          const failures: PriceFetchFailure[] = [];
+
+          for (const [index, res] of settledPromises.entries()) {
+            if (res.status === "fulfilled") {
+              prices.push(res.value);
+            } else {
+              failures.push({
+                symbol: input.symbols[index]!,
+                reason:
+                  res.reason instanceof Error
+                    ? res.reason.message
+                    : String(res.reason),
+              });
+            }
+          }
+
+          const data = { prices, failures } satisfies MarketPriceResultData;
+          logBatchCompleted(input, data, startedAt);
+          return Result.ok(data);
+        }
 
       default:
-        input.exchange satisfies never;
+        return input.exchange satisfies never;
     }
   });
 }
