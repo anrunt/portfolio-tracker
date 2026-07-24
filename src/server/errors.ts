@@ -1,4 +1,5 @@
 import { TaggedError } from "better-result";
+import { MarketDataProvider } from "./services/market-data/types";
 
 /**
  * User is not authenticated (no session).
@@ -118,6 +119,23 @@ export class DatabaseError extends TaggedError("DatabaseError")<{
   }
 }
 
+export class RetryableMarketDataError extends TaggedError("RetryableMarketDataError")<{
+  provider: MarketDataProvider;
+  symbol: string;
+  status?: number;
+  message: string;
+  reason: "rate-limit" | "timeout" | "network" | "provider-unavailable"
+}>(){}
+
+export class NonRetryableMarketDataError extends TaggedError("NonRetryableMarketDataError")<{
+  provider: MarketDataProvider;
+  symbol: string;
+  status?: number;
+  message: string;
+  reason: "bad-request" | "unauthorized" | "forbidden" | "symbol-not-found" | "invalid-response" | "unexpected"
+}>(){}
+
+
 // Error union types for server actions
 export type AuthError = UnauthenticatedError | UnauthorizedError;
 
@@ -151,3 +169,12 @@ export type PriceError =
   | ConfigError
   | ValidationError
   | ApiError;
+
+export type MarketDataError = 
+  | ConfigError
+  | ValidationError
+  | ApiError;
+
+export type MarketDataProviderError = 
+  | RetryableMarketDataError
+  | NonRetryableMarketDataError

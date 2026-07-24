@@ -28,7 +28,7 @@ export function usePrices({symbols, exchange, initialData} : UsePricesParams) {
       return await result.json() as PriceResultData;
     },
     initialData: initialData,
-    refetchInterval: 60_000
+    refetchInterval: 75_000 // Cache is 60s so we want fresh data with query refetch
   });
 
   const { pricesBySymbol, failedSymbols } = useMemo(() => {

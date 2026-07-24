@@ -1,3 +1,4 @@
+/*This is for testing purposes if i want to test a cron using npm command */
 import { closeDb } from "@/server/db";
 import { runSnapshot } from "@/server/services/run-snapshot";
 
@@ -13,10 +14,12 @@ async function main() {
   const type = parseType(process.argv[2]);
   let exitCode = 0;
 
+  const operationId = crypto.randomUUID();
+
   try {
     console.log(`[cron] Starting snapshot job: ${type}`);
 
-    const summary = await runSnapshot(type);
+    const summary = await runSnapshot(type, operationId);
 
     console.log("[cron] Snapshot job completed successfully");
     console.log(JSON.stringify(summary, null, 2));
