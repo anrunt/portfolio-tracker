@@ -1,4 +1,7 @@
-/*Its deprecated we will be using new service for market-data */
+/**
+ * @deprecated Replaced by src/server/services/market-data/get-prices.ts.
+ * Kept temporarily for reference during the market-data migration.
+ */
 import type {
   FinnhubQuote,
   PriceFetchFailure,
