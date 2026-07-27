@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     stopWhen: isStepCount(5),
     tools: {
       getLatestWalletSnapshots: tool({
-        description: `Pobiera podsumowanie wartości portfeli użytkownika. 
+        description: `Pobiera podsumowanie wartości portfeli użytkownika.
           Użyj tego narzędzia, gdy użytkownik pyta o wartość swoich portfeli lub jakie ma portfele w swoim portfolio.
           Dane mogą być opóźnione o około 15 minut. 
           Narzędzie nie zwraca listy pozycji ani historii transakcji.`,
