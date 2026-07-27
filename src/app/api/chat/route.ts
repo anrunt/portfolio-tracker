@@ -62,6 +62,9 @@ export async function POST(req: Request) {
         },
       }),
     },
+    onStepEnd: ({ toolResults }) => {
+      console.log(toolResults)
+    },
     messages: await convertToModelMessages(messages),
   });
 
