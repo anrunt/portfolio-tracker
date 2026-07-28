@@ -13,6 +13,7 @@ The chat should use the current route as optional context rather than as a hard 
 Keep the implementation intentionally small:
 
 - one shared chat API
+- all AI provider, prompt, tool, and streaming configuration kept in `src/app/api/chat/route.ts`
 - one shared popup UI
 - two read-only tool types
 - no persisted conversations
@@ -550,7 +551,6 @@ Generate the dynamic section only from the resolved server context, never direct
 ```txt
 src/app/dashboard/layout.tsx
 src/app/dashboard/chat/chat-popup.tsx
-src/server/ai/portfolio-chat.ts
 ```
 
 The shadcn CLI is expected to add registry components similar to:
@@ -577,9 +577,12 @@ package-lock.json
 
 ```txt
 src/app/dashboard/chat/page.tsx
+src/server/ai/groq.ts
 ```
 
-Deleting the page intentionally makes `/dashboard/chat` unavailable. Do not add a redirect.
+Deleting `page.tsx` intentionally makes `/dashboard/chat` unavailable. Do not add a redirect.
+
+Deleting `groq.ts` removes the remaining AI configuration split. Initialize the Groq provider directly in `src/app/api/chat/route.ts`.
 
 ### Leave unchanged
 
@@ -710,20 +713,33 @@ Do not render raw reasoning parts, tool inputs, tool outputs, or unknown impleme
 
 ### `src/app/api/chat/route.ts`
 
-Keep the route as a thin HTTP boundary.
+Keep the complete portfolio-chat server implementation in this route. Do not introduce a separate AI provider, chat configuration, or tool module.
 
-Responsibilities:
+Move the existing Groq provider initialization from `src/server/ai/groq.ts` into this route, then delete `groq.ts`. Everything needed to understand and configure this chatbot should live in `route.ts`:
 
-1. load the authenticated session
-2. return 401 when absent
-3. parse request JSON
-4. validate the context shape
-5. resolve `currentWalletId` against `session.user.id`
-6. return a generic 400/404 boundary response when appropriate
-7. delegate streaming to `portfolio-chat.ts`
-8. return the AI SDK UI message stream response
+- Groq provider initialization and API-key configuration
+- request and resolved-context types/schemas
+- authentication and request parsing
+- trusted route-context resolution
+- position-lot aggregation
+- both tool definitions and executors
+- the complete system prompt and dynamic context section
+- model/provider options
+- message validation/conversion
+- `streamText` orchestration
+- UI message stream response creation
 
-Pseudocode:
+Suggested route-local helpers:
+
+```ts
+resolvePortfolioChatContext(...)
+aggregateWalletPositions(...)
+buildPortfolioChatSystemPrompt(...)
+```
+
+Keep the two tool definitions close to the `streamText` call so the complete model contract can be understood from one file. Avoid adding factories or abstractions whose only caller would be this route.
+
+Route pseudocode:
 
 ```txt
 POST(request):
@@ -736,48 +752,33 @@ POST(request):
   if invalid:
     return 400
 
-  contextResult = resolvePortfolioChatContext(
+  context = resolvePortfolioChatContext(
     parsedBody.context,
     session.user.id
   )
   if unavailable current wallet:
     return generic 404
 
-  return createPortfolioChatResponse({
-    messages: parsedBody.messages,
-    context: contextResult,
-    userId: session.user.id
+  groq = initialize route-local Groq provider
+  systemPrompt = buildPortfolioChatSystemPrompt(context)
+
+  tools = {
+    getWalletsOverview: tool bound to session.user.id,
+    getWalletPositions: tool bound to session.user.id and context
+  }
+
+  validatedMessages = validate/convert parsedBody.messages
+
+  result = streamText({
+    existing Groq model and provider options,
+    systemPrompt,
+    tools,
+    stopWhen: 5 steps,
+    validatedMessages
   })
+
+  return UI message stream response from result
 ```
-
-Do not keep tool definitions, aggregation logic, or the full system prompt in this file.
-
-### `src/server/ai/portfolio-chat.ts`
-
-Keep all server-only portfolio chat behavior in this single module for now.
-
-Responsibilities:
-
-- define request/resolved context types or schemas
-- resolve trusted route context
-- aggregate position lots
-- create the two tools bound to `userId` and resolved context
-- build the context-aware system prompt
-- validate/convert UI messages as needed by the installed AI SDK
-- configure `streamText`
-- create the UI message stream response or return the stream to the route
-
-Suggested internal functions:
-
-```ts
-resolvePortfolioChatContext(...)
-aggregateWalletPositions(...)
-createPortfolioChatTools(...)
-buildPortfolioChatSystemPrompt(...)
-streamPortfolioChat(...)
-```
-
-These are module-internal helpers unless the route specifically needs one exported boundary function.
 
 Preserve the existing model/provider settings unless implementation reveals an incompatibility:
 
@@ -821,25 +822,41 @@ Inspect generated files and package changes.
 
 Do not add Marker, Attachment, Prompt Input, virtualizer, animation packages, or other chat components.
 
-### 2. Extract the portfolio chat server module
+### 2. Consolidate all AI configuration in the existing API route
 
-Create:
+Update:
 
 ```txt
-src/server/ai/portfolio-chat.ts
+src/app/api/chat/route.ts
 ```
 
-Move the existing model configuration and tool behavior out of `route.ts`.
+Move the current provider setup into the route:
 
-Implement in this order:
+```ts
+createGroq({ apiKey: process.env.GROQ_API_KEY })
+```
 
-1. context types/schema
-2. resolved context lookup
-3. position aggregation helper
-4. `getWalletsOverview`
-5. `getWalletPositions`
-6. dynamic system prompt
-7. `streamText` orchestration
+Then delete:
+
+```txt
+src/server/ai/groq.ts
+```
+
+Keep all provider and portfolio-chat configuration in `route.ts`. Do not create `src/server/ai/portfolio-chat.ts` or another AI/chat-specific server module.
+
+Organize the route from top to bottom in this order:
+
+1. imports, including `createGroq` directly from `@ai-sdk/groq`
+2. route-local Groq provider initialization
+3. request/context schemas and local types
+4. route-local context-resolution helper
+5. route-local position-aggregation helper
+6. route-local system-prompt builder
+7. `POST` handler
+8. two inline tool definitions inside or immediately beside the `streamText` configuration
+9. UI stream response
+
+Keep helper functions focused, but prefer one readable route file over abstractions used only once.
 
 ### 3. Rename and reshape the existing overview tool
 
@@ -880,17 +897,20 @@ Execution order:
 
 Do not call the market-data service in this tool.
 
-### 5. Rewrite `/api/chat` as the HTTP boundary
+### 5. Complete the context-aware stream flow in `/api/chat`
 
-Update:
+After both tools exist in the same route file:
 
-```txt
-src/app/api/chat/route.ts
-```
+1. authenticate the request
+2. parse and validate `messages` plus `context`
+3. resolve the optional current wallet against the authenticated user
+4. build the dynamic system prompt from the trusted context
+5. bind both tools to `session.user.id`
+6. convert validated UI messages to model messages
+7. call `streamText` with the route-local Groq provider and existing model options
+8. return the existing AI SDK UI message stream protocol
 
-Keep authentication behavior, add context parsing/resolution, and delegate the rest to the new server module.
-
-Ensure the response remains compatible with the existing AI SDK `useChat` stream protocol.
+Do not delegate any of these chat-specific responsibilities to a new server module.
 
 ### 6. Add the shared dashboard layout
 
