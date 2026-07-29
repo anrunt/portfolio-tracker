@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages, context }: { messages: UIMessage[], context: {currentWalletId: string}} = await req.json();
 
   const result = streamText({
     model: groq("openai/gpt-oss-20b"),
@@ -80,17 +80,20 @@ export async function POST(req: Request) {
       getWalletPositions: tool({
         description: `Pobiera listę pozycji z portfela użytkownika`,
         inputSchema: z.object({
-          walletId: z.string().describe("User walletId")
+          walletId: z.string().describe("User walletId"),
         }),
         execute: async ({ walletId }) => {
           const wallet = await QUERIES.getWalletById(walletId, session.user.id);
           if (!wallet) {
             return {
               status: "wallet-unavailable",
-            }
+            };
           }
 
-          const positions = await QUERIES.getWalletPositions(walletId, session.user.id);
+          const positions = await QUERIES.getWalletPositions(
+            walletId,
+            session.user.id,
+          );
 
           return {
             status: "success",
@@ -99,8 +102,8 @@ export async function POST(req: Request) {
               currency: wallet.currency,
             },
             positions: aggregateWalletPositions(positions),
-          }
-        }
+          };
+        },
       }),
     },
     onStepEnd: ({ toolResults }) => {
@@ -114,34 +117,39 @@ export async function POST(req: Request) {
   });
 }
 
-function aggregateWalletPositions(positions: Position[]): AggregatedWalletPosition[] {
-  const grouped = new Map<string, {
-    symbol: string;
-    companyName: string;
-    quantity: number;
-    purchaseCost: number;
-  }>();
+function aggregateWalletPositions(
+  positions: Position[],
+): AggregatedWalletPosition[] {
+  const grouped = new Map<
+    string,
+    {
+      symbol: string;
+      companyName: string;
+      quantity: number;
+      purchaseCost: number;
+    }
+  >();
 
   for (const position of positions) {
     const existing = grouped.get(position.companySymbol);
 
     if (existing) {
       existing.quantity += position.quantity;
-      existing.purchaseCost += position.quantity * position.pricePerShare
+      existing.purchaseCost += position.quantity * position.pricePerShare;
     } else {
       grouped.set(position.companySymbol, {
         symbol: position.companySymbol,
         companyName: position.companyName,
         quantity: position.quantity,
         purchaseCost: position.quantity * position.pricePerShare,
-      })
+      });
     }
   }
 
-  return Array.from(grouped.values()).map(group => ({
+  return Array.from(grouped.values()).map((group) => ({
     symbol: group.symbol,
     companyName: group.companyName,
     quantity: group.quantity,
     averagePurchasePrice: group.purchaseCost / group.quantity,
-  }))
+  }));
 }
