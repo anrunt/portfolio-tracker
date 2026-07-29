@@ -88,7 +88,7 @@ export async function POST(req: Request) {
       }),
 
       getWalletPositions: tool({
-        description: `Pobiera pozycje jednego portfela. Na dashboardzie przekaż walletId otrzymane z getWalletsOverview. Dla wszystkich portfeli wywołaj narzędzie osobno dla każdego walletId.`,
+        description: `Pobiera pozycje portfela. Na dashboardzie przekaż walletId otrzymane z getWalletsOverview. Dla wszystkich portfeli wywołaj narzędzie osobno dla każdego walletId.`,
         inputSchema: z.object({
           walletId: z.string().describe("User walletId").optional(),
         }),
@@ -220,19 +220,19 @@ function buildSystemPrompt(resolvedContext: ResolvedPortfolioChatContext) {
   const routeContext =
     resolvedContext.scope === "wallet"
       ? `
-           Bieżący kontekst:
-           - Użytkownik ma wybrany zweryfikowany portfel.
-           - Dla pytania o jeden portfel bez podania nazwy lub waluty wywołaj getWalletPositions({}) dokładnie raz.
-           - Nie wywołuj wtedy getWalletsOverview.
-           - Jeśli użytkownik jawnie wskaże inny portfel, jego wybór zastępuje bieżący portfel.
-         `
+        Bieżący kontekst:
+        - Użytkownik ma wybrany zweryfikowany portfel.
+        - Dla pytania o jeden portfel bez podania nazwy lub waluty wywołaj getWalletPositions({}) dokładnie raz.
+        - Nie wywołuj wtedy getWalletsOverview.
+        - Jeśli użytkownik jawnie wskaże inny portfel, jego wybór zastępuje bieżący portfel.
+        `
       : `
-           Bieżący kontekst:
-           - Użytkownik jest na ogólnym dashboardzie.
-           - Żaden portfel nie jest wybrany.
-           - Gdy pytanie wymaga wskazania portfela, użyj getWalletsOverview.
-           - Gdy użytkownik pyta o pozycje w portfelach w liczbie mnogiej, pobierz pozycje z każdego dostępnego portfela użytkownika; nie pytaj o wybór.
-         `;
+        Bieżący kontekst:
+        - Użytkownik jest na ogólnym dashboardzie.
+        - Żaden portfel nie jest wybrany.
+        - Gdy pytanie wymaga wskazania portfela, użyj getWalletsOverview.
+        - Przy każdym pytaniu, czy użytkownik posiada jedną lub więcej wskazanych pozycji, zawsze sprawdź wszystkie dostępne portfele. Najpierw pobierz listę portfeli, następnie pobierz pozycje osobno dla każdego zwróconego portfela. Nie odpowiadaj i nie przerywaj wyszukiwania, dopóki nie otrzymasz pozycji ze wszystkich portfeli — również wtedy, gdy znajdziesz szukaną pozycję wcześniej.
+        `;
 
   console.log(`${basePrompt}\n${routeContext}`);
 

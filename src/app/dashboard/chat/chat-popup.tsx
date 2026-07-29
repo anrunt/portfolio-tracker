@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import {
   AlertCircleIcon,
-  CheckCircle2Icon,
+  // CheckCircle2Icon, // TEMP DEBUG: used by the original compact tool status UI below.
   LoaderCircleIcon,
   MessageCircleIcon,
   SendIcon,
@@ -33,6 +33,7 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
 
+/* TEMP DEBUG: original compact tool status configuration.
 const TOOL_STATUS_COPY = {
   getWalletsOverview: {
     pending: "Checking your wallets…",
@@ -48,6 +49,7 @@ const TOOL_STATUS_COPY = {
 
 type ToolName = keyof typeof TOOL_STATUS_COPY;
 type ToolPhase = keyof (typeof TOOL_STATUS_COPY)[ToolName];
+*/
 
 export default function ChatPopup() {
   const params = useParams();
@@ -179,6 +181,16 @@ function ChatSession({
                                 );
                               }
 
+                              if (
+                                part.type.startsWith("tool-") ||
+                                part.type === "dynamic-tool"
+                              ) {
+                                return (
+                                  <ToolCallDebug key={partKey} part={part} />
+                                );
+                              }
+
+                              /* TEMP DEBUG: original compact tool status UI.
                               if (part.type === "tool-getWalletsOverview") {
                                 return (
                                   <ToolStatusRow
@@ -198,6 +210,7 @@ function ChatSession({
                                   />
                                 );
                               }
+                              */
 
                               return null;
                             })}
@@ -265,6 +278,56 @@ function ChatSession({
   );
 }
 
+function ToolCallDebug({ part }: { part: unknown }) {
+  const toolType = getDebugField(part, "type") ?? "tool";
+  const toolName =
+    toolType === "dynamic-tool"
+      ? (getDebugField(part, "toolName") ?? toolType)
+      : toolType.replace(/^tool-/, "");
+  const state = getDebugField(part, "state");
+
+  return (
+    <div className="w-full min-w-0 overflow-hidden rounded-lg border border-primary/45 bg-secondary/25 text-xs shadow-xs">
+      <div className="flex flex-wrap items-center gap-2 border-b border-primary/25 bg-primary/10 px-3 py-2">
+        <span className="font-semibold text-foreground">TEMP tool call</span>
+        <code className="rounded bg-background/70 px-1.5 py-0.5 text-secondary-foreground">
+          {toolName}
+        </code>
+        {state && (
+          <span className="ml-auto rounded-full border border-border bg-background/70 px-2 py-0.5 text-muted-foreground">
+            {state}
+          </span>
+        )}
+      </div>
+      <pre className="custom-scrollbar overflow-x-auto whitespace-pre-wrap p-3 font-mono leading-relaxed text-foreground [overflow-wrap:anywhere]">
+        {formatToolCall(part)}
+      </pre>
+    </div>
+  );
+}
+
+function getDebugField(value: unknown, field: string): string | undefined {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    field in value &&
+    typeof (value as Record<string, unknown>)[field] === "string"
+  ) {
+    return (value as Record<string, string>)[field];
+  }
+
+  return undefined;
+}
+
+function formatToolCall(part: unknown): string {
+  try {
+    return JSON.stringify(part, null, 2) ?? String(part);
+  } catch {
+    return String(part);
+  }
+}
+
+/* TEMP DEBUG: original compact tool status components.
 function ToolStatusRow({
   toolName,
   state,
@@ -317,3 +380,4 @@ function ToolStatusIcon({ phase }: { phase: ToolPhase }) {
 
   return <AlertCircleIcon className="size-3.5 text-destructive" />;
 }
+*/
