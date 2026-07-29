@@ -14,11 +14,26 @@ import { QUERIES } from "@/server/db/queries";
 import z from "zod";
 
 type Position = Awaited<ReturnType<typeof QUERIES.getWalletPositions>>[number];
+
 type AggregatedWalletPosition = {
   symbol: string;
   companyName: string;
   quantity: number;
   averagePurchasePrice: number;
+};
+
+type ResolvedPortfolioChatContext =
+  | {
+    scope: "dashboard";
+    walletId: null;
+  }
+  | {
+    scope: "wallet";
+    walletId: string;
+  };
+
+type ChatContextInput = {
+  currentWalletId?: string;
 };
 
 export async function POST(req: Request) {
@@ -27,26 +42,22 @@ export async function POST(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { messages, context }: { messages: UIMessage[], context: {currentWalletId: string}} = await req.json();
+  const {
+    messages,
+    context,
+  }: { messages: UIMessage[]; context: ChatContextInput } = await req.json();
+
+  const resolvedContext = await resolvePortfolioChatContext(
+    context,
+    session.user.id,
+  );
+  if (!resolvedContext) {
+    return new Response("Not found", { status: 404 });
+  }
 
   const result = streamText({
     model: groq("openai/gpt-oss-20b"),
-    system: `
-      - Jesteś asystentem analizującym portfel użytkownika.
-      - Używaj tylko narzędzi dostępnych w bieżącej rozmowie.
-      - Nie ujawniaj technicznych nazw ani implementacji narzędzi, ale jasno
-        komunikuj brak dostępu do danych.
-      - Nigdy nie próbuj wywoływać nieudostępnionego narzędzia,
-        jeżeli potrzebne dane nie są dostępne, nie zgaduj, poinformuj użytkownika, że aktualnie nie masz dostępu do danych portfela.
-      - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
-      - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
-      - Nie pokazuj id portfela.
-      - getWalletsOverview służy również do znalezenia id portfela po nazwie lub walucie
-      - jeśli pytanie dotyczy pozycji, ale nie ma ID, najpierw wywołaj getWalletsOverview,
-      - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getWalletPositions.
-      - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
-      - Gdy użytkownik pyta o pozycje w portfelach w liczbie mnogiej, pobierz pozycje każdego portfela; nie pytaj o wybór.
-    `,
+    system: buildSystemPrompt(resolvedContext),
     providerOptions: {
       groq: {
         reasoningFormat: "hidden",
@@ -56,8 +67,7 @@ export async function POST(req: Request) {
     stopWhen: isStepCount(10),
     tools: {
       getWalletsOverview: tool({
-        description: `Pobiera podsumowanie wartości portfeli użytkownika.
-          Użyj tego narzędzia, gdy użytkownik pyta o wartość swoich portfeli lub jakie ma portfele w swoim portfolio.
+        description: `Pobiera informacje portfeli użytkownika takie jak id, nazwa, waluta, całkowita wartość, zainwestowana wartość.
           Dane mogą być opóźnione o około 15 minut. 
           Narzędzie nie zwraca listy pozycji ani historii transakcji.`,
         inputSchema: z.object({}),
@@ -78,12 +88,27 @@ export async function POST(req: Request) {
       }),
 
       getWalletPositions: tool({
-        description: `Pobiera listę pozycji z portfela użytkownika`,
+        description: `Pobiera pozycje jednego portfela. Na dashboardzie przekaż walletId otrzymane z getWalletsOverview. Dla wszystkich portfeli wywołaj narzędzie osobno dla każdego walletId.`,
         inputSchema: z.object({
-          walletId: z.string().describe("User walletId"),
+          walletId: z.string().describe("User walletId").optional(),
         }),
         execute: async ({ walletId }) => {
-          const wallet = await QUERIES.getWalletById(walletId, session.user.id);
+          const requestedWalletId = walletId;
+
+          const targetWalletId = requestedWalletId
+            ? requestedWalletId
+            : context.currentWalletId;
+
+          if (!targetWalletId) {
+            return {
+              status: "wallet-selection-required",
+            };
+          }
+
+          const wallet = await QUERIES.getWalletById(
+            targetWalletId,
+            session.user.id,
+          );
           if (!wallet) {
             return {
               status: "wallet-unavailable",
@@ -91,7 +116,7 @@ export async function POST(req: Request) {
           }
 
           const positions = await QUERIES.getWalletPositions(
-            walletId,
+            wallet.id,
             session.user.id,
           );
 
@@ -152,4 +177,64 @@ function aggregateWalletPositions(
     quantity: group.quantity,
     averagePurchasePrice: group.purchaseCost / group.quantity,
   }));
+}
+
+async function resolvePortfolioChatContext(
+  input: ChatContextInput,
+  userId: string,
+): Promise<ResolvedPortfolioChatContext | null> {
+  if (!input.currentWalletId) {
+    return {
+      scope: "dashboard",
+      walletId: null,
+    };
+  }
+
+  const wallet = await QUERIES.getWalletById(input.currentWalletId, userId);
+
+  if (!wallet) {
+    return null;
+  }
+
+  return {
+    scope: "wallet",
+    walletId: wallet.id,
+  };
+}
+
+function buildSystemPrompt(resolvedContext: ResolvedPortfolioChatContext) {
+  const basePrompt = `
+  - Jesteś asystentem analizującym portfel użytkownika.
+  - Używaj tylko narzędzi dostępnych w bieżącej rozmowie.
+  - Nie ujawniaj technicznych nazw ani implementacji narzędzi, ale jasno
+    komunikuj brak dostępu do danych.
+  - Nigdy nie próbuj wywoływać nieudostępnionego narzędzia,
+    jeżeli potrzebne dane nie są dostępne, nie zgaduj, poinformuj użytkownika, że aktualnie nie masz dostępu do danych portfela.
+  - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
+  - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
+  - Nie pokazuj id portfela.
+  - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
+  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getWalletPositions.
+  `;
+
+  const routeContext =
+    resolvedContext.scope === "wallet"
+      ? `
+           Bieżący kontekst:
+           - Użytkownik ma wybrany zweryfikowany portfel.
+           - Dla pytania o jeden portfel bez podania nazwy lub waluty wywołaj getWalletPositions({}) dokładnie raz.
+           - Nie wywołuj wtedy getWalletsOverview.
+           - Jeśli użytkownik jawnie wskaże inny portfel, jego wybór zastępuje bieżący portfel.
+         `
+      : `
+           Bieżący kontekst:
+           - Użytkownik jest na ogólnym dashboardzie.
+           - Żaden portfel nie jest wybrany.
+           - Gdy pytanie wymaga wskazania portfela, użyj getWalletsOverview.
+           - Gdy użytkownik pyta o pozycje w portfelach w liczbie mnogiej, pobierz pozycje z każdego dostępnego portfela użytkownika; nie pytaj o wybór.
+         `;
+
+  console.log(`${basePrompt}\n${routeContext}`);
+
+  return `${basePrompt}\n${routeContext}`;
 }
