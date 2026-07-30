@@ -208,8 +208,7 @@ function buildSystemPrompt(resolvedContext: ResolvedPortfolioChatContext) {
   - Używaj tylko narzędzi dostępnych w bieżącej rozmowie.
   - Nie ujawniaj technicznych nazw ani implementacji narzędzi, ale jasno
     komunikuj brak dostępu do danych.
-  - Nigdy nie próbuj wywoływać nieudostępnionego narzędzia,
-    jeżeli potrzebne dane nie są dostępne, nie zgaduj, poinformuj użytkownika, że aktualnie nie masz dostępu do danych portfela.
+  - Nigdy nie próbuj wywoływać nieudostępnionego narzędzia, jeżeli potrzebne dane nie są dostępne, nie zgaduj, poinformuj użytkownika, że aktualnie nie masz dostępu do danych portfela.
   - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
   - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
   - Nie pokazuj id portfela.

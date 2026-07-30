@@ -299,7 +299,7 @@ function ToolCallDebug({ part }: { part: unknown }) {
           </span>
         )}
       </div>
-      <pre className="custom-scrollbar overflow-x-auto whitespace-pre-wrap p-3 font-mono leading-relaxed text-foreground [overflow-wrap:anywhere]">
+      <pre className="custom-scrollbar overflow-x-auto whitespace-pre-wrap p-3 font-mono leading-relaxed text-foreground wrap-anywhere">
         {formatToolCall(part)}
       </pre>
     </div>
