@@ -176,7 +176,7 @@ function normalizeMarketDataError(
       provider: context.provider,
       symbol: context.symbol,
       reason: "timeout",
-      message: `${context.provider} request timed out for ${context.symbol}`,
+      message: `${context.provider} request timed out for ${context.symbol} due to client-side AbortSignal timeout`,
     });
   }
 
