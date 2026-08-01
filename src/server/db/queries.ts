@@ -250,6 +250,42 @@ export const QUERIES = {
       .where(isNull(wallet.deletedAt))
   },
 
+  getUserWalletsWithPositions: function(userId: string) {
+    return db
+      .select({
+        wallet: {
+          id: wallet.id,
+          name: wallet.name,
+          currency: wallet.currency,
+          createdAt: wallet.createdAt,
+        },
+        position: {
+          id: position.id,
+          walletId: position.walletId,
+          companyName: position.companyName,
+          companySymbol: position.companySymbol,
+          pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+          quantity: sql<number>`(${position.quantity})::double precision`,
+          createdAt: position.createdAt,
+        },
+      })
+      .from(wallet)
+      .leftJoin(
+        position,
+        and(
+          eq(wallet.id, position.walletId),
+          gt(position.quantity, "0"),
+          isNull(position.closedAt)
+        )
+      )
+      .where(
+        and(
+          eq(wallet.userId, userId),
+          isNull(wallet.deletedAt)
+        )
+      );
+  },
+
   getDailyPortfolioData: function(walletId: string, startDate: string) {
     return db
       .select({

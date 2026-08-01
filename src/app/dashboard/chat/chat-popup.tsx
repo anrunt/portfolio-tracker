@@ -10,7 +10,6 @@ import {
   SendIcon,
   SparklesIcon,
 } from "lucide-react";
-import { useParams } from "next/navigation";
 import * as React from "react";
 
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
@@ -52,39 +51,12 @@ type ToolPhase = keyof (typeof TOOL_STATUS_COPY)[ToolName];
 */
 
 export default function ChatPopup() {
-  const params = useParams();
-  const routeWalletId = params.walletId;
-  const currentWalletId =
-    typeof routeWalletId === "string" ? routeWalletId : undefined;
-  const chatScope = currentWalletId
-    ? `wallet:${currentWalletId}`
-    : "dashboard";
-
-  return (
-    <ChatSession
-      key={chatScope}
-      currentWalletId={currentWalletId}
-      hasCurrentWallet={Boolean(currentWalletId)}
-    />
-  );
-}
-
-function ChatSession({
-  currentWalletId,
-  hasCurrentWallet,
-}: {
-  currentWalletId?: string;
-  hasCurrentWallet: boolean;
-}) {
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState("");
   const [transport] = React.useState(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: {
-          context: { currentWalletId },
-        },
       }),
   );
   const { messages, sendMessage, status, error } = useChat({ transport });
@@ -126,9 +98,7 @@ function ChatSession({
             </DialogTitle>
           </div>
           <DialogDescription className="pl-9 text-xs leading-relaxed">
-            {hasCurrentWallet
-              ? "The wallet on this page is used as the default context."
-              : "Ask about your wallets, values, and open positions."}
+            Ask about your wallets, values, and open positions.
           </DialogDescription>
         </DialogHeader>
 
