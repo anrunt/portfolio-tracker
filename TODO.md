@@ -29,4 +29,5 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] Refactor: Split dashboard-actions into smaller files so it will be easier to manage it
 -[x] Feature: Deploy on vercel and crons on cloudflare worker
 -[x] FIX: New api for polish stock prices
--[x] Feature: AI agent which can talk about your portfolio
+-[] Feature: AI agent which can talk about your portfolio
+-[] Feature: Portfolio transaction history

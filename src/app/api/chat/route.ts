@@ -83,6 +83,18 @@ export async function POST(req: Request) {
           };
         },
       }),
+
+      getTransactionHistory: tool({
+        description: "Pobiera historie transakcji kupna i sprzedaży wskazanej spółki z wybranego portfela użytkownika",
+        inputSchema: z.object({
+          companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
+          walletName: z.string().describe("Nazwa portfela").optional()
+        }),
+        execute: async ({companyNameOrSymbol, walletName}) => {
+
+
+        }
+      })
     },
     onStepEnd: ({ toolResults }) => {
       console.log(toolResults);

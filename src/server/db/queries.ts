@@ -1,4 +1,18 @@
-import { and, asc, desc, eq, gt, gte, isNull, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { db } from ".";
 import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
 
@@ -171,6 +185,48 @@ export const QUERIES = {
           isNull(wallet.deletedAt)
         )
       );
+  },
+
+  getUserTransactionHistory: function(
+    userId: string,
+    companyNameOrSymbol: string,
+    walletName?: string
+  ) {
+    return db
+      .select({
+        wallet: {
+          id: wallet.id,
+          name: wallet.name,
+          currency: wallet.currency,
+        },
+        transaction: {
+          type: portfolioTransaction.type,
+          companyName: portfolioTransaction.companyName,
+          companySymbol: portfolioTransaction.companySymbol,
+          quantity: sql<number>`(${portfolioTransaction.quantity})::double precision`,
+          pricePerShare: sql<number>`(${portfolioTransaction.pricePerShare})::double precision`,
+          transactionValue: sql<number>`(${portfolioTransaction.transactionValue})::double precision`,
+          realizedPl: sql<number>`(${portfolioTransaction.realizedPl})::double precision`,
+          createdAt: portfolioTransaction.createdAt,
+        },
+      })
+      .from(portfolioTransaction)
+      .innerJoin(wallet, eq(portfolioTransaction.walletId, wallet.id))
+      .where(
+        and(
+          eq(wallet.userId, userId),
+          isNull(wallet.deletedAt),
+          inArray(portfolioTransaction.type, ["BUY", "SELL"]),
+          isNotNull(portfolioTransaction.quantity), // Always not null but i need to make ts happy 
+          isNotNull(portfolioTransaction.pricePerShare), // Always not null but i need to make ts happy 
+          or(
+            ilike(portfolioTransaction.companySymbol, companyNameOrSymbol),
+            ilike(portfolioTransaction.companyName, `%${companyNameOrSymbol}%`)
+          ),
+          walletName ? ilike(wallet.name, walletName) : undefined // If wallet present, we filter by its name, if not we skip it and return all wallets
+        )
+      )
+      .orderBy(desc(portfolioTransaction.createdAt));
   },
 
   getActivePositionsBySymbol: function (walletId: string, userId: string, companySymbol: string) {
