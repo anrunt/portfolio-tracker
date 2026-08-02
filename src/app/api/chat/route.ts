@@ -91,8 +91,49 @@ export async function POST(req: Request) {
           walletName: z.string().describe("Nazwa portfela").optional()
         }),
         execute: async ({companyNameOrSymbol, walletName}) => {
+          if (walletName) {
+            const transactionHistory = await QUERIES.getUserTransactionHistory(
+              session.user.id,
+              companyNameOrSymbol,
+              walletName
+            );
+            const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
 
+            if (groupedTransactionHistory.length === 0) {
+              return {
+                status: "not-found"
+              };
+            }
 
+            return {
+              status: "success",
+              transactionHistory: groupedTransactionHistory
+            };
+          } else {
+            const transactionHistory = await QUERIES.getUserTransactionHistory(
+              session.user.id,
+              companyNameOrSymbol
+            );
+            const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
+
+            if (groupedTransactionHistory.length === 0) {
+              return {
+                status: "not-found"
+              };
+            }
+
+            if (groupedTransactionHistory.length === 1) {
+              return {
+                status: "success",
+                transactionHistory: groupedTransactionHistory
+              };
+            }
+
+            return {
+              status: "wallet-selection-required",
+              wallets: groupedTransactionHistory
+            };
+          }
         }
       })
     },
@@ -139,6 +180,39 @@ function groupWalletPositions(rows: UserWalletPositionRow[]) {
     currency: groupedWallet.currency,
     positions: aggregateWalletPositions(groupedWallet.positions),
   }));
+}
+
+function groupTransactionHistory(
+  transactionHistory: Awaited<
+    ReturnType<typeof QUERIES.getUserTransactionHistory>
+  >
+) {
+  const groupedWallets = new Map<
+    string,
+    {
+      name: string;
+      currency: (typeof transactionHistory)[number]["wallet"]["currency"];
+      transactions: (typeof transactionHistory)[number]["transaction"][];
+    }
+  >();
+
+  for (const row of transactionHistory) {
+    let groupedWallet = groupedWallets.get(row.wallet.id);
+
+    if (!groupedWallet) {
+      groupedWallet = {
+        name: row.wallet.name,
+        currency: row.wallet.currency,
+        transactions: [],
+      };
+
+      groupedWallets.set(row.wallet.id, groupedWallet);
+    }
+
+    groupedWallet.transactions.push(row.transaction);
+  }
+
+  return Array.from(groupedWallets.values());
 }
 
 function aggregateWalletPositions(

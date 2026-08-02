@@ -30,4 +30,5 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] Feature: Deploy on vercel and crons on cloudflare worker
 -[x] FIX: New api for polish stock prices
 -[] Feature: AI agent which can talk about your portfolio
+-[] Fix: User shouldnt be able to create wallet with same name and same currency. 
 -[] Feature: Portfolio transaction history
