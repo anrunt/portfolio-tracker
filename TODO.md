@@ -29,6 +29,6 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] Refactor: Split dashboard-actions into smaller files so it will be easier to manage it
 -[x] Feature: Deploy on vercel and crons on cloudflare worker
 -[x] FIX: New api for polish stock prices
+-[x] Fix: User shouldnt be able to create wallet with same name and same currency. 
 -[] Feature: AI agent which can talk about your portfolio
--[] Fix: User shouldnt be able to create wallet with same name and same currency. 
 -[] Feature: Portfolio transaction history

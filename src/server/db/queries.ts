@@ -105,6 +105,26 @@ export const QUERIES = {
       .then((result) => result[0]);
   },
 
+  getActiveWalletByNameAndCurrency: async function (
+    userId: string,
+    name: string,
+    currency: "USD" | "PLN"
+  ) {
+    return db
+      .select({ id: wallet.id })
+      .from(wallet)
+      .where(
+        and(
+          eq(wallet.userId, userId),
+          eq(wallet.name, name),
+          eq(wallet.currency, currency),
+          isNull(wallet.deletedAt)
+        )
+      )
+      .limit(1)
+      .then((result) => result[0]);
+  },
+
   getWalletPositions: function (walletId: string, userId: string) {
     return db
       .select({

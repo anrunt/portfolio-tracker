@@ -82,21 +82,29 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const wallet = pgTable("wallet", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  currency: currencyEnum("currency").notNull(),
-  cashBalance: numeric("cash_balance", { precision: 20, scale: 10 }).default("0").notNull(),
-  totalBuyCost: numeric("total_buy_cost", { precision: 20, scale: 10 }).default("0").notNull(),
-  totalContributed: numeric("total_contributed", { precision: 20, scale: 10 }).default("0").notNull(),
-  totalWithdrawn: numeric("total_withdrawn", { precision: 20, scale: 10 }).default("0").notNull(),
-  realizedPl: numeric("realized_pl", { precision: 20, scale: 10 }).default("0").notNull(),
-  deletedAt: timestamp("deleted_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const wallet = pgTable(
+  "wallet",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    currency: currencyEnum("currency").notNull(),
+    cashBalance: numeric("cash_balance", { precision: 20, scale: 10 }).default("0").notNull(),
+    totalBuyCost: numeric("total_buy_cost", { precision: 20, scale: 10 }).default("0").notNull(),
+    totalContributed: numeric("total_contributed", { precision: 20, scale: 10 }).default("0").notNull(),
+    totalWithdrawn: numeric("total_withdrawn", { precision: 20, scale: 10 }).default("0").notNull(),
+    realizedPl: numeric("realized_pl", { precision: 20, scale: 10 }).default("0").notNull(),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("wallet_user_name_currency_uq")
+      .on(table.userId, table.name, table.currency)
+      .where(sql`${table.deletedAt} is null`),
+  ],
+);
 
 export const position = pgTable("position", {
   id: text("id").primaryKey(),

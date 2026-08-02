@@ -70,6 +70,20 @@ async function addWalletResult(
       );
     }
 
+    const existingWallet = await QUERIES.getActiveWalletByNameAndCurrency(
+      user.session.userId,
+      parsed.data.name,
+      parsed.data.currency
+    );
+
+    if (existingWallet) {
+      return Result.err(
+        new ValidationError({
+          message: "A wallet with this name and currency already exists.",
+        })
+      );
+    }
+
     console.log("Adding wallet:", { name, currency });
 
     yield* Result.await(
@@ -150,6 +164,20 @@ async function renameWalletResult(formData: FormData, walletId: string): Promise
       );
     }
 
+    const existingWallet = await QUERIES.getActiveWalletByNameAndCurrency(
+      user.session.userId,
+      parsedName.data.name,
+      userWallet.currency
+    );
+
+    if (existingWallet && existingWallet.id !== walletId) {
+      return Result.err(
+        new ValidationError({
+          message: "A wallet with this name and currency already exists.",
+        })
+      );
+    }
+
     yield* Result.await(
       Result.tryPromise({
         try: async () => {
@@ -158,7 +186,7 @@ async function renameWalletResult(formData: FormData, walletId: string): Promise
             .set({name: parsedName.data.name})
             .where(and(eq(wallet.id, walletId), eq(wallet.userId, user.session.userId)))
         },
-        catch: (e) => new DatabaseError({ operation: "insert wallet", cause: e }),
+        catch: (e) => new DatabaseError({ operation: "rename wallet", cause: e }),
       })
     )
 
