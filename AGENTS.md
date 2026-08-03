@@ -2,6 +2,9 @@
 
 Instructions for AI coding agents working with this codebase.
 
+Pisz kod dopiero jak użytkownik o to poprosi.
+Przed napisaniem kodu wypisz co dokładnie zmienisz i dlaczego.
+
 ## When doing some ui work remember the color palletes for this project:
 ## Color Palette Reference
 | Hex Code | Name | OKLCH Value | Role |

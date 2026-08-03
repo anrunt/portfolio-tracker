@@ -241,6 +241,7 @@ export const QUERIES = {
           isNotNull(portfolioTransaction.pricePerShare), // Always not null but i need to make ts happy 
           or(
             ilike(portfolioTransaction.companySymbol, companyNameOrSymbol),
+            ilike(portfolioTransaction.companySymbol, `${companyNameOrSymbol}.%`),
             ilike(portfolioTransaction.companyName, `%${companyNameOrSymbol}%`)
           ),
           walletName ? ilike(wallet.name, walletName) : undefined // If wallet present, we filter by its name, if not we skip it and return all wallets

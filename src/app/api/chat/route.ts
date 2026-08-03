@@ -97,11 +97,14 @@ export async function POST(req: Request) {
               companyNameOrSymbol,
               walletName
             );
+
+            console.log("transactionHistory", transactionHistory);
+
             const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
 
             if (groupedTransactionHistory.length === 0) {
               return {
-                status: "not-found"
+                status: "transaction-not-found"
               };
             }
 
@@ -114,11 +117,14 @@ export async function POST(req: Request) {
               session.user.id,
               companyNameOrSymbol
             );
+
+            console.log("transactionHistory", transactionHistory);
+
             const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
 
             if (groupedTransactionHistory.length === 0) {
               return {
-                status: "not-found"
+                status: "transaction-not-found"
               };
             }
 
@@ -146,6 +152,30 @@ export async function POST(req: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({ stream: result.stream }),
   });
+}
+
+function buildSystemPrompt() {
+  const basePrompt = `
+  - Jesteś asystentem analizującym portfel użytkownika.
+  - Portfel - jeden portfel w którym użytkownik może trzymać akcje
+  - Portfolio - grupa składająca się z wielu portfeli w których użytkownik może trzymać akcje
+  - Używaj tylko narzędzi dostępnych w bieżącej rozmowie.
+  - Nie ujawniaj technicznych nazw ani implementacji narzędzi, ale jasno komunikuj brak dostępu do danych.
+  - Nigdy nie próbuj wywoływać nieudostępnionego narzędzia, jeżeli potrzebne dane nie są dostępne, nie zgaduj, poinformuj użytkownika, że aktualnie nie masz dostępu do danych portfela.
+  - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
+  - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
+  - Nie pokazuj id portfela.
+  - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
+  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getWalletPositions.
+  - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
+  - Przy każdym pytaniu o pozycje w portfelach, wywołaj getAllWalletsPositions
+  - Jeżeli użytkownik pyta o historię transakcji i nie wskazał portfela, wywołaj getTransactionHistory bez walletName
+  - Dla wallet-selection-required wypisz jakie portfele użytkownika zwróciło getTransactionHistory
+  - Nie pokazuj P/L jeżeli typ transakcji to BUY, jeżeli typ transakcji to SELL, pokaż P/L w walucie portfela w którym te akcje się znajdowały
+  - Wypisz z nazwe portfela z którego pochodzą dane w odpowiedzi
+  `;
+
+  return `${basePrompt}`;
 }
 
 function groupWalletPositions(rows: UserWalletPositionRow[]) {
@@ -192,7 +222,12 @@ function groupTransactionHistory(
     {
       name: string;
       currency: (typeof transactionHistory)[number]["wallet"]["currency"];
-      transactions: (typeof transactionHistory)[number]["transaction"][];
+      transactions: Array<
+        Omit<
+          (typeof transactionHistory)[number]["transaction"],
+          "createdAt"
+        > & { createdAt: string }
+      >;
     }
   >();
 
@@ -209,7 +244,10 @@ function groupTransactionHistory(
       groupedWallets.set(row.wallet.id, groupedWallet);
     }
 
-    groupedWallet.transactions.push(row.transaction);
+    groupedWallet.transactions.push({
+      ...row.transaction,
+      createdAt: row.transaction.createdAt.toISOString(),
+    });
   }
 
   return Array.from(groupedWallets.values());
@@ -250,25 +288,4 @@ function aggregateWalletPositions(
     quantity: group.quantity,
     averagePurchasePrice: group.purchaseCost / group.quantity,
   }));
-}
-
-function buildSystemPrompt() {
-  const basePrompt = `
-  - Jesteś asystentem analizującym portfel użytkownika.
-  - Portfel - jeden portfel w którym użytkownik może trzymać akcje
-  - Portfolio - grupa składająca się z wielu portfeli w których użytkownik może trzymać akcje
-  - Używaj tylko narzędzi dostępnych w bieżącej rozmowie.
-  - Nie ujawniaj technicznych nazw ani implementacji narzędzi, ale jasno
-    komunikuj brak dostępu do danych.
-  - Nigdy nie próbuj wywoływać nieudostępnionego narzędzia, jeżeli potrzebne dane nie są dostępne, nie zgaduj, poinformuj użytkownika, że aktualnie nie masz dostępu do danych portfela.
-  - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
-  - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
-  - Nie pokazuj id portfela.
-  - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
-  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getWalletPositions.
-  - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
-  - Przy każdym pytaniu o pozycje w portfelach, wywołaj getAllWalletsPositions
-  `;
-
-  return `${basePrompt}`;
 }
