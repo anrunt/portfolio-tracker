@@ -98,8 +98,6 @@ export async function POST(req: Request) {
               walletName
             );
 
-            console.log("transactionHistory", transactionHistory);
-
             const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
 
             if (groupedTransactionHistory.length === 0) {
@@ -117,8 +115,6 @@ export async function POST(req: Request) {
               session.user.id,
               companyNameOrSymbol
             );
-
-            console.log("transactionHistory", transactionHistory);
 
             const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
 
