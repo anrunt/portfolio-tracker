@@ -8,6 +8,7 @@ import {
   tool,
   toUIMessageStream,
   UIMessage,
+  validateUIMessages,
 } from "ai";
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
@@ -38,6 +39,9 @@ export async function POST(req: Request) {
   }
 
   const { messages }: { messages: UIMessage[] } = await req.json();
+  const validatedMessages = await validateUIMessages({
+    messages,
+  });
 
   const result = streamText({
     model: groq("openai/gpt-oss-20b"),
@@ -142,7 +146,7 @@ export async function POST(req: Request) {
     onStepEnd: ({ toolResults }) => {
       console.log(toolResults);
     },
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(validatedMessages),
   });
 
   return createUIMessageStreamResponse({
@@ -162,7 +166,7 @@ function buildSystemPrompt() {
   - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
   - Nie pokazuj id portfela.
   - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
-  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getWalletPositions.
+  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getAllWalletPositions.
   - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
   - Przy każdym pytaniu o pozycje w portfelach, wywołaj getAllWalletsPositions
   - Jeżeli użytkownik pyta o historię transakcji i nie wskazał portfela, wywołaj getTransactionHistory bez walletName
