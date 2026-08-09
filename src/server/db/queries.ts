@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm";
 import { db } from ".";
 import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
+import { MarketCurrency } from "../services/market-data/types";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
@@ -141,9 +142,9 @@ export const QUERIES = {
       .innerJoin(wallet, eq(position.walletId, wallet.id))
       .where(
         and(
-          eq(position.walletId, walletId), 
+          eq(position.walletId, walletId),
           eq(wallet.userId, userId),
-          gt(position.quantity, "0"), 
+          gt(position.quantity, "0"),
           isNull(position.closedAt),
           isNull(wallet.deletedAt)
         )
@@ -237,8 +238,8 @@ export const QUERIES = {
           eq(wallet.userId, userId),
           isNull(wallet.deletedAt),
           inArray(portfolioTransaction.type, ["BUY", "SELL"]),
-          isNotNull(portfolioTransaction.quantity), // Always not null but i need to make ts happy 
-          isNotNull(portfolioTransaction.pricePerShare), // Always not null but i need to make ts happy 
+          isNotNull(portfolioTransaction.quantity), // Always not null but i need to make ts happy
+          isNotNull(portfolioTransaction.pricePerShare), // Always not null but i need to make ts happy
           or(
             ilike(portfolioTransaction.companySymbol, companyNameOrSymbol),
             ilike(portfolioTransaction.companySymbol, `${companyNameOrSymbol}.%`),
@@ -318,7 +319,7 @@ export const QUERIES = {
         },
       })
       .from(wallet)
-      .leftJoin(position, 
+      .leftJoin(position,
         and(
           eq(wallet.id, position.walletId), // Left join to include wallets without positions but with cash balance
           gt(position.quantity, "0"),
@@ -327,7 +328,8 @@ export const QUERIES = {
       .where(isNull(wallet.deletedAt))
   },
 
-  getUserWalletsWithPositions: function(userId: string) {
+  // Remember to filter by walletCurrency only if walletName is present because if not then whats the point?
+  getUserWalletsWithPositions: function(userId: string, walletName?: string, walletCurrency?: MarketCurrency) {
     return db
       .select({
         wallet: {
@@ -358,6 +360,8 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
+          walletName && walletCurrency ? eq(wallet.currency, walletCurrency) : undefined,
+          walletName ? ilike(wallet.name, walletName) : undefined,
           isNull(wallet.deletedAt)
         )
       );
@@ -403,7 +407,7 @@ export const QUERIES = {
       .orderBy(asc(walletIntradaySnapshot.snapshotAt))
   },
 
-  
+
   getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date) {
     return db
       .select({
@@ -455,7 +459,7 @@ export const QUERIES = {
       .select({
         displayCurrency: user.displayCurrency
       })
-      .from(user)  
+      .from(user)
       .where(eq(user.id, userId))
   },
 

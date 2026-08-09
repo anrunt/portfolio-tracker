@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     tools: {
       getWalletsOverview: tool({
         description: `Pobiera informacje portfeli użytkownika takie jak id, nazwa, waluta, całkowita wartość, zainwestowana wartość.
-          Dane mogą być opóźnione o około 15 minut. 
+          Dane mogą być opóźnione o około 15 minut.
           Narzędzie nie zwraca listy pozycji ani historii transakcji.`,
         inputSchema: z.object({}),
         execute: async () => {
@@ -75,11 +75,13 @@ export async function POST(req: Request) {
         },
       }),
 
-      getAllWalletsPositions: tool({
-        description: `Pobiera pozycje ze wszystkich portfeli użytkownika.`,
-        inputSchema: z.object({}),
-        execute: async () => {
-          const positionsWithWallets = await QUERIES.getUserWalletsWithPositions(session.user.id);
+      getWalletPositions: tool({
+        description: `Pobiera pozycje z portfeli użytkownika.`,
+        inputSchema: z.object({
+          walletName: z.string().optional().describe("Nazwa portfela podana przez użytkownika"),
+        }),
+        execute: async ({walletName}) => {
+          const positionsWithWallets = await QUERIES.getUserWalletsWithPositions(session.user.id, walletName);
 
           return {
             status: "success",
@@ -165,10 +167,11 @@ function buildSystemPrompt() {
   - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
   - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
   - Nie pokazuj id portfela.
+  - Przy każdym pytaniu o pozycje w portfelach, wywołaj getWalletPositions
+  - Jeżeli użytkownik pyta o pozycję w portfelu podając jego nazwe wywołujesz getWalletPositions({walletName}), jeżeli użytkownik nie podał nazwy portfela to wywołujesz getWalletPositions({})
+  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getWalletPositions.
   - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
-  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getAllWalletPositions.
   - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
-  - Przy każdym pytaniu o pozycje w portfelach, wywołaj getAllWalletsPositions
   - Jeżeli użytkownik pyta o historię transakcji i nie wskazał portfela, wywołaj getTransactionHistory bez walletName
   - Dla wallet-selection-required wypisz jakie portfele użytkownika zwróciło getTransactionHistory
   - Nie pokazuj P/L jeżeli typ transakcji to BUY, jeżeli typ transakcji to SELL, pokaż P/L w walucie portfela w którym te akcje się znajdowały
