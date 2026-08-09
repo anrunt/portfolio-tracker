@@ -91,12 +91,19 @@ export async function POST(req: Request) {
       }),
 
       getTransactionHistory: tool({
-        description: "Pobiera historie transakcji kupna i sprzedaży wskazanej spółki z wybranego portfela użytkownika",
+        description: `
+          Pobiera historie transakcji kupna i sprzedaży wskazanej spółki z wybranego portfela użytkownika
+          - Jeżeli użytkownik wyraźnie prosi o wszystkie portfele, ustaw zakres all
+          - Jeżeli użytkownik prosi o konkretny portfel lub portfele ustaw zakres specified
+          - Jeżeli nie wiadomo czy prosi o wszystkie modele ustaw zakres unspecified
+          - Proś o wybór portfela wyłącznie po otrzymaniu wallet-selection-required
+        `,
         inputSchema: z.object({
           companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
+          walletScope: z.enum(["all", "specified", "unspecified"]).describe("Zakres portfela do przeszukania"),
           walletName: z.string().describe("Nazwa portfela").optional()
         }),
-        execute: async ({companyNameOrSymbol, walletName}) => {
+        execute: async ({companyNameOrSymbol, walletName, walletScope}) => {
           if (walletName) {
             const transactionHistory = await QUERIES.getUserTransactionHistory(
               session.user.id,
@@ -137,10 +144,17 @@ export async function POST(req: Request) {
               };
             }
 
-            return {
-              status: "wallet-selection-required",
-              wallets: groupedTransactionHistory
-            };
+            if (walletScope == "all") {
+              return {
+                status: "success",
+                wallets: groupedTransactionHistory
+              };
+            } else if (walletScope == "unspecified") {
+              return {
+                status: "wallet-selection-required",
+                wallets: groupedTransactionHistory
+              };
+            }
           }
         }
       })
