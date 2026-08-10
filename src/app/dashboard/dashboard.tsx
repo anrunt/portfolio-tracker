@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { JetBrains_Mono } from "next/font/google";
 import Wallet from "./wallet";
 import AddWallet from "./add-wallet";
@@ -56,12 +57,15 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
       <header className="relative border-b border-border/50 bg-card/60 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-5">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <Link
+              href="/"
+              className="flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+            >
+              <div className="w-2 h-2 rounded-full bg-primary" />
               <span className="font-(family-name:--font-jb-mono) text-[11px] font-bold tracking-[0.2em] uppercase text-primary">
                 Portfolio Tracker
               </span>
-            </div>
+            </Link>
             <div className="h-4 w-px bg-border/60" />
             <div className="flex gap-5">
               {Object.entries(totalsByCurrency).map(([currency, total]) => (
