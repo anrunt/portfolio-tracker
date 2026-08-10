@@ -98,64 +98,60 @@ export async function POST(req: Request) {
           - Jeżeli nie wiadomo czy prosi o wszystkie modele ustaw zakres unspecified
           - Proś o wybór portfela wyłącznie po otrzymaniu wallet-selection-required
         `,
-        inputSchema: z.object({
-          companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
-          walletScope: z.enum(["all", "specified", "unspecified"]).describe("Zakres portfela do przeszukania"),
-          walletName: z.string().describe("Nazwa portfela").optional()
-        }),
-        execute: async ({companyNameOrSymbol, walletName, walletScope}) => {
-          if (walletName) {
+        inputSchema: z.discriminatedUnion("walletScope", [
+          z.object({
+            companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
+            walletScope: z.literal("all"),
+            walletNames: z.array(z.string()).optional(),
+          }),
+          z.object({
+            companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
+            walletScope: z.literal("specified"),
+            walletNames: z.array(z.string()).min(1).describe("Nazwy portfeli podane przez użytkownika"),
+          }),
+          z.object({
+            companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
+            walletScope: z.literal("unspecified"),
+            walletNames: z.array(z.string()).optional(),
+          }),
+        ]),
+        execute: async ({ companyNameOrSymbol, walletScope, walletNames }) => {
+          if (walletScope === "specified") {
+            const lowerWalletNames = walletNames.map((name) => name.toLowerCase());
+
             const transactionHistory = await QUERIES.getUserTransactionHistory(
               session.user.id,
               companyNameOrSymbol,
-              walletName
+              lowerWalletNames,
             );
 
             const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
 
             if (groupedTransactionHistory.length === 0) {
-              return {
-                status: "transaction-not-found"
-              };
+              return { status: "transaction-not-found" };
             }
-
-            return {
-              status: "success",
-              transactionHistory: groupedTransactionHistory
-            };
-          } else {
-            const transactionHistory = await QUERIES.getUserTransactionHistory(
-              session.user.id,
-              companyNameOrSymbol
-            );
-
-            const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
-
-            if (groupedTransactionHistory.length === 0) {
-              return {
-                status: "transaction-not-found"
-              };
-            }
-
-            if (groupedTransactionHistory.length === 1) {
-              return {
-                status: "success",
-                transactionHistory: groupedTransactionHistory
-              };
-            }
-
-            if (walletScope == "all") {
-              return {
-                status: "success",
-                wallets: groupedTransactionHistory
-              };
-            } else if (walletScope == "unspecified") {
-              return {
-                status: "wallet-selection-required",
-                wallets: groupedTransactionHistory
-              };
-            }
+            return { status: "success", transactionHistory: groupedTransactionHistory };
           }
+
+          const transactionHistory = await QUERIES.getUserTransactionHistory(
+            session.user.id,
+            companyNameOrSymbol,
+          );
+
+          const groupedTransactionHistory = groupTransactionHistory(transactionHistory);
+
+          if (groupedTransactionHistory.length === 0) {
+            return { status: "transaction-not-found" };
+          }
+
+          if (walletScope === "all" || groupedTransactionHistory.length === 1) {
+            return { status: "success", transactionHistory: groupedTransactionHistory };
+          }
+
+          return {
+            status: "wallet-selection-required",
+            wallets: groupedTransactionHistory,
+          };
         }
       })
     },

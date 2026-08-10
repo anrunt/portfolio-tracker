@@ -15,7 +15,6 @@ import {
 } from "drizzle-orm";
 import { db } from ".";
 import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
-import { MarketCurrency } from "../services/market-data/types";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
@@ -211,7 +210,7 @@ export const QUERIES = {
   getUserTransactionHistory: function(
     userId: string,
     companyNameOrSymbol: string,
-    walletName?: string
+    walletNames?: string[]
   ) {
     return db
       .select({
@@ -245,7 +244,7 @@ export const QUERIES = {
             ilike(portfolioTransaction.companySymbol, `${companyNameOrSymbol}.%`),
             ilike(portfolioTransaction.companyName, `%${companyNameOrSymbol}%`)
           ),
-          walletName ? ilike(wallet.name, walletName) : undefined // If wallet present, we filter by its name, if not we skip it and return all wallets
+          walletNames ? inArray(sql<string>`lower(${wallet.name})`, walletNames) : undefined
         )
       )
       .orderBy(desc(portfolioTransaction.createdAt));
@@ -360,7 +359,6 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
-          walletName && walletCurrency ? eq(wallet.currency, walletCurrency) : undefined,
           walletName ? ilike(wallet.name, walletName) : undefined,
           isNull(wallet.deletedAt)
         )
