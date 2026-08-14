@@ -30,7 +30,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   }));
 
 
-  const [displayCurrencyRaw] = await QUERIES.getUserDisplayCurrency(session.session.userId);
+  const displayCurrencyRaw = await QUERIES.getUserDisplayCurrency(session.session.userId);
 
   if (!displayCurrencyRaw) {
     throw new Error("Display currency is not configured for this account.");

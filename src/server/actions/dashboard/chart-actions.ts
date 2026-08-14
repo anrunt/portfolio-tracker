@@ -197,7 +197,7 @@ async function getAllWalletsPortfolioDataResult(range: TimeRange, displayCurrenc
         return Result.err(new NotFoundError({resource: "User displayCurrency"}));
       }
 
-      const displayCurrency = displayCurrencyRaw[0].displayCurrency;
+      const displayCurrency = displayCurrencyRaw.displayCurrency;
 
       const needsFxRates = dailyPortfolioDataRaw.some(
         (data) => data.walletCurrency !== displayCurrency

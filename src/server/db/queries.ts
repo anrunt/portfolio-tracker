@@ -41,17 +41,30 @@ export const QUERIES = {
   },
 
   getWalletsWithLatestSnapshot: function (userId: string) {
-    const latestSnapshot = db
+    const latestIntraday = db
       .select({
-        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value"),
-        netInvested: sql<number>`(${walletIntradaySnapshot.netInvested})::double precision`.as("net_invested"),
+        totalValueIntraday: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value_intraday"),
+        netInvestedIntraday: sql<number>`(${walletIntradaySnapshot.netInvested})::double precision`.as("net_invested_intraday"),
         snapshotAt: walletIntradaySnapshot.snapshotAt,
       })
       .from(walletIntradaySnapshot)
       .where(eq(walletIntradaySnapshot.walletId, wallet.id))
       .orderBy(desc(walletIntradaySnapshot.snapshotAt))
       .limit(1)
-      .as("latest_snapshot");
+      .as("latest_intraday_snapshot");
+
+    const latestDaily = db
+      .select({
+        totalValueDaily: sql<number>`(${walletDailySnapshot.totalValue})::double precision`.as("total_value_daily"),
+        netInvestedDaily: sql<number>`(${walletDailySnapshot.netInvested})::double precision`.as("net_invested_daily"),
+        snapshotDate: walletDailySnapshot.snapshotDate,
+        createdAt: walletDailySnapshot.createdAt,
+      })
+      .from(walletDailySnapshot)
+      .where(eq(walletDailySnapshot.walletId, wallet.id))
+      .orderBy(desc(walletDailySnapshot.snapshotDate))
+      .limit(1)
+      .as("latest_daily_snapshot");
 
     const walletFallback = db
       .select({
@@ -74,12 +87,29 @@ export const QUERIES = {
         userId: wallet.userId,
         currency: wallet.currency,
         createdAt: wallet.createdAt,
-        totalValue: sql<number>`coalesce(${latestSnapshot.totalValue}, ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision)`.as("total_value"),
-        netInvested: sql<number>`coalesce(${latestSnapshot.netInvested}, (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision)`.as("net_invested"),
-        snapshotAt: latestSnapshot.snapshotAt,
+        totalValue: sql<number>`coalesce(
+          ${latestIntraday.totalValueIntraday},
+          ${latestDaily.totalValueDaily},
+          ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision
+        )`.as("total_value"),
+        netInvested: sql<number>`coalesce(
+          ${latestIntraday.netInvestedIntraday},
+          ${latestDaily.netInvestedDaily},
+          (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision
+        )`.as("net_invested"),
+        snapshotAt: sql<Date | null>`coalesce(
+          ${latestIntraday.snapshotAt},
+          ${latestDaily.createdAt}
+        )`.mapWith(walletIntradaySnapshot.snapshotAt).as("snapshot_at"),
+        valueSource: sql<"intraday" | "daily" | "cost-basis">`case
+          when ${latestIntraday.snapshotAt} is not null then 'intraday'
+          when ${latestDaily.createdAt} is not null then 'daily'
+          else 'cost-basis'
+        end`.as("value_source"),
       })
       .from(wallet)
-      .leftJoinLateral(latestSnapshot, sql`true`)
+      .leftJoinLateral(latestIntraday, sql`true`)
+      .leftJoinLateral(latestDaily, sql`true`)
       .leftJoinLateral(walletFallback, sql`true`)
       .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)));
   },
@@ -452,13 +482,14 @@ export const QUERIES = {
       )
   },
 
-  getUserDisplayCurrency: function (userId: string) {
+  getUserDisplayCurrency: async function (userId: string) {
     return db
       .select({
         displayCurrency: user.displayCurrency
       })
       .from(user)
       .where(eq(user.id, userId))
+      .then((r) => r[0] ?? null)
   },
 
   getFxRateBefore: async function (startDate: Date) {
