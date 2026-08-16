@@ -357,7 +357,6 @@ export const QUERIES = {
       .where(isNull(wallet.deletedAt))
   },
 
-  // Remember to filter by walletCurrency only if walletName is present because if not then whats the point?
   getUserWalletsWithPositions: function(userId: string, walletName?: string) {
     return db
       .select({

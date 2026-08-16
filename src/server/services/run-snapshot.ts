@@ -217,6 +217,6 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
   return summary;
 }
 
-function toErrorMessage(error: unknown): string {
+export function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }

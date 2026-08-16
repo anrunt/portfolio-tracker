@@ -13,6 +13,8 @@ import {
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import z from "zod";
+import { getPrices } from "@/server/services/market-data/get-prices";
+import { toErrorMessage } from "@/server/services/run-snapshot";
 
 type UserWalletPositionRow = Awaited<
   ReturnType<typeof QUERIES.getUserWalletsWithPositions>
@@ -31,6 +33,8 @@ type AggregatedWalletPosition = {
   quantity: number;
   averagePurchasePrice: number;
 };
+
+type PriceCoverage = "complete" | "partial" | "unavailable";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -99,12 +103,71 @@ export async function POST(req: Request) {
           walletName: z.string().optional().describe("Nazwa portfela podana przez użytkownika"),
         }),
         execute: async ({walletName}) => {
+          const operationId = crypto.randomUUID();
+          let priceCoverage: PriceCoverage = "complete";
+
           const positionsWithWallets = await QUERIES.getUserWalletsWithPositions(session.user.id, walletName);
 
-          return {
-            status: "success",
-            wallets: groupWalletPositions(positionsWithWallets),
-          };
+          const wallets = groupWalletPositions(positionsWithWallets);
+
+          const US_Symbols = new Set<string>();
+          const WA_Symbols = new Set<string>();
+
+          for (const wallet of wallets) {
+            const symbols = wallet.currency === "USD" ? US_Symbols : WA_Symbols;
+
+            for (const position of wallet.positions) {
+              symbols.add(position.symbol);
+            }
+          }
+
+          const [usResult, waResult] = await Promise.all([
+            getPrices({ symbols: [...US_Symbols], exchange: "US", mode: "user-refresh", operationId }),
+            getPrices({ symbols: [...WA_Symbols], exchange: "WA", mode: "user-refresh", operationId }),
+          ]);
+
+          // Change to partial or unavailable
+          if (usResult.isErr() && waResult.isErr()) {
+            priceCoverage = "unavailable";
+            console.error("[cron/snapshot] Finnhub fetch failed", usResult.error.message);
+            console.error("[cron/snapshot] Yahoo fetch failed", waResult.error.message);
+            throw new Error("[cron/snapshot] Price fetch failed for Finnhub and Yahoo");
+          }
+
+          if (usResult.isErr()) {
+            priceCoverage = "partial";
+            console.error("[cron/snapshot] Finnhub fetch failed", usResult.error.message);
+            throw new Error(`[cron/snapshot] Finnhub price fetch failed: ${toErrorMessage(usResult.error.message)}`);
+          }
+
+          if (waResult.isErr()) {
+            priceCoverage = "partial"
+            console.error("[cron/snapshot] Yahoo fetch failed", waResult.error.message);
+            throw new Error(`[cron/snapshot] Yahoo price fetch failed: ${toErrorMessage(waResult.error.message)}`);
+          }
+
+          const usPriceData = usResult.value;
+          const waPriceData = waResult.value;
+
+          const allPrices = new Map([...usPriceData.prices, ...waPriceData.prices].map(p => [p.symbol, p.price]));
+          const requestedSymbols = new Set([...US_Symbols, ...WA_Symbols]);
+          const missingPrices = [...requestedSymbols].filter((symbol) => !allPrices.has(symbol));
+
+          const newWallets = wallets.map((wallet) => {
+            const positions = wallet.positions.map((position) => {
+              if (allPrices.has(position.symbol)) {
+                const price = allPrices.get(position.symbol);
+
+
+              }
+            })
+          })
+
+
+//          return {
+//            status: "success",
+//            wallets: groupWalletPositions(positionsWithWallets),
+//          };
         },
       }),
 
