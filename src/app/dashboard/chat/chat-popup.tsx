@@ -39,7 +39,7 @@ const TOOL_STATUS_COPY = {
     success: "Wallets checked",
     error: "Could not check wallets",
   },
-  getWalletPositions: {
+  getHoldingsAnalysis: {
     pending: "Loading positions…",
     success: "Positions loaded",
     error: "Could not load positions",
@@ -171,11 +171,11 @@ export default function ChatPopup() {
                                 );
                               }
 
-                              if (part.type === "tool-getWalletPositions") {
+                              if (part.type === "tool-getHoldingsAnalysis") {
                                 return (
                                   <ToolStatusRow
                                     key={partKey}
-                                    toolName="getWalletPositions"
+                                    toolName="getHoldingsAnalysis"
                                     state={part.state}
                                   />
                                 );

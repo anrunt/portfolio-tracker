@@ -144,7 +144,7 @@ export async function POST(req: Request) {
         },
       }),
 
-      getWalletPositions: tool({
+      getHoldingsAnalysis: tool({
         description: `Pobiera pozycje z portfeli użytkownika.`,
         inputSchema: z.object({
           walletName: z.string().optional().describe("Nazwa portfela podana przez użytkownika"),
@@ -445,9 +445,9 @@ function buildSystemPrompt() {
   - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
   - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
   - Nie pokazuj id portfela.
-  - Przy każdym pytaniu o pozycje w portfelach, wywołaj getWalletPositions
-  - Jeżeli użytkownik pyta o pozycję w portfelu podając jego nazwe wywołujesz getWalletPositions({walletName}), jeżeli użytkownik nie podał nazwy portfela to wywołujesz getWalletPositions({})
-  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getWalletPositions.
+  - Przy każdym pytaniu o pozycje w portfelach, wywołaj getHoldingsAnalysis
+  - Jeżeli użytkownik pyta o pozycję w portfelu podając jego nazwe wywołujesz getHoldingsAnalysis({walletName}), jeżeli użytkownik nie podał nazwy portfela to wywołujesz getHoldingsAnalysis({})
+  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getHoldingsAnalysis.
   - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
   - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
   - Jeżeli użytkownik pyta o historię transakcji i nie wskazał portfela, wywołaj getTransactionHistory bez walletName
