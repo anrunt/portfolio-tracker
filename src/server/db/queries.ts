@@ -357,7 +357,7 @@ export const QUERIES = {
       .where(isNull(wallet.deletedAt))
   },
 
-  getUserWalletsWithPositions: function(userId: string, walletName?: string) {
+  getUserWalletsWithPositions: function(userId: string) {
     return db
       .select({
         wallet: {
@@ -388,7 +388,6 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
-          walletName ? ilike(wallet.name, walletName) : undefined,
           isNull(wallet.deletedAt)
         )
       );

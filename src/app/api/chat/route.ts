@@ -145,16 +145,14 @@ export async function POST(req: Request) {
       }),
 
       getHoldingsAnalysis: tool({
-        description: `Pobiera pozycje z portfeli użytkownika.`,
-        inputSchema: z.object({
-          walletName: z.string().optional().describe("Nazwa portfela podana przez użytkownika"),
-        }),
-        execute: async ({walletName}) => {
+        description: `Pobiera pozycje ze wszystkich portfeli użytkownika oraz oblicza ich wagi w całym Portfolio.`,
+        inputSchema: z.object({}),
+        execute: async () => {
           const operationId = crypto.randomUUID();
           let priceCoverage: PriceCoverage = "complete";
 
           const [positionsWithWallets, userPreferences] = await Promise.all([
-            QUERIES.getUserWalletsWithPositions(session.user.id, walletName),
+            QUERIES.getUserWalletsWithPositions(session.user.id),
             QUERIES.getUserDisplayCurrency(session.user.id),
           ]);
 
@@ -243,7 +241,7 @@ export async function POST(req: Request) {
               .map((wallet) => wallet.currency),
           );
 
-          const shouldCalculatePortfolioWeights = !walletName && priceCoverage === "complete";
+          const shouldCalculatePortfolioWeights = priceCoverage === "complete";
 
           const needsFxRate = shouldCalculatePortfolioWeights && holdingCurrencies.size > 1;
 
@@ -363,7 +361,7 @@ export async function POST(req: Request) {
           Pobiera historie transakcji kupna i sprzedaży wskazanej spółki z wybranego portfela użytkownika
           - Jeżeli użytkownik wyraźnie prosi o wszystkie portfele, ustaw zakres all
           - Jeżeli użytkownik prosi o konkretny portfel lub portfele ustaw zakres specified
-          - Jeżeli nie wiadomo czy prosi o wszystkie modele ustaw zakres unspecified
+          - Jeżeli nie wiadomo czy prosi o wszystkie portfele ustaw zakres unspecified
           - Proś o wybór portfela wyłącznie po otrzymaniu wallet-selection-required
         `,
         inputSchema: z.discriminatedUnion("walletScope", [
@@ -445,10 +443,11 @@ function buildSystemPrompt() {
   - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
   - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
   - Nie pokazuj id portfela.
-  - Przy każdym pytaniu o pozycje w portfelach, wywołaj getHoldingsAnalysis
-  - Jeżeli użytkownik pyta o pozycję w portfelu podając jego nazwe wywołujesz getHoldingsAnalysis({walletName}), jeżeli użytkownik nie podał nazwy portfela to wywołujesz getHoldingsAnalysis({})
-  - jeśli kilka portfeli jest w tej samej walucie, to tylko wtedy poproś o doprecyzowanie, następnie wywołaj getHoldingsAnalysis.
+  - Przy każdym pytaniu o pozycje w portfelach wywołaj getHoldingsAnalysis({}). Narzędzie zawsze zwraca pozycje ze wszystkich portfeli i wagi względem całego Portfolio.
+  - Jeżeli użytkownik poda nazwę portfela użyj jej wyłącznie do wybrania właściwego portfela z wyniku i ograniczenia odpowiedzi.
+  - Jeśli kilka portfeli jest w tej samej walucie i nie można ustalić, o który chodzi, poproś o doprecyzowanie na podstawie nazw zwróconych przez getHoldingsAnalysis.
   - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
+  - jeśli użytkownik poda nazwę portfela, która nie pasuje do żadnej nazwy portfeli użytkownika powiadom go że taki portfel nie istnieje i wypisz mu nazwy dostępnych portfeli
   - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
   - Jeżeli użytkownik pyta o historię transakcji i nie wskazał portfela, wywołaj getTransactionHistory bez walletName
   - Dla wallet-selection-required wypisz jakie portfele użytkownika zwróciło getTransactionHistory
