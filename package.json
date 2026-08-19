@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "cron:intraday": "node --import tsx src/cron/snapshot-runner.ts intraday",
-    "cron:daily": "node --import tsx src/cron/snapshot-runner.ts daily"
+    "cron:daily": "node --import tsx src/cron/snapshot-runner.ts daily",
+    "eval:routing": "node --env-file=.env --import tsx evals/routing.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.13",

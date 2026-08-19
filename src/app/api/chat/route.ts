@@ -1,4 +1,5 @@
 import { groq } from "@/server/ai/groq";
+import { CHAT_TOOL_CONTRACTS } from "@/server/ai/chat/tool-contracts";
 import { GroqLanguageModelChatOptions } from "@ai-sdk/groq";
 import {
   convertToModelMessages,
@@ -12,12 +13,12 @@ import {
 } from "ai";
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
-import z from "zod";
 import { getPrices } from "@/server/services/market-data/get-prices";
 import type {
   MarketCurrency,
   MarketPrice,
 } from "@/server/services/market-data/types";
+import { buildSystemPrompt } from "@/server/ai/chat/system-prompt";
 
 type UserWalletPositionRow = Awaited<
   ReturnType<typeof QUERIES.getUserWalletsWithPositions>
@@ -106,10 +107,7 @@ export async function POST(req: Request) {
     stopWhen: isStepCount(10),
     tools: {
       getWalletsOverview: tool({
-        description: `Pobiera informacje portfeli użytkownika takie jak nazwa, waluta, całkowita wartość, zainwestowana wartość, Profil/Loss oraz informacje o całym portfolio użytkownika.
-          Dane mogą być opóźnione o około 15 minut.
-          Narzędzie nie zwraca listy pozycji ani historii transakcji.`,
-        inputSchema: z.object({}),
+        ...CHAT_TOOL_CONTRACTS.getWalletsOverview,
         execute: async () => {
           const [wallets, userPreferences] = await Promise.all([
             QUERIES.getWalletsWithLatestSnapshot(session.user.id),
@@ -145,8 +143,7 @@ export async function POST(req: Request) {
       }),
 
       getHoldingsAnalysis: tool({
-        description: `Pobiera pozycje ze wszystkich portfeli użytkownika oraz oblicza ich wagi w całym Portfolio.`,
-        inputSchema: z.object({}),
+        ...CHAT_TOOL_CONTRACTS.getHoldingsAnalysis,
         execute: async () => {
           const operationId = crypto.randomUUID();
           let priceCoverage: PriceCoverage = "complete";
@@ -357,30 +354,7 @@ export async function POST(req: Request) {
       }),
 
       getTransactionHistory: tool({
-        description: `
-          Pobiera historie transakcji kupna i sprzedaży wskazanej spółki z wybranego portfela użytkownika
-          - Jeżeli użytkownik wyraźnie prosi o wszystkie portfele, ustaw zakres all
-          - Jeżeli użytkownik prosi o konkretny portfel lub portfele ustaw zakres specified
-          - Jeżeli nie wiadomo czy prosi o wszystkie portfele ustaw zakres unspecified
-          - Proś o wybór portfela wyłącznie po otrzymaniu wallet-selection-required
-        `,
-        inputSchema: z.discriminatedUnion("walletScope", [
-          z.object({
-            companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
-            walletScope: z.literal("all"),
-            walletNames: z.array(z.string()).optional(),
-          }),
-          z.object({
-            companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
-            walletScope: z.literal("specified"),
-            walletNames: z.array(z.string()).min(1).describe("Nazwy portfeli podane przez użytkownika"),
-          }),
-          z.object({
-            companyNameOrSymbol: z.string().describe("Symbol albo nazwa spółki"),
-            walletScope: z.literal("unspecified"),
-            walletNames: z.array(z.string()).optional(),
-          }),
-        ]),
+        ...CHAT_TOOL_CONTRACTS.getTransactionHistory,
         execute: async ({ companyNameOrSymbol, walletScope, walletNames }) => {
           if (walletScope === "specified") {
             const lowerWalletNames = walletNames.map((name) => name.toLowerCase());
@@ -430,32 +404,6 @@ export async function POST(req: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({ stream: result.stream }),
   });
-}
-
-function buildSystemPrompt() {
-  const basePrompt = `
-  - Jesteś asystentem analizującym portfel użytkownika.
-  - Portfel - jeden portfel w którym użytkownik może trzymać akcje
-  - Portfolio - grupa składająca się z wielu portfeli w których użytkownik może trzymać akcje
-  - Używaj tylko narzędzi dostępnych w bieżącej rozmowie.
-  - Nie ujawniaj technicznych nazw ani implementacji narzędzi, ale jasno komunikuj brak dostępu do danych.
-  - Nigdy nie próbuj wywoływać nieudostępnionego narzędzia, jeżeli potrzebne dane nie są dostępne, nie zgaduj, poinformuj użytkownika, że aktualnie nie masz dostępu do danych portfela.
-  - Nie sugeruj użytkownikowi co ma zrobić jeżeli ty nie masz dostępu do jakiś danych.
-  - Kiedy mówisz z jakiego czasu pochodzą dane, używaj sformułowań typu "Dane pochodzą z dnia {data}". Nie pisz nic wiecej.
-  - Nie pokazuj id portfela.
-  - Przy każdym pytaniu o pozycje w portfelach wywołaj getHoldingsAnalysis({}). Narzędzie zawsze zwraca pozycje ze wszystkich portfeli i wagi względem całego Portfolio.
-  - Jeżeli użytkownik poda nazwę portfela użyj jej wyłącznie do wybrania właściwego portfela z wyniku i ograniczenia odpowiedzi.
-  - Jeśli kilka portfeli jest w tej samej walucie i nie można ustalić, o który chodzi, poproś o doprecyzowanie na podstawie nazw zwróconych przez getHoldingsAnalysis.
-  - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
-  - jeśli użytkownik poda nazwę portfela, która nie pasuje do żadnej nazwy portfeli użytkownika powiadom go że taki portfel nie istnieje i wypisz mu nazwy dostępnych portfeli
-  - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
-  - Jeżeli użytkownik pyta o historię transakcji i nie wskazał portfela, wywołaj getTransactionHistory bez walletName
-  - Dla wallet-selection-required wypisz jakie portfele użytkownika zwróciło getTransactionHistory
-  - Nie pokazuj P/L jeżeli typ transakcji to BUY, jeżeli typ transakcji to SELL, pokaż P/L w walucie portfela w którym te akcje się znajdowały
-  - Wypisz z nazwe portfela z którego pochodzą dane w odpowiedzi
-  `;
-
-  return `${basePrompt}`;
 }
 
 function groupWalletPositions(rows: UserWalletPositionRow[]) {
