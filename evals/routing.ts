@@ -3,13 +3,13 @@ import { buildSystemPrompt } from "@/server/ai/chat/system-prompt";
 import { generateText } from "ai";
 import { groq } from "@/server/ai/groq";
 import { GroqLanguageModelChatOptions } from "@ai-sdk/groq";
-import { CHAT_TOOL_CONTRACTS } from "@/server/ai/chat/tool-contracts";
+import { CHAT_TOOL_DEFINITIONS } from "@/server/ai/chat/tools/definitions";
 import { z } from "zod";
 
-type ToolName = keyof typeof CHAT_TOOL_CONTRACTS;
+type ToolName = keyof typeof CHAT_TOOL_DEFINITIONS;
 
 type ToolInput<Name extends ToolName> = z.infer<
-  (typeof CHAT_TOOL_CONTRACTS)[Name]["inputSchema"]
+  (typeof CHAT_TOOL_DEFINITIONS)[Name]["inputSchema"]
 >;
 
 type EvalCase = {
@@ -143,14 +143,14 @@ async function main() {
 }
 
 function isToolName(toolName: string): toolName is ToolName {
-  return toolName in CHAT_TOOL_CONTRACTS;
+  return toolName in CHAT_TOOL_DEFINITIONS;
 }
 
 function inputsMatch(evalCase: EvalCase, givenInput: unknown) {
   switch (evalCase.expectedTool) {
     case "getWalletsOverview": {
       const parsedInput =
-        CHAT_TOOL_CONTRACTS.getWalletsOverview.inputSchema.safeParse(givenInput);
+        CHAT_TOOL_DEFINITIONS.getWalletsOverview.inputSchema.safeParse(givenInput);
 
       return (
         parsedInput.success &&
@@ -161,7 +161,7 @@ function inputsMatch(evalCase: EvalCase, givenInput: unknown) {
     }
     case "getHoldingsAnalysis": {
       const parsedInput =
-        CHAT_TOOL_CONTRACTS.getHoldingsAnalysis.inputSchema.safeParse(
+        CHAT_TOOL_DEFINITIONS.getHoldingsAnalysis.inputSchema.safeParse(
           givenInput,
         );
 
@@ -174,7 +174,7 @@ function inputsMatch(evalCase: EvalCase, givenInput: unknown) {
     }
     case "getTransactionHistory": {
       const parsedInput =
-        CHAT_TOOL_CONTRACTS.getTransactionHistory.inputSchema.safeParse(
+        CHAT_TOOL_DEFINITIONS.getTransactionHistory.inputSchema.safeParse(
           givenInput,
         );
 
@@ -224,9 +224,7 @@ async function getModelResult(prompt: string) {
         reasoningEffort: "low",
       } satisfies GroqLanguageModelChatOptions,
     },
-    tools: {
-      ...CHAT_TOOL_CONTRACTS,
-    },
+    tools: CHAT_TOOL_DEFINITIONS,
     prompt,
   });
 }
