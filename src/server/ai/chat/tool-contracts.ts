@@ -1,4 +1,3 @@
-import { generateText } from "ai";
 import { z } from "zod";
 
 export const CHAT_TOOL_CONTRACTS = {
