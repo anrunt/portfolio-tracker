@@ -20,6 +20,13 @@ export function createGetWalletsOverviewTool({ userId }: ChatToolContext) {
         QUERIES.getUserDisplayCurrency(userId),
       ]);
 
+      if (wallets.length === 0) {
+        return {
+          status: "no-wallets",
+          message: "Użytkownik nie posiada żadnych Walletów.",
+        };
+      }
+
       if (!userPreferences) {
         return {
           status: "display-currency-unavailable",

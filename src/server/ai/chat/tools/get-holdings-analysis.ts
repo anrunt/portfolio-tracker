@@ -31,6 +31,10 @@ type PriceCoverage = "complete" | "partial" | "unavailable";
 
 type GetHoldingsAnalysisOutput =
   | {
+      status: "no-wallets";
+      message: string;
+    }
+  | {
       status: "success";
       priceCoverage: PriceCoverage;
       unavailableSymbols: string[];
@@ -90,6 +94,13 @@ export function createGetHoldingsAnalysisTool({ userId }: ChatToolContext) {
         QUERIES.getUserWalletsWithPositions(userId),
         QUERIES.getUserDisplayCurrency(userId),
       ]);
+
+      if (positionsWithWallets.length === 0) {
+        return {
+          status: "no-wallets",
+          message: "Użytkownik nie posiada żadnych Walletów.",
+        } satisfies GetHoldingsAnalysisOutput;
+      }
 
       if (!userPreferences) {
         return {

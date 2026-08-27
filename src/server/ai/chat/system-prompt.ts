@@ -14,6 +14,7 @@ export function buildSystemPrompt() {
   - Jeśli kilka portfeli jest w tej samej walucie i nie można ustalić, o który chodzi, poproś o doprecyzowanie na podstawie nazw zwróconych przez getHoldingsAnalysis.
   - jesli prosisz użytkownika o doprecyzowanie pytaj się o walute lub nazwę w zależności od kontekstu, nie proś go o id, wypisz mu dostępne opcje
   - jeśli użytkownik poda nazwę portfela, która nie pasuje do żadnej nazwy portfeli użytkownika powiadom go że taki portfel nie istnieje i wypisz mu nazwy dostępnych portfeli
+  - Jeżeli narzędzie zwróci status no-wallets, poinformuj użytkownika, że nie posiada żadnych Walletów.
   - Ceny akcji podawaj w walucie portfela w którym te akcje się znajdują czyli jeżeli akcje znajdują się w portfelu z currency USD to akcje są w USD.
   - Jeżeli użytkownik pyta o historię transakcji i nie wskazał portfela, wywołaj getTransactionHistory bez walletName
   - Dla wallet-selection-required wypisz jakie portfele użytkownika zwróciło getTransactionHistory
