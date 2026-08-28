@@ -31,4 +31,5 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] FIX: New api for polish stock prices
 -[x] Fix: User shouldnt be able to create wallet with same name and same currency. 
 -[] Feature: AI agent which can talk about your portfolio
+-[] Update: Add transfering internal-cash between wallets
 -[] Feature: Portfolio transaction history
