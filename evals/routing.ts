@@ -27,6 +27,7 @@ type EvalResult = EvalCase & {
 };
 
 type TransactionHistoryInput = ToolInput<"getTransactionHistory">;
+type PerformanceHistoryInput = ToolInput<"getPerformanceHistory">;
 
 const EVALS: EvalCase[] = [
   {
@@ -95,6 +96,77 @@ const EVALS: EvalCase[] = [
       {
         companyNameOrSymbol: "NVDA",
         walletScope: "all",
+      },
+    ],
+  },
+  {
+    prompt: "Jak zmieniło się moje Portfolio w ostatnim miesiącu?",
+    expectedTool: "getPerformanceHistory",
+    expectedInputs: [
+      {
+        walletScope: "portfolio",
+        period: "month",
+      },
+    ],
+  },
+  {
+    prompt: "Ile zarobiłem w tym tygodniu?",
+    expectedTool: "getPerformanceHistory",
+    expectedInputs: [
+      {
+        walletScope: "portfolio",
+        period: "week",
+      },
+    ],
+  },
+  {
+    prompt: "Jak zmieniała się wartość mojego Portfolio dzisiaj?",
+    expectedTool: "getPerformanceHistory",
+    expectedInputs: [
+      {
+        walletScope: "portfolio",
+        period: "today",
+      },
+    ],
+  },
+  {
+    prompt: "Porównaj ostatnie trzy miesiące.",
+    expectedTool: "getPerformanceHistory",
+    expectedInputs: [
+      {
+        walletScope: "portfolio",
+        period: "three_months",
+      },
+    ],
+  },
+  {
+    prompt: "Jak zmieniło się moje Portfolio w ostatnich sześciu miesiącach?",
+    expectedTool: "getPerformanceHistory",
+    expectedInputs: [
+      {
+        walletScope: "portfolio",
+        period: "six_months",
+      },
+    ],
+  },
+  {
+    prompt: "Kiedy Portfolio miało najwyższą wartość w tym roku?",
+    expectedTool: "getPerformanceHistory",
+    expectedInputs: [
+      {
+        walletScope: "portfolio",
+        period: "year",
+      },
+    ],
+  },
+  {
+    prompt: "Jak zmieniał się Wallet USA w tym roku?",
+    expectedTool: "getPerformanceHistory",
+    expectedInputs: [
+      {
+        walletScope: "wallet",
+        walletName: "USA",
+        period: "year",
       },
     ],
   },
@@ -185,7 +257,44 @@ function inputsMatch(evalCase: EvalCase, givenInput: unknown) {
         )
       );
     }
+    case "getPerformanceHistory": {
+      const parsedInput =
+        CHAT_TOOL_DEFINITIONS.getPerformanceHistory.inputSchema.safeParse(
+          givenInput,
+        );
+
+      return (
+        parsedInput.success &&
+        evalCase.expectedInputs.some((expectedInput) =>
+          performanceHistoryInputsMatch(expectedInput, parsedInput.data),
+        )
+      );
+    }
   }
+}
+
+function performanceHistoryInputsMatch(
+  expectedInput: PerformanceHistoryInput,
+  givenInput: PerformanceHistoryInput,
+) {
+  if (
+    expectedInput.walletScope !== givenInput.walletScope ||
+    expectedInput.period !== givenInput.period
+  ) {
+    return false;
+  }
+
+  if (
+    expectedInput.walletScope === "wallet" &&
+    givenInput.walletScope === "wallet"
+  ) {
+    return (
+      expectedInput.walletName.toLowerCase() ===
+      givenInput.walletName.toLowerCase()
+    );
+  }
+
+  return true;
 }
 
 function transactionHistoryInputsMatch(
