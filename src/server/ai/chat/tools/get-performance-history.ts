@@ -101,7 +101,7 @@ export function createGetPerformanceHistoryTool({ userId }: ChatToolContext) {
   return tool({
     description: getPerformanceHistoryDefinition.description,
     inputSchema: getPerformanceHistoryDefinition.inputSchema,
-    execute: async (input): Promise<PerformanceHistoryToolOutput> => {
+    execute: async (input) => {
       const now = new Date();
 
       if (input.walletScope === "portfolio") {
