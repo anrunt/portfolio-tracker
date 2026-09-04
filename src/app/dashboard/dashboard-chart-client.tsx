@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { CartesianGrid, Line, LineChart } from "recharts";
+import type { SupportedCurrency } from "@/domain/currency";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
 import {
   ChartContainer,
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import DisplayCurrencyToggle from "./display-currency-toggle";
-import type { DisplayCurrency } from "@/server/actions/types";
 
 const TIME_RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "6M", "1YR"];
 
@@ -37,7 +37,7 @@ function formatTimestamp(value: number) {
 interface Props {
   range: TimeRange;
   data: ChartDataPoint[];
-  displayCurrency: DisplayCurrency;
+  displayCurrency: SupportedCurrency;
 }
 
 export default function DashboardChartClient({ range, data, displayCurrency }: Props) {

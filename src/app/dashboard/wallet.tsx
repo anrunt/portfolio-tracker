@@ -1,3 +1,4 @@
+import type { SupportedCurrency } from "@/domain/currency";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ interface WalletProps {
   wallet: {
     id: string;
     name: string;
-    currency: string;
+    currency: SupportedCurrency;
     totalValue: number;
     netInvested: number;
     snapshotAt: Date | null;

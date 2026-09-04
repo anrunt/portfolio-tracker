@@ -1,5 +1,6 @@
 "use client";
 
+import type { SupportedCurrency } from "@/domain/currency";
 import type { PortfolioStats } from "@/hooks/use-portfolio-stats";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +10,7 @@ interface WalletHeaderProps {
   wallet: {
     id: string;
     name: string;
-    currency: string;
+    currency: SupportedCurrency;
   };
   stats: PortfolioStats;
 }

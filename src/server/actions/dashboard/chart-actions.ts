@@ -2,6 +2,7 @@
 
 import { Result, type SerializedResult } from "better-result";
 
+import type { SupportedCurrency } from "@/domain/currency";
 import { getSession } from "../../better-auth/session";
 import { QUERIES } from "../../db/queries";
 import {
@@ -11,7 +12,6 @@ import {
   ValidationError,
   type WalletChartError,
 } from "../../errors";
-import type { MarketCurrency } from "../../services/market-data/types";
 import {
   getPortfolioPerformanceHistory,
   getWalletPerformanceHistory,
@@ -73,7 +73,7 @@ async function getWalletChartDataResult(
 
 export async function getAllWalletsPortfolioData(
   range: TimeRange,
-  displayCurrency: MarketCurrency,
+  displayCurrency: SupportedCurrency,
 ): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
   void displayCurrency;
   const result = await getAllWalletsPortfolioDataResult(range);

@@ -1,5 +1,5 @@
+import type { SupportedCurrency } from "@/domain/currency";
 import { QUERIES } from "@/server/db/queries";
-import type { MarketCurrency } from "@/server/services/market-data/types";
 import {
   getPortfolioPerformanceHistory,
   getWalletPerformanceHistory,
@@ -47,12 +47,12 @@ export const getPerformanceHistoryDefinition = {
 type PerformanceHistoryScope =
   | {
       type: "portfolio";
-      currency: MarketCurrency;
+      currency: SupportedCurrency;
     }
   | {
       type: "wallet";
       name: string;
-      currency: MarketCurrency;
+      currency: SupportedCurrency;
     };
 
 type ModelPerformanceHistory =
@@ -79,14 +79,14 @@ type PerformanceHistoryToolOutput =
       status: "wallet-not-found";
       wallets: Array<{
         name: string;
-        currency: MarketCurrency;
+        currency: SupportedCurrency;
       }>;
     }
   | {
       status: "wallet-selection-required";
       wallets: Array<{
         name: string;
-        currency: MarketCurrency;
+        currency: SupportedCurrency;
         history: ModelPerformanceHistory;
       }>;
     }

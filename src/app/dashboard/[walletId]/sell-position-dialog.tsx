@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useState } from "react";
+import type { SupportedCurrency } from "@/domain/currency";
 import {
   Dialog,
   DialogClose,
@@ -19,7 +20,7 @@ interface SellPositionDialogProps {
   companyName: string;
   quantity: number;
   pricePerShare: number;
-  currency: string;
+  currency: SupportedCurrency;
   currentPrice?: number;
 }
 

@@ -2,6 +2,11 @@
 
 import { useTransition } from "react";
 import {
+  SUPPORTED_CURRENCIES,
+  supportedCurrencySchema,
+  type SupportedCurrency,
+} from "@/domain/currency";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -9,22 +14,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { setDisplayCurrency } from "@/server/actions/dashboard/preference-actions";
-import type { DisplayCurrency } from "@/server/actions/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  displayCurrency: DisplayCurrency;
+  displayCurrency: SupportedCurrency;
 }
-
-const CURRENCIES: DisplayCurrency[] = ["USD", "PLN"];
 
 export default function DisplayCurrencyToggle({ displayCurrency }: Props) {
   const [isPending, startTransition] = useTransition();
 
   function handleChange(next: string) {
-    if (next === displayCurrency) return;
+    const result = supportedCurrencySchema.safeParse(next);
+    if (!result.success || result.data === displayCurrency) return;
     startTransition(async () => {
-      await setDisplayCurrency(next as DisplayCurrency);
+      await setDisplayCurrency(result.data);
     });
   }
 
@@ -63,7 +66,7 @@ export default function DisplayCurrencyToggle({ displayCurrency }: Props) {
           "font-(family-name:--font-jb-mono)"
         )}
       >
-        {CURRENCIES.map((c) => (
+        {SUPPORTED_CURRENCIES.map((c) => (
           <SelectItem
             key={c}
             value={c}

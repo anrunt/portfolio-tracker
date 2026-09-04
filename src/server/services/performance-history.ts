@@ -1,5 +1,5 @@
+import type { SupportedCurrency } from "@/domain/currency";
 import { QUERIES } from "@/server/db/queries";
-import type { MarketCurrency } from "@/server/services/market-data/types";
 
 export type PerformanceHistoryPeriod =
   | "today"
@@ -54,7 +54,7 @@ export type PerformanceHistoryResult =
 export type PortfolioPerformanceHistoryResult =
   | {
       status: "ready";
-      currency: MarketCurrency;
+      currency: SupportedCurrency;
       history: PerformanceHistoryResult;
     }
   | {
@@ -138,7 +138,7 @@ export async function getPortfolioPerformanceHistory({
 async function getIntradayPortfolioHistory(
   userId: string,
   startOfToday: Date,
-  displayCurrency: MarketCurrency,
+  displayCurrency: SupportedCurrency,
 ): Promise<PerformanceHistoryPoint[] | null> {
   const rows = await QUERIES.getAllWalletsIntradayPortfolioData(
     userId,
@@ -181,7 +181,7 @@ async function getDailyPortfolioHistory(
   userId: string,
   start: Date,
   now: Date,
-  displayCurrency: MarketCurrency,
+  displayCurrency: SupportedCurrency,
 ): Promise<PerformanceHistoryPoint[] | null> {
   const startDate = toDateKey(start);
   const rows = await QUERIES.getAllWalletsDailyPortfolioData(userId, startDate);
@@ -247,8 +247,8 @@ async function getHistoricalFxRates(start: Date, now: Date) {
 function convertSnapshotValues(
   totalValue: number,
   netInvested: number,
-  sourceCurrency: MarketCurrency,
-  targetCurrency: MarketCurrency,
+  sourceCurrency: SupportedCurrency,
+  targetCurrency: SupportedCurrency,
   fxRate: Awaited<ReturnType<typeof QUERIES.getFxRateBefore>> | null,
 ) {
   if (sourceCurrency === targetCurrency) {

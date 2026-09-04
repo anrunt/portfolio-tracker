@@ -145,6 +145,7 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
       dailyRows.push({
         id: crypto.randomUUID(),
         walletId,
+        currency: data.currency,
         totalValue: numToNumericString(totalValue),
         netInvested: numToNumericString(netInvested),
         snapshotDate: snapshotDate,
@@ -153,6 +154,7 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
       intradayRows.push({
         id: crypto.randomUUID(),
         walletId,
+        currency: data.currency,
         totalValue: numToNumericString(totalValue),
         netInvested: numToNumericString(netInvested),
         snapshotAt: snapshotAt,
@@ -166,7 +168,11 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
         .insert(walletDailySnapshot)
         .values(dailyRows)
         .onConflictDoUpdate({
-          target: [walletDailySnapshot.walletId, walletDailySnapshot.snapshotDate],
+          target: [
+            walletDailySnapshot.walletId,
+            walletDailySnapshot.snapshotDate,
+            walletDailySnapshot.currency,
+          ],
           set: {
             totalValue: sql`excluded.total_value`,
             netInvested: sql`excluded.net_invested`,

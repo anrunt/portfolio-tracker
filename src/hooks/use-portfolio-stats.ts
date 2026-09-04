@@ -1,3 +1,4 @@
+import type { SupportedCurrency } from "@/domain/currency";
 import { usePrices } from "@/hooks/use-prices";
 import type { PositionData, PriceResultData, WalletMetrics } from "@/server/actions/types";
 
@@ -7,7 +8,7 @@ interface UsePortfolioStatsParams {
   groupedPositions: Record<string, PositionData[]>;
   symbols: string[];
   exchange: string;
-  currency: string;
+  currency: SupportedCurrency;
   initialPriceData: PriceResultData;
 }
 

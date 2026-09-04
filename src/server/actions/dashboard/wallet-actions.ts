@@ -6,11 +6,15 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { Result } from "better-result";
 import { z } from "zod";
 
+import {
+  SUPPORTED_CURRENCIES,
+  supportedCurrencySchema,
+} from "@/domain/currency";
 import { getSession } from "../../better-auth/session";
 import { db } from "../../db";
 import { numToNumericString } from "../../db/numeric";
 import { QUERIES } from "../../db/queries";
-import { portfolioTransaction, wallet } from "../../db/schema";
+import { portfolioTransaction, wallet, walletNetInvestedBalance } from "../../db/schema";
 import {
   DatabaseError,
   NotFoundError,
@@ -25,9 +29,7 @@ const walletSchema = z.object({
     .trim()
     .min(2, { error: "Wallet name must be at least 2 characters" })
     .max(50, { error: "Wallet name can't be longer than 50 characters!" }),
-  currency: z.enum(["USD", "PLN"], {
-    error: "Please select a valid currency (USD or PLN)",
-  }),
+  currency: supportedCurrencySchema,
 });
 
 export async function addWallet(
@@ -89,14 +91,23 @@ async function addWalletResult(
     yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          await db.insert(wallet).values({
-            id: randomUUID(),
-            name: parsed.data.name,
-            userId: user.session.userId,
-            currency: parsed.data.currency,
-          });
+          await db.transaction(async (tx) => {
+            const walletId = randomUUID();
+
+            await tx.insert(wallet).values({
+              id: walletId,
+              name: parsed.data.name,
+              userId: user.session.userId,
+              currency: parsed.data.currency,
+            })
+
+            await tx.insert(walletNetInvestedBalance).values(
+              SUPPORTED_CURRENCIES.map((currency) => ({ walletId, currency })),
+            )
+
+          })
         },
-        catch: (e) => new DatabaseError({ operation: "insert wallet", cause: e }),
+        catch: (e) => new DatabaseError({ operation: "insert wallet with balances", cause: e }),
       })
     );
 

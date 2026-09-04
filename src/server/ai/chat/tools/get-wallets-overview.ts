@@ -1,3 +1,4 @@
+import type { SupportedCurrency } from "@/domain/currency";
 import { QUERIES } from "@/server/db/queries";
 import { tool } from "ai";
 import { z } from "zod";
@@ -57,7 +58,7 @@ export function createGetWalletsOverviewTool({ userId }: ChatToolContext) {
 
 function buildWalletsOverview(
   wallets: Awaited<ReturnType<typeof QUERIES.getWalletsWithLatestSnapshot>>,
-  displayCurrency: "USD" | "PLN",
+  displayCurrency: SupportedCurrency,
   fxRate: Awaited<ReturnType<typeof QUERIES.getFxRateBefore>> | null,
 ) {
   const walletsOverview = wallets.map((wallet) => {

@@ -1,9 +1,7 @@
+import type { SupportedCurrency } from "@/domain/currency";
 import { QUERIES } from "@/server/db/queries";
 import { getPrices } from "@/server/services/market-data/get-prices";
-import type {
-  MarketCurrency,
-  MarketPrice,
-} from "@/server/services/market-data/types";
+import type { MarketPrice } from "@/server/services/market-data/types";
 import { tool } from "ai";
 import { z } from "zod";
 import type { ChatToolContext } from "./types";
@@ -51,7 +49,7 @@ type GetHoldingsAnalysisOutput =
 
 type AnalyzedWallet = {
   name: string;
-  currency: MarketCurrency;
+  currency: SupportedCurrency;
   positions: AnalyzedHolding[];
 };
 
@@ -391,8 +389,8 @@ function aggregateWalletPositions(
 
 function convertCurrency(
   value: number,
-  sourceCurrency: MarketCurrency,
-  targetCurrency: MarketCurrency,
+  sourceCurrency: SupportedCurrency,
+  targetCurrency: SupportedCurrency,
   fxRate: Awaited<ReturnType<typeof QUERIES.getFxRateBefore>> | null,
 ) {
   if (sourceCurrency === targetCurrency || !fxRate) {

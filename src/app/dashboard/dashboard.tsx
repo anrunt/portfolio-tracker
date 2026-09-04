@@ -5,8 +5,11 @@ import { JetBrains_Mono } from "next/font/google";
 import Wallet from "./wallet";
 import AddWallet from "./add-wallet";
 import { ModeToggle } from "@/components/mode-toggle";
+import {
+  SUPPORTED_CURRENCIES,
+  type SupportedCurrency,
+} from "@/domain/currency";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
-import type { DisplayCurrency } from "@/server/actions/types";
 import DashboardChartClient from "./dashboard-chart-client";
 import DisplayCurrencyToggle from "./display-currency-toggle";
 
@@ -19,25 +22,25 @@ interface Props {
   wallets: Array<{
     id: string;
     name: string;
-    currency: string;
+    currency: SupportedCurrency;
     totalValue: number;
     netInvested: number;
     snapshotAt: Date | null;
   }>;
   range: TimeRange;
-  displayCurrency: DisplayCurrency;
+  displayCurrency: SupportedCurrency;
   chartData?: ChartDataPoint[];
   chartError?: string;
 }
 
 export default function Dashboard({ wallets, range, displayCurrency, chartData, chartError }: Props) {
-  const totalsByCurrency: Record<string, number> = {};
+  const totalsByCurrency: Partial<Record<SupportedCurrency, number>> = {};
   for (const w of wallets) {
     totalsByCurrency[w.currency] =
       (totalsByCurrency[w.currency] || 0) + w.totalValue;
   }
 
-  const fmt = (val: number, currency: string) =>
+  const fmt = (val: number, currency: SupportedCurrency) =>
     val.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -68,16 +71,21 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
             </Link>
             <div className="h-4 w-px bg-border/60" />
             <div className="flex gap-5">
-              {Object.entries(totalsByCurrency).map(([currency, total]) => (
-                <div key={currency} className="flex items-baseline gap-1.5">
-                  <span className="font-(family-name:--font-jb-mono) text-lg font-bold tabular-nums text-foreground tracking-tight">
-                    {fmt(total, currency)}
-                  </span>
-                  <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground font-semibold">
-                    {currency}
-                  </span>
-                </div>
-              ))}
+              {SUPPORTED_CURRENCIES.map((currency) => {
+                const total = totalsByCurrency[currency];
+                if (total === undefined) return null;
+
+                return (
+                  <div key={currency} className="flex items-baseline gap-1.5">
+                    <span className="font-(family-name:--font-jb-mono) text-lg font-bold tabular-nums text-foreground tracking-tight">
+                      {fmt(total, currency)}
+                    </span>
+                    <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground font-semibold">
+                      {currency}
+                    </span>
+                  </div>
+                );
+              })}
               {wallets.length === 0 && (
                 <span className="font-(family-name:--font-jb-mono) text-xs text-muted-foreground">
                   --

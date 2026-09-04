@@ -2,6 +2,11 @@
 
 import { startTransition, useActionState, useEffect, useState } from "react";
 import {
+  SUPPORTED_CURRENCIES,
+  supportedCurrencySchema,
+  type SupportedCurrency,
+} from "@/domain/currency";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -27,7 +32,7 @@ const initialState = {
 export default function AddWallet() {
   const [state, formAction, pending] = useActionState(addWallet, initialState);
   const [open, setOpen] = useState(false);
-  const [currency, setCurrency] = useState<string>("");
+  const [currency, setCurrency] = useState<SupportedCurrency | "">("");
   const [clientError, setClientError] = useState<string>("");
 
   useEffect(() => {
@@ -105,7 +110,9 @@ export default function AddWallet() {
             <Select
               value={currency}
               onValueChange={(value) => {
-                setCurrency(value);
+                const result = supportedCurrencySchema.safeParse(value);
+                if (!result.success) return;
+                setCurrency(result.data);
                 setClientError("");
               }}
             >
@@ -113,18 +120,15 @@ export default function AddWallet() {
                 <SelectValue placeholder="select_currency" />
               </SelectTrigger>
               <SelectContent className="bg-card border border-border">
-                <SelectItem
-                  value="USD"
-                  className="font-(family-name:--font-jb-mono) text-[12px] text-foreground focus:bg-primary/10 focus:text-foreground"
-                >
-                  USD
-                </SelectItem>
-                <SelectItem
-                  value="PLN"
-                  className="font-(family-name:--font-jb-mono) text-[12px] text-foreground focus:bg-primary/10 focus:text-foreground"
-                >
-                  PLN
-                </SelectItem>
+                {SUPPORTED_CURRENCIES.map((supportedCurrency) => (
+                  <SelectItem
+                    key={supportedCurrency}
+                    value={supportedCurrency}
+                    className="font-(family-name:--font-jb-mono) text-[12px] text-foreground focus:bg-primary/10 focus:text-foreground"
+                  >
+                    {supportedCurrency}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

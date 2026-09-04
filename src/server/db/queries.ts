@@ -1,3 +1,4 @@
+import type { SupportedCurrency } from "@/domain/currency";
 import {
   and,
   asc,
@@ -138,7 +139,7 @@ export const QUERIES = {
   getActiveWalletByNameAndCurrency: async function (
     userId: string,
     name: string,
-    currency: "USD" | "PLN"
+    currency: SupportedCurrency
   ) {
     return db
       .select({ id: wallet.id })
