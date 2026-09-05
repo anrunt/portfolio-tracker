@@ -10,7 +10,7 @@ import {
   type SupportedCurrency,
 } from "@/domain/currency";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
-import DashboardChartClient from "./dashboard-chart-client";
+import PerformanceChart from "./performance-chart";
 import DisplayCurrencyToggle from "./display-currency-toggle";
 
 const mono = JetBrains_Mono({
@@ -122,10 +122,11 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
               </div>
             </>
           ) : chartData ? (
-            <DashboardChartClient
+            <PerformanceChart
               range={range}
               data={chartData}
-              displayCurrency={displayCurrency}
+              basePath="/dashboard"
+              controls={<DisplayCurrencyToggle displayCurrency={displayCurrency} />}
             />
           ) : (
             <>

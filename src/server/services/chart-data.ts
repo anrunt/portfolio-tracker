@@ -1,36 +1,25 @@
-"use server";
+import "server-only";
 
-import { Result, type SerializedResult } from "better-result";
+import { Result } from "better-result";
 
-import type { SupportedCurrency } from "@/domain/currency";
-import { getSession } from "../../better-auth/session";
-import { QUERIES } from "../../db/queries";
+import { getSession } from "@/server/better-auth/session";
+import { QUERIES } from "@/server/db/queries";
 import {
   NotFoundError,
   UnauthenticatedError,
   UnauthorizedError,
   ValidationError,
   type WalletChartError,
-} from "../../errors";
+} from "@/server/errors";
 import {
   getPortfolioPerformanceHistory,
   getWalletPerformanceHistory,
   type PerformanceHistoryPeriod,
   type PerformanceHistoryPoint,
-} from "../../services/performance-history";
-import type { ChartDataPoint, SerializedError, TimeRange } from "../types";
+} from "./performance-history";
+import type { ChartDataPoint, TimeRange } from "@/server/actions/types";
 
 export async function getWalletChartData(
-  walletId: string,
-  range: TimeRange,
-): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
-  const result = await getWalletChartDataResult(walletId, range);
-  return Result.serialize(
-    result.mapError((error) => error.toJSON() as SerializedError),
-  );
-}
-
-async function getWalletChartDataResult(
   walletId: string,
   range: TimeRange,
 ): Promise<Result<ChartDataPoint[], WalletChartError>> {
@@ -72,17 +61,6 @@ async function getWalletChartDataResult(
 }
 
 export async function getAllWalletsPortfolioData(
-  range: TimeRange,
-  displayCurrency: SupportedCurrency,
-): Promise<SerializedResult<ChartDataPoint[], SerializedError>> {
-  void displayCurrency;
-  const result = await getAllWalletsPortfolioDataResult(range);
-  return Result.serialize(
-    result.mapError((error) => error.toJSON() as SerializedError),
-  );
-}
-
-async function getAllWalletsPortfolioDataResult(
   range: TimeRange,
 ): Promise<Result<ChartDataPoint[], WalletChartError>> {
   return Result.gen(async function* () {

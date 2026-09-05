@@ -19,6 +19,7 @@ import {
   type PositionError,
 } from "../../errors";
 import type { FieldErrors } from "../types";
+import { applyWalletNetInvestedChange } from "@/server/services/update-wallet-net-invested-balance";
 
 const positionSchema = z.object({
   companyName: z.string(),
@@ -71,8 +72,6 @@ async function addPositionResult(
 
     const positions = shares.map((share, index) => ({ shares: share, price: price[index] }));
 
-    //    console.log("Positions: ", positions);
-
     const validatedFields = positionSchema.safeParse({
       companyName: companyName,
       companySymbol: companySymbol,
@@ -115,6 +114,7 @@ async function addPositionResult(
             const freshWallet = await tx
               .select({
                 cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
+                currency: wallet.currency
               })
               .from(wallet)
               .where(
@@ -138,6 +138,7 @@ async function addPositionResult(
 
             const positionRows = [];
             const transactionRows = [];
+            const transactionDate = new Date();
 
             for (const data of validatedFields.data.position) {
               const positionId = randomUUID();
@@ -175,6 +176,7 @@ async function addPositionResult(
                 cashUsed: numToNumericString(cashUsed),
                 externalContribution: numToNumericString(externalContribution),
                 realizedPl: "0",
+                createdAt: transactionDate,
               });
             }
 
@@ -195,6 +197,11 @@ async function addPositionResult(
                   isNull(wallet.deletedAt)
                 )
               );
+
+
+            if (totalExternalContribution > 0) {
+              await applyWalletNetInvestedChange(tx, walletId, freshWallet.currency, totalExternalContribution, "increase", transactionDate)
+            }
           })
         },
         catch: (e) =>

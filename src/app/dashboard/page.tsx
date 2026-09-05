@@ -2,9 +2,8 @@ import { getSession } from "@/server/better-auth/session";
 import { redirect } from "next/navigation";
 import { QUERIES } from "@/server/db/queries";
 import Dashboard from "./dashboard";
-import { ChartDataPoint, SerializedError, TimeRange } from "@/server/actions/types";
-import { getAllWalletsPortfolioData } from "@/server/actions/dashboard/chart-actions";
-import { Result } from "better-result";
+import { TimeRange } from "@/server/actions/types";
+import { getAllWalletsPortfolioData } from "@/server/services/chart-data";
 
 interface DashboardProps {
   searchParams: Promise<{ range?: TimeRange }>;
@@ -38,17 +37,15 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const displayCurrency = displayCurrencyRaw.displayCurrency;
 
-  const chartPortfolioDataSerialized = await getAllWalletsPortfolioData(range, displayCurrency);
-  const deserialized = Result.deserialize<ChartDataPoint[], SerializedError>(chartPortfolioDataSerialized);
+  const chartResult = await getAllWalletsPortfolioData(range);
 
-  if (!deserialized || Result.isError(deserialized)) {
-    const error = deserialized ? deserialized.error : {message: "Unknown error"};
+  if (chartResult.isErr()) {
     return (
       <Dashboard
         wallets={wallets}
         range={range}
         displayCurrency={displayCurrency}
-        chartError={error.message}
+        chartError={chartResult.error.message}
       />
     );
   }
@@ -58,7 +55,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       wallets={wallets}
       range={range}
       displayCurrency={displayCurrency}
-      chartData={deserialized.value}
+      chartData={chartResult.value}
     />
   );
 }

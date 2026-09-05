@@ -67,12 +67,12 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
 
   if (usResult.isErr()) {
     console.error("[cron/snapshot] Finnhub fetch failed", usResult.error.message);
-    throw new Error(`[cron/snapshot] Finnhub price fetch failed: ${toErrorMessage(usResult.error.message)}`);
+    throw new Error(`[cron/snapshot] Finnhub price fetch failed: ${usResult.error.message}`);
   }
 
   if (waResult.isErr()) {
     console.error("[cron/snapshot] Yahoo fetch failed", waResult.error.message);
-    throw new Error(`[cron/snapshot] Yahoo price fetch failed: ${toErrorMessage(waResult.error.message)}`);
+    throw new Error(`[cron/snapshot] Yahoo price fetch failed: ${waResult.error.message}`);
   }
 
   const usPriceData = usResult.value;
@@ -221,8 +221,4 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
   console.log(`[cron/snapshot] Completed: ${inserted} snapshots inserted, ${skipped} wallets skipped`);
 
   return summary;
-}
-
-export function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
