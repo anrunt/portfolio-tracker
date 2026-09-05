@@ -22,6 +22,7 @@ import {
   ValidationError,
   type WalletError,
 } from "../../errors";
+import { applyWalletNetInvestedChange } from "@/server/services/update-wallet-net-invested-balance";
 
 const walletSchema = z.object({
   name: z
@@ -326,6 +327,7 @@ export async function withdrawCashResult(
               .select({
                 id: wallet.id,
                 cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
+                currency: wallet.currency
               })
               .from(wallet)
               .where(
@@ -350,6 +352,8 @@ export async function withdrawCashResult(
               });
             }
 
+            const withdrawalDate = new Date();
+
             await tx.insert(portfolioTransaction).values({
               id: randomUUID(),
               walletId,
@@ -363,6 +367,7 @@ export async function withdrawCashResult(
               cashUsed: "0",
               externalContribution: "0",
               realizedPl: "0",
+              createdAt: withdrawalDate 
             });
 
             await tx
@@ -378,6 +383,15 @@ export async function withdrawCashResult(
                   isNull(wallet.deletedAt)
                 )
               );
+
+            await applyWalletNetInvestedChange(
+              tx,
+              walletId,
+              userWallet.currency,
+              parsed.data.withdrawAmount,
+              "decrease",
+              withdrawalDate
+            );
           });
         },
         catch: (e) =>
