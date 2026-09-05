@@ -10,6 +10,7 @@ import { getSession } from "../../better-auth/session";
 import { db } from "../../db";
 import { numToNumericString } from "../../db/numeric";
 import { QUERIES } from "../../db/queries";
+import { applyWalletNetInvestedChange } from "../../services/update-wallet-net-invested-balance";
 import { portfolioTransaction, position, wallet } from "../../db/schema";
 import {
   DatabaseError,
@@ -133,6 +134,7 @@ export async function sellPositionLotResult(
               .select({
                 id: position.id,
                 walletId: position.walletId,
+                walletCurrency: wallet.currency,
                 companyName: position.companyName,
                 companySymbol: position.companySymbol,
                 pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
@@ -204,6 +206,8 @@ export async function sellPositionLotResult(
               realizedPl: numToNumericString(realizedPl),
             });
 
+            const withdrawalDate = new Date();
+
             if (withdrawal > 0) {
               await tx.insert(portfolioTransaction).values({
                 id: randomUUID(),
@@ -218,7 +222,17 @@ export async function sellPositionLotResult(
                 cashUsed: "0",
                 externalContribution: "0",
                 realizedPl: "0",
+                createdAt: withdrawalDate,
               });
+
+              await applyWalletNetInvestedChange(
+                tx,
+                walletId,
+                userPosition.walletCurrency,
+                withdrawal,
+                "decrease",
+                withdrawalDate
+              );
             }
 
             await tx
@@ -430,6 +444,8 @@ async function sellAllPositionsForSymbolResult(
                 );
             }
 
+            const withdrawalDate = new Date();
+
             if (withdrawal > 0) {
               await tx.insert(portfolioTransaction).values({
                 id: randomUUID(),
@@ -444,7 +460,17 @@ async function sellAllPositionsForSymbolResult(
                 cashUsed: "0",
                 externalContribution: "0",
                 realizedPl: "0",
+                createdAt: withdrawalDate,
               });
+
+              await applyWalletNetInvestedChange(
+                tx,
+                walletId,
+                userWallet.currency,
+                withdrawal,
+                "decrease",
+                withdrawalDate
+              );
             }
 
             await tx
