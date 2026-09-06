@@ -16,6 +16,7 @@ import {
   ValidationError,
   type PositionError,
 } from "../../errors";
+import { applyWalletNetInvestedChange } from "@/server/services/update-wallet-net-invested-balance";
 
 export async function deletePosition(
   positionId: string,
@@ -99,6 +100,7 @@ export async function deletePositionResult(
                 cashUsed: portfolioTransaction.cashUsed,
                 transactionValue: portfolioTransaction.transactionValue,
                 externalContribution: portfolioTransaction.externalContribution,
+                createdAt: portfolioTransaction.createdAt,
               })
               .from(portfolioTransaction)
               .where(
@@ -133,6 +135,17 @@ export async function deletePositionResult(
 
             if (updatedWallet.length === 0) {
               throw new NotFoundError({ resource: "Wallet", id: walletId });
+            }
+
+            if (Number(buyTransaction.externalContribution) > 0 ) {
+              await applyWalletNetInvestedChange(
+                tx,
+                walletId,
+                userWallet.currency,
+                Number(buyTransaction.externalContribution),
+                "decrease",
+                buyTransaction.createdAt
+              );
             }
 
             await tx.delete(portfolioTransaction).where(eq(portfolioTransaction.id, buyTransaction.id));
