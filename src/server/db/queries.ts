@@ -15,7 +15,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from ".";
-import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
+import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot, walletNetInvestedBalance } from "./schema";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
@@ -478,6 +478,20 @@ export const QUERIES = {
       )
       .orderBy(
         asc(walletDailySnapshot.snapshotDate),
+      )
+  },
+
+  getAllWalletsNetInvestedBalance: function() {
+    return db
+      .select({
+        walletId: walletNetInvestedBalance.walletId,
+        currency: walletNetInvestedBalance.currency,
+        netInvested: walletNetInvestedBalance.netInvested
+      })
+      .from(walletNetInvestedBalance)
+      .innerJoin(wallet, eq(wallet.id, walletNetInvestedBalance.walletId))
+      .where(
+        isNull(wallet.deletedAt)
       )
   },
 
