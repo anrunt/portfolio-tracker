@@ -16,7 +16,7 @@ import {
   ValidationError,
   type PositionError,
 } from "../../errors";
-import { applyWalletNetInvestedChange } from "@/server/services/update-wallet-net-invested-balance";
+import { applyWalletNetInvestedChange, getWalletNetInvestedFxRate } from "@/server/services/update-wallet-net-invested-balance";
 
 export async function deletePosition(
   positionId: string,
@@ -100,7 +100,7 @@ export async function deletePositionResult(
                 cashUsed: portfolioTransaction.cashUsed,
                 transactionValue: portfolioTransaction.transactionValue,
                 externalContribution: portfolioTransaction.externalContribution,
-                createdAt: portfolioTransaction.createdAt,
+                fxRateId: portfolioTransaction.fxRateId,
               })
               .from(portfolioTransaction)
               .where(
@@ -137,14 +137,23 @@ export async function deletePositionResult(
               throw new NotFoundError({ resource: "Wallet", id: walletId });
             }
 
-            if (Number(buyTransaction.externalContribution) > 0 ) {
+            const externalContribution = Number(buyTransaction.externalContribution);
+            if (externalContribution > 0) {
+              if (!buyTransaction.fxRateId) {
+                throw new ValidationError({
+                  message: "Cannot reverse this BUY: its original FX rate is missing. Historical data must be backfilled first.",
+                });
+              }
+
+              const fxRate = await getWalletNetInvestedFxRate(tx, { id: buyTransaction.fxRateId });
+
               await applyWalletNetInvestedChange(
                 tx,
                 walletId,
                 userWallet.currency,
-                Number(buyTransaction.externalContribution),
+                externalContribution,
                 "decrease",
-                buyTransaction.createdAt
+                fxRate.rate
               );
             }
 

@@ -1,19 +1,16 @@
-import { SupportedCurrency } from "@/domain/currency";
+import type { SupportedCurrency } from "@/domain/currency";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { DbTransaction } from "../db";
 import { fxRates, walletNetInvestedBalance } from "../db/schema";
-import { NotFoundError } from "../errors";
+import { NotFoundError, ValidationError } from "../errors";
 
-export async function applyWalletNetInvestedChange(
+export async function getWalletNetInvestedFxRate(
   tx: DbTransaction,
-  walletId: string,
-  walletCurrency: SupportedCurrency,
-  amount: number,
-  direction: "increase" | "decrease",
-  transactionDate: Date 
+  lookup: { date: Date } | { id: string },
 ) {
   const fxRate = await tx
     .select({
+      id: fxRates.id,
       rate: sql<number>`(${fxRates.rate})::double precision`,
     })
     .from(fxRates)
@@ -23,7 +20,9 @@ export async function applyWalletNetInvestedChange(
         eq(fxRates.quoteCurrency, "PLN"),
         eq(fxRates.granularity, "daily"),
         eq(fxRates.source, "nbp"),
-        lte(fxRates.asOf, transactionDate),
+        "id" in lookup
+          ? eq(fxRates.id, lookup.id)
+          : lte(fxRates.asOf, lookup.date),
       ),
     )
     .orderBy(desc(fxRates.asOf))
@@ -33,20 +32,31 @@ export async function applyWalletNetInvestedChange(
   if (!fxRate) {
     throw new NotFoundError({ resource: "No fx rate for netInvested" });
   }
-  if (fxRate.rate <= 0) {
-    throw new NotFoundError({ resource: "fxRate below or equal 0 for netInvested"})
+  if (!Number.isFinite(fxRate.rate) || fxRate.rate <= 0) {
+    throw new ValidationError({ message: "Invalid USD/PLN rate for netInvested" });
   }
 
+  return fxRate;
+}
+
+export async function applyWalletNetInvestedChange(
+  tx: DbTransaction,
+  walletId: string,
+  walletCurrency: SupportedCurrency,
+  amount: number,
+  direction: "increase" | "decrease",
+  usdPlnRate: number,
+) {
   const signedAmount = direction === "increase" ? amount : -amount;
 
   const deltas = new Map<SupportedCurrency, number>();
 
   if (walletCurrency === "USD") {
     deltas.set("USD", signedAmount);
-    deltas.set("PLN", signedAmount * fxRate.rate);
+    deltas.set("PLN", signedAmount * usdPlnRate);
   } else if (walletCurrency === "PLN") {
     deltas.set("PLN", signedAmount);
-    deltas.set("USD", signedAmount / fxRate.rate);
+    deltas.set("USD", signedAmount / usdPlnRate);
   }
 
   for (const [currency, delta] of deltas) {
@@ -60,6 +70,6 @@ export async function applyWalletNetInvestedChange(
           eq(walletNetInvestedBalance.walletId, walletId),
           eq(walletNetInvestedBalance.currency, currency)
         )
-      )
+      );
   }
 }

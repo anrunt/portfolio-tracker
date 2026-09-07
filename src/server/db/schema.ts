@@ -142,6 +142,7 @@ export const portfolioTransaction = pgTable("portfolio_transaction", {
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
   positionId: text("position_id").references(() => position.id, { onDelete: "set null" }),
+  fxRateId: text("fx_rate_id").references(() => fxRates.id, { onDelete: "restrict" }),
   type: portfolioTransactionTypeEnum("type").notNull(),
   companyName: text("company_name"),
   companySymbol: text("company_symbol"),

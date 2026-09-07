@@ -10,7 +10,7 @@ import { getSession } from "../../better-auth/session";
 import { db } from "../../db";
 import { numToNumericString } from "../../db/numeric";
 import { QUERIES } from "../../db/queries";
-import { applyWalletNetInvestedChange } from "../../services/update-wallet-net-invested-balance";
+import { applyWalletNetInvestedChange, getWalletNetInvestedFxRate } from "../../services/update-wallet-net-invested-balance";
 import { portfolioTransaction, position, wallet } from "../../db/schema";
 import {
   DatabaseError,
@@ -206,9 +206,9 @@ export async function sellPositionLotResult(
               realizedPl: numToNumericString(realizedPl),
             });
 
-            const withdrawalDate = new Date();
-
             if (withdrawal > 0) {
+              const withdrawalDate = new Date();
+              const fxRate = await getWalletNetInvestedFxRate(tx, { date: withdrawalDate });
               await tx.insert(portfolioTransaction).values({
                 id: randomUUID(),
                 walletId,
@@ -223,6 +223,7 @@ export async function sellPositionLotResult(
                 externalContribution: "0",
                 realizedPl: "0",
                 createdAt: withdrawalDate,
+                fxRateId: fxRate.id,
               });
 
               await applyWalletNetInvestedChange(
@@ -231,7 +232,7 @@ export async function sellPositionLotResult(
                 userPosition.walletCurrency,
                 withdrawal,
                 "decrease",
-                withdrawalDate
+                fxRate.rate
               );
             }
 
@@ -444,9 +445,9 @@ async function sellAllPositionsForSymbolResult(
                 );
             }
 
-            const withdrawalDate = new Date();
-
             if (withdrawal > 0) {
+              const withdrawalDate = new Date();
+              const fxRate = await getWalletNetInvestedFxRate(tx, { date: withdrawalDate });
               await tx.insert(portfolioTransaction).values({
                 id: randomUUID(),
                 walletId,
@@ -461,6 +462,7 @@ async function sellAllPositionsForSymbolResult(
                 externalContribution: "0",
                 realizedPl: "0",
                 createdAt: withdrawalDate,
+                fxRateId: fxRate.id,
               });
 
               await applyWalletNetInvestedChange(
@@ -469,7 +471,7 @@ async function sellAllPositionsForSymbolResult(
                 userWallet.currency,
                 withdrawal,
                 "decrease",
-                withdrawalDate
+                fxRate.rate
               );
             }
 

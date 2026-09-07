@@ -19,7 +19,7 @@ import {
   type PositionError,
 } from "../../errors";
 import type { FieldErrors } from "../types";
-import { applyWalletNetInvestedChange } from "@/server/services/update-wallet-net-invested-balance";
+import { applyWalletNetInvestedChange, getWalletNetInvestedFxRate } from "@/server/services/update-wallet-net-invested-balance";
 
 const positionSchema = z.object({
   companyName: z.string(),
@@ -132,19 +132,29 @@ async function addPositionResult(
               throw new NotFoundError({ resource: "Wallet", id: walletId });
             }
 
-            let runningCash = freshWallet.cashBalance;
+            const transactionDate = new Date();
+            let fxRate: Awaited<ReturnType<typeof getWalletNetInvestedFxRate>> | null = null;
+
             let totalBuyCost = 0;
+            let runningCash = freshWallet.cashBalance;
             let totalExternalContribution = 0;
 
             const positionRows = [];
             const transactionRows = [];
-            const transactionDate = new Date();
 
             for (const data of validatedFields.data.position) {
               const positionId = randomUUID();
               const buyCost = data.price * data.shares;
               const cashUsed = Math.min(runningCash, buyCost);
               const externalContribution = buyCost - cashUsed;
+
+              let fxRateId: string | null = null;
+              if (externalContribution > 0) {
+                if (!fxRate) {
+                  fxRate = await getWalletNetInvestedFxRate(tx, { date: transactionDate });
+                }
+                fxRateId = fxRate.id;
+              }
 
               runningCash -= cashUsed;
               totalBuyCost += buyCost;
@@ -177,6 +187,7 @@ async function addPositionResult(
                 externalContribution: numToNumericString(externalContribution),
                 realizedPl: "0",
                 createdAt: transactionDate,
+                fxRateId,
               });
             }
 
@@ -198,9 +209,19 @@ async function addPositionResult(
                 )
               );
 
-
             if (totalExternalContribution > 0) {
-              await applyWalletNetInvestedChange(tx, walletId, freshWallet.currency, totalExternalContribution, "increase", transactionDate)
+              if (!fxRate) {
+                throw new NotFoundError({ resource: "FX rate for external contribution" });
+              }
+
+              await applyWalletNetInvestedChange(
+                tx,
+                walletId,
+                freshWallet.currency,
+                totalExternalContribution,
+                "increase",
+                fxRate.rate
+              );
             }
           })
         },

@@ -22,7 +22,7 @@ import {
   ValidationError,
   type WalletError,
 } from "../../errors";
-import { applyWalletNetInvestedChange } from "@/server/services/update-wallet-net-invested-balance";
+import { applyWalletNetInvestedChange, getWalletNetInvestedFxRate } from "@/server/services/update-wallet-net-invested-balance";
 
 const walletSchema = z.object({
   name: z
@@ -353,6 +353,7 @@ export async function withdrawCashResult(
             }
 
             const withdrawalDate = new Date();
+            const fxRate = await getWalletNetInvestedFxRate(tx, { date: withdrawalDate });
 
             await tx.insert(portfolioTransaction).values({
               id: randomUUID(),
@@ -367,7 +368,8 @@ export async function withdrawCashResult(
               cashUsed: "0",
               externalContribution: "0",
               realizedPl: "0",
-              createdAt: withdrawalDate 
+              createdAt: withdrawalDate,
+              fxRateId: fxRate.id,
             });
 
             await tx
@@ -390,7 +392,7 @@ export async function withdrawCashResult(
               userWallet.currency,
               parsed.data.withdrawAmount,
               "decrease",
-              withdrawalDate
+              fxRate.rate
             );
           });
         },
