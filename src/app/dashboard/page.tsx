@@ -19,14 +19,19 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const userWallets = await QUERIES.getWalletsWithLatestSnapshot(session.user.id);
 
-  const wallets = userWallets.map((w) => ({
-    id: w.id,
-    name: w.name,
-    currency: w.currency,
-    totalValue: w.totalValue,
-    netInvested: w.netInvested,
-    snapshotAt: w.snapshotAt,
-  }));
+  const wallets = userWallets.map((w) => {
+    if (w.totalValue === null || w.netInvested === null) {
+      throw new Error(`No native valuation for ${w.name}`);
+    }
+    return {
+      id: w.id,
+      name: w.name,
+      currency: w.currency,
+      totalValue: w.totalValue,
+      netInvested: w.netInvested,
+      snapshotAt: w.snapshotAt,
+    }
+  });
 
 
   const displayCurrencyRaw = await QUERIES.getUserDisplayCurrency(session.session.userId);

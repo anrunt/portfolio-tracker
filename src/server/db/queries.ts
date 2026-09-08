@@ -41,7 +41,8 @@ export const QUERIES = {
       .groupBy(wallet.id)
   },
 
-  getWalletsWithLatestSnapshot: function (userId: string) {
+  getWalletsWithLatestSnapshot: function (userId: string, displayCurrency?: SupportedCurrency) {
+    const valuationCurrency = displayCurrency ?? wallet.currency;
     const latestIntraday = db
       .select({
         totalValueIntraday: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value_intraday"),
@@ -52,7 +53,7 @@ export const QUERIES = {
       .where(
         and(
           eq(walletIntradaySnapshot.walletId, wallet.id),
-          eq(walletIntradaySnapshot.currency, wallet.currency)
+          eq(walletIntradaySnapshot.currency, valuationCurrency)
         )
       )
       .orderBy(desc(walletIntradaySnapshot.snapshotAt))
@@ -70,7 +71,7 @@ export const QUERIES = {
       .where(
         and(
           eq(walletDailySnapshot.walletId, wallet.id),
-          eq(walletDailySnapshot.currency, wallet.currency)
+          eq(walletDailySnapshot.currency, valuationCurrency)
         )
       )
       .orderBy(desc(walletDailySnapshot.snapshotDate))
@@ -97,25 +98,35 @@ export const QUERIES = {
         name: wallet.name,
         userId: wallet.userId,
         currency: wallet.currency,
+        valuationCurrency: sql<SupportedCurrency>`${valuationCurrency}`.as("valuation_currency"),
         createdAt: wallet.createdAt,
-        totalValue: sql<number>`coalesce(
+        totalValue: sql<number | null>`coalesce(
           ${latestIntraday.totalValueIntraday},
           ${latestDaily.totalValueDaily},
-          ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision
+          case
+            when ${valuationCurrency} = ${wallet.currency}
+              then ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision
+            else null
+          end
         )`.as("total_value"),
-        netInvested: sql<number>`coalesce(
+        netInvested: sql<number | null>`coalesce(
           ${latestIntraday.netInvestedIntraday},
           ${latestDaily.netInvestedDaily},
-          (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision
+          case
+            when ${valuationCurrency} = ${wallet.currency}
+              then (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision
+            else null
+          end
         )`.as("net_invested"),
         snapshotAt: sql<Date | null>`coalesce(
           ${latestIntraday.snapshotAt},
           ${latestDaily.createdAt}
         )`.mapWith(walletIntradaySnapshot.snapshotAt).as("snapshot_at"),
-        valueSource: sql<"intraday" | "daily" | "cost-basis">`case
+        valueSource: sql<"intraday" | "daily" | "cost-basis" | "unavailable">`case
           when ${latestIntraday.snapshotAt} is not null then 'intraday'
           when ${latestDaily.createdAt} is not null then 'daily'
-          else 'cost-basis'
+          when ${valuationCurrency} = ${wallet.currency} then 'cost-basis'
+          else 'unavailable'
         end`.as("value_source"),
       })
       .from(wallet)

@@ -36,32 +36,26 @@ export function createGetWalletsOverviewTool({ userId }: ChatToolContext) {
       }
 
       const displayCurrency = userPreferences.displayCurrency;
-      const needsFxRate = wallets.some(
-        (wallet) => wallet.currency !== displayCurrency,
+      const portfolioWallets = await QUERIES.getWalletsWithLatestSnapshot(
+        userId,
+        displayCurrency,
       );
-      const fxRate = needsFxRate
-        ? await QUERIES.getFxRateBefore(new Date())
-        : null;
 
-      if (needsFxRate && !fxRate) {
-        return {
-          status: "exchange-rate-unavailable",
-          message:
-            "Nie można przeliczyć Portfolio z powodu braku zapisanego kursu USD/PLN.",
-        };
-      }
-
-      return buildWalletsOverview(wallets, displayCurrency, fxRate);
+      return buildWalletsOverview(wallets, portfolioWallets, displayCurrency);
     },
   });
 }
 
 function buildWalletsOverview(
   wallets: Awaited<ReturnType<typeof QUERIES.getWalletsWithLatestSnapshot>>,
+  portfolioWallets: Awaited<ReturnType<typeof QUERIES.getWalletsWithLatestSnapshot>>,
   displayCurrency: SupportedCurrency,
-  fxRate: Awaited<ReturnType<typeof QUERIES.getFxRateBefore>> | null,
 ) {
   const walletsOverview = wallets.map((wallet) => {
+    if (wallet.totalValue === null || wallet.netInvested === null) {
+      throw new Error(`No native valuation for ${wallet.name}`);
+    }
+
     const hasIncompleteMarketData = wallet.valueSource === "cost-basis";
 
     return {
@@ -80,43 +74,44 @@ function buildWalletsOverview(
     };
   });
 
-  const hasIncompleteMarketData = wallets.some(
-    (wallet) => wallet.valueSource === "cost-basis",
-  );
-  const portfolioTotals = wallets.reduce(
-    (totals, wallet) => {
-      let totalValue = wallet.totalValue;
-      let netInvested = wallet.netInvested;
+  const portfolioTotals = { totalValue: 0, netInvested: 0 };
+  let hasMissingValuations = portfolioWallets.length === 0;
+  let hasIncompleteMarketData = false;
 
-      if (fxRate && wallet.currency !== displayCurrency) {
-        if (wallet.currency === fxRate.baseCurrency) {
-          totalValue *= fxRate.rate;
-          netInvested *= fxRate.rate;
-        } else {
-          totalValue /= fxRate.rate;
-          netInvested /= fxRate.rate;
-        }
-      }
+  for (const wallet of portfolioWallets) {
+    if (wallet.totalValue === null || wallet.netInvested === null) {
+      hasMissingValuations = true;
+      break;
+    }
 
-      return {
-        totalValue: totals.totalValue + totalValue,
-        netInvested: totals.netInvested + netInvested,
-      };
-    },
-    { totalValue: 0, netInvested: 0 },
-  );
+    portfolioTotals.totalValue += wallet.totalValue;
+    portfolioTotals.netInvested += wallet.netInvested;
+
+    if (wallet.valueSource === "cost-basis") {
+      hasIncompleteMarketData = true;
+    }
+  }
+
+  const valuationUnavailableReason = hasMissingValuations
+    ? "Complete portfolio valuation is unavailable in the selected currency; partial totals are not provided."
+    : null;
+
+  let profitLossUnavailableReason = valuationUnavailableReason;
+  if (!hasMissingValuations && hasIncompleteMarketData) {
+    profitLossUnavailableReason =
+      "Portfolio P/L is unavailable because at least one wallet lacks current market data.";
+  }
 
   return {
     portfolio: {
       currency: displayCurrency,
-      totalValue: portfolioTotals.totalValue,
-      netInvested: portfolioTotals.netInvested,
-      profitLoss: hasIncompleteMarketData
+      totalValue: hasMissingValuations ? null : portfolioTotals.totalValue,
+      netInvested: hasMissingValuations ? null : portfolioTotals.netInvested,
+      valuationUnavailableReason,
+      profitLoss: hasMissingValuations || hasIncompleteMarketData
         ? null
         : portfolioTotals.totalValue - portfolioTotals.netInvested,
-      profitLossUnavailableReason: hasIncompleteMarketData
-        ? "Nie można podać P/L całego Portfolio, ponieważ co najmniej jeden Wallet nie ma aktualnych danych rynkowych."
-        : null,
+      profitLossUnavailableReason,
     },
     wallets: walletsOverview,
   };
