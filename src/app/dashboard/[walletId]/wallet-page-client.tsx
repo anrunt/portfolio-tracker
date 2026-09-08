@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { SupportedCurrency } from "@/domain/currency";
 import { CircleHelp, TrendingDown, TrendingUp } from "lucide-react";
 import { usePortfolioStats } from "@/hooks/use-portfolio-stats";
 import type { PositionData, PriceResultData, WalletMetrics } from "@/server/actions/types";
@@ -12,7 +13,7 @@ interface WalletPageClientProps {
   wallet: {
     id: string;
     name: string;
-    currency: string;
+    currency: SupportedCurrency;
   } & WalletMetrics;
   positions: PositionData[];
   groupedPositions: Record<string, PositionData[]>;

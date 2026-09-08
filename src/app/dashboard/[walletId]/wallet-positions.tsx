@@ -1,5 +1,6 @@
 "use client";
 
+import type { SupportedCurrency } from "@/domain/currency";
 import type { PositionData } from "@/server/actions/types";
 import MainPosition from "./position-main";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,7 +10,7 @@ interface WalletPositionsProps {
   wallet: {
     id: string;
     name: string;
-    currency: string;
+    currency: SupportedCurrency;
   };
   positions: PositionData[];
   groupedPositions: Record<string, PositionData[]>;

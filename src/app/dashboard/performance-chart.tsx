@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, type ReactNode } from "react";
 import { CartesianGrid, Line, LineChart } from "recharts";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
 import {
@@ -11,8 +11,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
-import DisplayCurrencyToggle from "./display-currency-toggle";
-import type { DisplayCurrency } from "@/server/actions/types";
 
 const TIME_RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "6M", "1YR"];
 
@@ -37,16 +35,17 @@ function formatTimestamp(value: number) {
 interface Props {
   range: TimeRange;
   data: ChartDataPoint[];
-  displayCurrency: DisplayCurrency;
+  basePath: string;
+  controls?: ReactNode;
 }
 
-export default function DashboardChartClient({ range, data, displayCurrency }: Props) {
+export default function PerformanceChart({ range, data, basePath, controls }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleRangeChange(newRange: TimeRange) {
     startTransition(() => {
-      router.push(`/dashboard?range=${newRange}`);
+      router.push(`${basePath}?range=${newRange}`);
     });
   }
 
@@ -65,8 +64,12 @@ export default function DashboardChartClient({ range, data, displayCurrency }: P
           </span>
         </div>
         <div className="flex items-center gap-2.5">
-          <DisplayCurrencyToggle displayCurrency={displayCurrency} />
-          <div className="h-4 w-px bg-border/60" />
+          {controls && (
+            <>
+              {controls}
+              <div className="h-4 w-px bg-border/60" />
+            </>
+          )}
           <div className="flex gap-0.5">
             {TIME_RANGES.map((r) => (
               <button

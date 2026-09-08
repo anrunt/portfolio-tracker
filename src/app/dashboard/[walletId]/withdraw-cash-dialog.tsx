@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useState } from "react";
+import type { SupportedCurrency } from "@/domain/currency";
 import {
   Dialog,
   DialogClose,
@@ -15,7 +16,7 @@ import { withdrawCash } from "@/server/actions/dashboard/wallet-actions";
 interface WithdrawCashDialogProps {
   walletId: string;
   cashBalance: number;
-  currency: string;
+  currency: SupportedCurrency;
 }
 
 const initialState = {

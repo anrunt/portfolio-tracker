@@ -19,6 +19,7 @@ import {
   type PositionError,
 } from "../../errors";
 import type { FieldErrors } from "../types";
+import { applyWalletNetInvestedChange, getWalletNetInvestedFxRate } from "@/server/services/update-wallet-net-invested-balance";
 
 const positionSchema = z.object({
   companyName: z.string(),
@@ -71,8 +72,6 @@ async function addPositionResult(
 
     const positions = shares.map((share, index) => ({ shares: share, price: price[index] }));
 
-    //    console.log("Positions: ", positions);
-
     const validatedFields = positionSchema.safeParse({
       companyName: companyName,
       companySymbol: companySymbol,
@@ -115,6 +114,7 @@ async function addPositionResult(
             const freshWallet = await tx
               .select({
                 cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
+                currency: wallet.currency
               })
               .from(wallet)
               .where(
@@ -132,8 +132,11 @@ async function addPositionResult(
               throw new NotFoundError({ resource: "Wallet", id: walletId });
             }
 
-            let runningCash = freshWallet.cashBalance;
+            const transactionDate = new Date();
+            let fxRate: Awaited<ReturnType<typeof getWalletNetInvestedFxRate>> | null = null;
+
             let totalBuyCost = 0;
+            let runningCash = freshWallet.cashBalance;
             let totalExternalContribution = 0;
 
             const positionRows = [];
@@ -144,6 +147,14 @@ async function addPositionResult(
               const buyCost = data.price * data.shares;
               const cashUsed = Math.min(runningCash, buyCost);
               const externalContribution = buyCost - cashUsed;
+
+              let fxRateId: string | null = null;
+              if (externalContribution > 0) {
+                if (!fxRate) {
+                  fxRate = await getWalletNetInvestedFxRate(tx, { date: transactionDate });
+                }
+                fxRateId = fxRate.id;
+              }
 
               runningCash -= cashUsed;
               totalBuyCost += buyCost;
@@ -175,6 +186,8 @@ async function addPositionResult(
                 cashUsed: numToNumericString(cashUsed),
                 externalContribution: numToNumericString(externalContribution),
                 realizedPl: "0",
+                createdAt: transactionDate,
+                fxRateId,
               });
             }
 
@@ -195,6 +208,21 @@ async function addPositionResult(
                   isNull(wallet.deletedAt)
                 )
               );
+
+            if (totalExternalContribution > 0) {
+              if (!fxRate) {
+                throw new NotFoundError({ resource: "FX rate for external contribution" });
+              }
+
+              await applyWalletNetInvestedChange(
+                tx,
+                walletId,
+                freshWallet.currency,
+                totalExternalContribution,
+                "increase",
+                fxRate.rate
+              );
+            }
           })
         },
         catch: (e) =>

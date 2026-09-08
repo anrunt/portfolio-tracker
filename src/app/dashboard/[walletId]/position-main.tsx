@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { SupportedCurrency } from "@/domain/currency";
 import { ChevronDown } from "lucide-react";
 import Position from "./position";
 import SellAllSymbolDialog from "./sell-all-symbol-dialog";
@@ -17,7 +18,7 @@ interface MainPositionProps {
   companySymbol: string;
   positions: PositionData[];
   walletId: string;
-  currency: string;
+  currency: SupportedCurrency;
   currentPrice?: number;
   gridLayoutClass: string;
 }

@@ -1,12 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { JetBrains_Mono } from "next/font/google";
 import Wallet from "./wallet";
 import AddWallet from "./add-wallet";
 import { ModeToggle } from "@/components/mode-toggle";
+import {
+  SUPPORTED_CURRENCIES,
+  type SupportedCurrency,
+} from "@/domain/currency";
 import { ChartDataPoint, TimeRange } from "@/server/actions/types";
-import type { DisplayCurrency } from "@/server/actions/types";
-import DashboardChartClient from "./dashboard-chart-client";
+import PerformanceChart from "./performance-chart";
 import DisplayCurrencyToggle from "./display-currency-toggle";
 
 const mono = JetBrains_Mono({
@@ -18,25 +22,25 @@ interface Props {
   wallets: Array<{
     id: string;
     name: string;
-    currency: string;
+    currency: SupportedCurrency;
     totalValue: number;
     netInvested: number;
     snapshotAt: Date | null;
   }>;
   range: TimeRange;
-  displayCurrency: DisplayCurrency;
+  displayCurrency: SupportedCurrency;
   chartData?: ChartDataPoint[];
   chartError?: string;
 }
 
 export default function Dashboard({ wallets, range, displayCurrency, chartData, chartError }: Props) {
-  const totalsByCurrency: Record<string, number> = {};
+  const totalsByCurrency: Partial<Record<SupportedCurrency, number>> = {};
   for (const w of wallets) {
     totalsByCurrency[w.currency] =
       (totalsByCurrency[w.currency] || 0) + w.totalValue;
   }
 
-  const fmt = (val: number, currency: string) =>
+  const fmt = (val: number, currency: SupportedCurrency) =>
     val.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -56,24 +60,32 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
       <header className="relative border-b border-border/50 bg-card/60 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-5">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <Link
+              href="/"
+              className="flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+            >
+              <div className="w-2 h-2 rounded-full bg-primary" />
               <span className="font-(family-name:--font-jb-mono) text-[11px] font-bold tracking-[0.2em] uppercase text-primary">
                 Portfolio Tracker
               </span>
-            </div>
+            </Link>
             <div className="h-4 w-px bg-border/60" />
             <div className="flex gap-5">
-              {Object.entries(totalsByCurrency).map(([currency, total]) => (
-                <div key={currency} className="flex items-baseline gap-1.5">
-                  <span className="font-(family-name:--font-jb-mono) text-lg font-bold tabular-nums text-foreground tracking-tight">
-                    {fmt(total, currency)}
-                  </span>
-                  <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground font-semibold">
-                    {currency}
-                  </span>
-                </div>
-              ))}
+              {SUPPORTED_CURRENCIES.map((currency) => {
+                const total = totalsByCurrency[currency];
+                if (total === undefined) return null;
+
+                return (
+                  <div key={currency} className="flex items-baseline gap-1.5">
+                    <span className="font-(family-name:--font-jb-mono) text-lg font-bold tabular-nums text-foreground tracking-tight">
+                      {fmt(total, currency)}
+                    </span>
+                    <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground font-semibold">
+                      {currency}
+                    </span>
+                  </div>
+                );
+              })}
               {wallets.length === 0 && (
                 <span className="font-(family-name:--font-jb-mono) text-xs text-muted-foreground">
                   --
@@ -110,10 +122,11 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
               </div>
             </>
           ) : chartData ? (
-            <DashboardChartClient
+            <PerformanceChart
               range={range}
               data={chartData}
-              displayCurrency={displayCurrency}
+              basePath="/dashboard"
+              controls={<DisplayCurrencyToggle displayCurrency={displayCurrency} />}
             />
           ) : (
             <>

@@ -1,7 +1,6 @@
-import { getWalletChartData } from "@/server/actions/dashboard/chart-actions";
-import { ChartDataPoint, SerializedError, TimeRange } from "@/server/actions/types";
-import { Result } from "better-result";
-import WalletChartClient from "./wallet-chart-client";
+import { getWalletChartData } from "@/server/services/chart-data";
+import { TimeRange } from "@/server/actions/types";
+import PerformanceChart from "../performance-chart";
 
 interface Props {
   walletId: string;
@@ -9,21 +8,19 @@ interface Props {
 }
 
 export default async function WalletChart({ walletId, range }: Props) {
-  const serialized = await getWalletChartData(walletId, range);
-  const deserialized = Result.deserialize<ChartDataPoint[], SerializedError>(serialized);
+  const result = await getWalletChartData(walletId, range);
 
-  if (!deserialized || Result.isError(deserialized)) {
-    const error = deserialized ? deserialized.error : {message: "Unknown error"};
+  if (result.isErr()) {
     return (
       <div className="px-5 py-8 text-center">
         <p className="font-(family-name:--font-jb-mono) text-[11px] text-destructive tracking-wider">
-          ERROR: {error.message}
+          ERROR: {result.error.message}
         </p>
       </div>
     );
   }
 
-  const chartData = deserialized.value;
+  const chartData = result.value;
 
-  return <WalletChartClient walletId={walletId} range={range} data={chartData} />;
+  return <PerformanceChart basePath={`/dashboard/${walletId}`} range={range} data={chartData} />;
 }

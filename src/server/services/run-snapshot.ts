@@ -1,10 +1,11 @@
-import { QUERIES } from "../db/queries";
+import type { QUERIES } from "../db/queries";
 import { db } from "../db";
 import { numToNumericString } from "../db/numeric";
-import { fxRates, walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
-import { lte, sql } from "drizzle-orm";
+import { fxRates, position, wallet, walletDailySnapshot, walletIntradaySnapshot, walletNetInvestedBalance } from "../db/schema";
+import { and, eq, gt, isNull, lte, sql } from "drizzle-orm";
 import { getUsdPlnRate } from "./getUsdPlnRate";
 import { getPrices } from "./market-data/get-prices";
+import { SUPPORTED_CURRENCIES, SupportedCurrency } from "@/domain/currency";
 
 type WalletPositionRow = Awaited<ReturnType<typeof QUERIES.getAllWalletsWithPositions>>[number];
 type WalletSnapshotPosition = NonNullable<WalletPositionRow["position"]>;
@@ -17,9 +18,56 @@ type GroupedWalletSnapshotData = {
 };
 
 export async function runSnapshot(type: "daily" | "intraday", operationId: string) {
-  const flat = await QUERIES.getAllWalletsWithPositions().catch((error): never => {
-    console.error("[cron/snapshot] Failed to load wallets with positions", error);
-    throw new Error("[cron/snapshot] DB_ERR: Failed to load wallets with positions");
+  const { flat, netInvestedBalancesRaw, snapshotAt } = await db.transaction(async (tx) => {
+    const snapshotAt = new Date();
+
+    const flat = await tx
+      .select({
+        wallet: {
+          id: wallet.id,
+          name: wallet.name,
+          userId: wallet.userId,
+          currency: wallet.currency,
+          cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
+          totalContributed: sql<number>`(${wallet.totalContributed})::double precision`,
+          totalWithdrawn: sql<number>`(${wallet.totalWithdrawn})::double precision`,
+          createdAt: wallet.createdAt,
+        },
+        position: {
+          id: position.id,
+          walletId: position.walletId,
+          companyName: position.companyName,
+          companySymbol: position.companySymbol,
+          pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+          quantity: sql<number>`(${position.quantity})::double precision`,
+          createdAt: position.createdAt,
+        },
+      })
+      .from(wallet)
+      .leftJoin(position, and(
+        eq(wallet.id, position.walletId),
+        gt(position.quantity, "0"),
+        isNull(position.closedAt)
+      ))
+      .where(isNull(wallet.deletedAt));
+
+    const netInvestedBalancesRaw = await tx
+      .select({
+        walletId: walletNetInvestedBalance.walletId,
+        currency: walletNetInvestedBalance.currency,
+        netInvested: walletNetInvestedBalance.netInvested,
+      })
+      .from(walletNetInvestedBalance)
+      .innerJoin(wallet, eq(wallet.id, walletNetInvestedBalance.walletId))
+      .where(isNull(wallet.deletedAt));
+
+    return { flat, netInvestedBalancesRaw, snapshotAt };
+  }, {
+    isolationLevel: "repeatable read",
+    accessMode: "read only",
+  }).catch((error): never => {
+    console.error("[cron/snapshot] Failed to load consistent wallet state", error);
+    throw new Error("[cron/snapshot] DB_ERR: Failed to load consistent wallet state");
   });
 
   const grouped: Record<string, GroupedWalletSnapshotData> = {};
@@ -67,12 +115,12 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
 
   if (usResult.isErr()) {
     console.error("[cron/snapshot] Finnhub fetch failed", usResult.error.message);
-    throw new Error(`[cron/snapshot] Finnhub price fetch failed: ${toErrorMessage(usResult.error.message)}`);
+    throw new Error(`[cron/snapshot] Finnhub price fetch failed: ${usResult.error.message}`);
   }
 
   if (waResult.isErr()) {
     console.error("[cron/snapshot] Yahoo fetch failed", waResult.error.message);
-    throw new Error(`[cron/snapshot] Yahoo price fetch failed: ${toErrorMessage(waResult.error.message)}`);
+    throw new Error(`[cron/snapshot] Yahoo price fetch failed: ${waResult.error.message}`);
   }
 
   const usPriceData = usResult.value;
@@ -103,9 +151,8 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
   const dailyRows = [];
   const intradayRows = [];
 
-  // This is to make sql aggregation work when we query portfolio data for all wallets - the date will be exactly the same in each snapshot
-  const snapshotAt = new Date();
-  const snapshotDate = new Date().toISOString().split("T")[0];
+  // All rows share the timestamp captured when reading wallet state.
+  const snapshotDate = snapshotAt.toISOString().split("T")[0];
 
   // get fxRate for USD->PLN
   const {rate, effectiveDate} = await getUsdPlnRate(snapshotAt);
@@ -126,6 +173,19 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
     console.error("[cron/snapshot] Error with inserting fx rates into the db:", error);
   }
 
+  const netInvestedBalancesMap = new Map<string, Map<SupportedCurrency, string>>();
+
+  for (const netInvested of netInvestedBalancesRaw) {
+    let balancesByCurrency = netInvestedBalancesMap.get(netInvested.walletId);    
+
+    if (!balancesByCurrency) {
+      balancesByCurrency = new Map<SupportedCurrency, string>();
+      netInvestedBalancesMap.set(netInvested.walletId, balancesByCurrency);
+    }
+
+    balancesByCurrency.set(netInvested.currency, netInvested.netInvested)
+  }
+
   for (const [walletId, data] of Object.entries(grouped)) {
     let holdingsValue = 0;
 
@@ -138,25 +198,41 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
       holdingsValue += pos.quantity * price;
     }
 
-    const totalValue = holdingsValue + data.cashBalance;
-    const netInvested = data.totalContributed - data.totalWithdrawn;
 
-    if (type === "daily") {
-      dailyRows.push({
-        id: crypto.randomUUID(),
-        walletId,
-        totalValue: numToNumericString(totalValue),
-        netInvested: numToNumericString(netInvested),
-        snapshotDate: snapshotDate,
-      });
-    } else {
-      intradayRows.push({
-        id: crypto.randomUUID(),
-        walletId,
-        totalValue: numToNumericString(totalValue),
-        netInvested: numToNumericString(netInvested),
-        snapshotAt: snapshotAt,
-      });
+    const nativeTotalValue = holdingsValue + data.cashBalance;
+
+    for (const currency of SUPPORTED_CURRENCIES) {
+      let convertedTotalValue = nativeTotalValue;
+      if (currency !== data.currency) {
+        convertedTotalValue = currency === "USD" 
+          ? (nativeTotalValue) / rate
+          : (nativeTotalValue) * rate;
+      }
+
+      const netInvested = netInvestedBalancesMap.get(walletId)?.get(currency);
+      if (netInvested === undefined) {
+        throw new Error(`[cron/snapshot] Missing netInvested balance for walletId ${walletId}, currency ${currency}`);
+      }
+
+      if (type === "daily") {
+        dailyRows.push({
+          id: crypto.randomUUID(),
+          walletId,
+          currency: currency,
+          totalValue: numToNumericString(convertedTotalValue),
+          netInvested: netInvested,
+          snapshotDate: snapshotDate,
+        });
+      } else {
+        intradayRows.push({
+          id: crypto.randomUUID(),
+          walletId,
+          currency: currency,
+          totalValue: numToNumericString(convertedTotalValue),
+          netInvested: netInvested,
+          snapshotAt: snapshotAt,
+        });
+      }
     }
   };
 
@@ -166,7 +242,11 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
         .insert(walletDailySnapshot)
         .values(dailyRows)
         .onConflictDoUpdate({
-          target: [walletDailySnapshot.walletId, walletDailySnapshot.snapshotDate],
+          target: [
+            walletDailySnapshot.walletId,
+            walletDailySnapshot.snapshotDate,
+            walletDailySnapshot.currency,
+          ],
           set: {
             totalValue: sql`excluded.total_value`,
             netInvested: sql`excluded.net_invested`,
@@ -201,22 +281,16 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
   }
 
   const inserted = type === "daily" ? dailyRows.length : intradayRows.length;
-  const skipped = walletCount - inserted;
 
   const summary = {
     success: true,
     type,
     walletsTotal: walletCount,
     snapshotsInserted: inserted,
-    walletsSkipped: skipped,
     priceFailures: allFailures,
   };
 
-  console.log(`[cron/snapshot] Completed: ${inserted} snapshots inserted, ${skipped} wallets skipped`);
+  console.log(`[cron/snapshot] Completed: ${inserted} snapshots inserted`);
 
   return summary;
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { z } from "zod";
+
+import { supportedCurrencySchema } from "@/domain/currency";
 import {
   CacheConfig,
   CacheContext,
@@ -17,7 +19,7 @@ const STALE_CACHE_MAX_AGE_MS = 300_000;
 const CachedMarketPriceSchema = z.object({
   symbol: z.string(),
   price: z.number().positive(),
-  currency: z.enum(["USD", "PLN"]),
+  currency: supportedCurrencySchema,
   provider: z.enum(["finnhub", "yahoo"]),
   fetchedAt: z.iso.datetime(),
 });

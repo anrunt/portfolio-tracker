@@ -1,5 +1,6 @@
 "use client";
 
+import type { SupportedCurrency } from "@/domain/currency";
 import type { PortfolioStats } from "@/hooks/use-portfolio-stats";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +10,7 @@ interface WalletHeaderProps {
   wallet: {
     id: string;
     name: string;
-    currency: string;
+    currency: SupportedCurrency;
   };
   stats: PortfolioStats;
 }
@@ -37,7 +38,7 @@ export default function WalletHeader({
           <div className="h-4 w-px bg-border/60 shrink-0" />
 
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
+            <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
             <span className="font-(family-name:--font-jb-mono) text-[11px] font-bold tracking-[0.2em] uppercase text-primary truncate">
               {wallet.name}
             </span>

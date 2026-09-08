@@ -2,10 +2,8 @@ import { JetBrains_Mono } from "next/font/google";
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
-import { getPrice } from "@/server/actions/dashboard/market-data";
+import { getPrice } from "@/server/services/market-data/market-data";
 import type { PriceResultData, TimeRange } from "@/server/actions/types";
-import { Result } from "better-result";
-import type { SerializedError } from "@/server/actions/types";
 import WalletChart from "./wallet-chart";
 import WalletPageClient from "./wallet-page-client";
 
@@ -48,13 +46,10 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
   const positionsSymbols = Object.keys(groupedPositions);
   const exchange = wallet.currency === "USD" ? "US" : "WA";
 
-  const serializedPrices = await getPrice(positionsSymbols, exchange);
-  const deserializedPrices = Result.deserialize<PriceResultData, SerializedError>(serializedPrices);
-
-  const initialPriceData: PriceResultData =
-    deserializedPrices && Result.isOk(deserializedPrices)
-      ? deserializedPrices.value
-      : { prices: [], failures: [] };
+  const priceResult = await getPrice(positionsSymbols, exchange);
+  const initialPriceData: PriceResultData = priceResult.isOk()
+    ? priceResult.value
+    : { prices: [], failures: [] };
 
   const walletProps = {
     wallet: {

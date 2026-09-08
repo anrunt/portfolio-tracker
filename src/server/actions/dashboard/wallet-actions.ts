@@ -6,11 +6,15 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { Result } from "better-result";
 import { z } from "zod";
 
+import {
+  SUPPORTED_CURRENCIES,
+  supportedCurrencySchema,
+} from "@/domain/currency";
 import { getSession } from "../../better-auth/session";
 import { db } from "../../db";
 import { numToNumericString } from "../../db/numeric";
 import { QUERIES } from "../../db/queries";
-import { portfolioTransaction, wallet } from "../../db/schema";
+import { portfolioTransaction, wallet, walletNetInvestedBalance } from "../../db/schema";
 import {
   DatabaseError,
   NotFoundError,
@@ -18,6 +22,7 @@ import {
   ValidationError,
   type WalletError,
 } from "../../errors";
+import { applyWalletNetInvestedChange, getWalletNetInvestedFxRate } from "@/server/services/update-wallet-net-invested-balance";
 
 const walletSchema = z.object({
   name: z
@@ -25,9 +30,7 @@ const walletSchema = z.object({
     .trim()
     .min(2, { error: "Wallet name must be at least 2 characters" })
     .max(50, { error: "Wallet name can't be longer than 50 characters!" }),
-  currency: z.enum(["USD", "PLN"], {
-    error: "Please select a valid currency (USD or PLN)",
-  }),
+  currency: supportedCurrencySchema,
 });
 
 export async function addWallet(
@@ -70,19 +73,42 @@ async function addWalletResult(
       );
     }
 
+    const existingWallet = await QUERIES.getActiveWalletByNameAndCurrency(
+      user.session.userId,
+      parsed.data.name,
+      parsed.data.currency
+    );
+
+    if (existingWallet) {
+      return Result.err(
+        new ValidationError({
+          message: "A wallet with this name and currency already exists.",
+        })
+      );
+    }
+
     console.log("Adding wallet:", { name, currency });
 
     yield* Result.await(
       Result.tryPromise({
         try: async () => {
-          await db.insert(wallet).values({
-            id: randomUUID(),
-            name: parsed.data.name,
-            userId: user.session.userId,
-            currency: parsed.data.currency,
-          });
+          await db.transaction(async (tx) => {
+            const walletId = randomUUID();
+
+            await tx.insert(wallet).values({
+              id: walletId,
+              name: parsed.data.name,
+              userId: user.session.userId,
+              currency: parsed.data.currency,
+            })
+
+            await tx.insert(walletNetInvestedBalance).values(
+              SUPPORTED_CURRENCIES.map((currency) => ({ walletId, currency })),
+            )
+
+          })
         },
-        catch: (e) => new DatabaseError({ operation: "insert wallet", cause: e }),
+        catch: (e) => new DatabaseError({ operation: "insert wallet with balances", cause: e }),
       })
     );
 
@@ -150,6 +176,20 @@ async function renameWalletResult(formData: FormData, walletId: string): Promise
       );
     }
 
+    const existingWallet = await QUERIES.getActiveWalletByNameAndCurrency(
+      user.session.userId,
+      parsedName.data.name,
+      userWallet.currency
+    );
+
+    if (existingWallet && existingWallet.id !== walletId) {
+      return Result.err(
+        new ValidationError({
+          message: "A wallet with this name and currency already exists.",
+        })
+      );
+    }
+
     yield* Result.await(
       Result.tryPromise({
         try: async () => {
@@ -158,7 +198,7 @@ async function renameWalletResult(formData: FormData, walletId: string): Promise
             .set({name: parsedName.data.name})
             .where(and(eq(wallet.id, walletId), eq(wallet.userId, user.session.userId)))
         },
-        catch: (e) => new DatabaseError({ operation: "insert wallet", cause: e }),
+        catch: (e) => new DatabaseError({ operation: "rename wallet", cause: e }),
       })
     )
 
@@ -287,6 +327,7 @@ export async function withdrawCashResult(
               .select({
                 id: wallet.id,
                 cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
+                currency: wallet.currency
               })
               .from(wallet)
               .where(
@@ -311,6 +352,9 @@ export async function withdrawCashResult(
               });
             }
 
+            const withdrawalDate = new Date();
+            const fxRate = await getWalletNetInvestedFxRate(tx, { date: withdrawalDate });
+
             await tx.insert(portfolioTransaction).values({
               id: randomUUID(),
               walletId,
@@ -324,6 +368,8 @@ export async function withdrawCashResult(
               cashUsed: "0",
               externalContribution: "0",
               realizedPl: "0",
+              createdAt: withdrawalDate,
+              fxRateId: fxRate.id,
             });
 
             await tx
@@ -339,6 +385,15 @@ export async function withdrawCashResult(
                   isNull(wallet.deletedAt)
                 )
               );
+
+            await applyWalletNetInvestedChange(
+              tx,
+              walletId,
+              userWallet.currency,
+              parsed.data.withdrawAmount,
+              "decrease",
+              fxRate.rate
+            );
           });
         },
         catch: (e) =>

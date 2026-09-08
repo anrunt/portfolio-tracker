@@ -1,5 +1,6 @@
 "use client";
 
+import type { SupportedCurrency } from "@/domain/currency";
 import {
   Dialog,
   DialogClose,
@@ -19,7 +20,7 @@ interface PositionProps {
   companyName: string;
   quantity: number;
   pricePerShare: number;
-  currency: string;
+  currency: SupportedCurrency;
   currentPrice?: number;
   gridLayoutClass: string;
 }

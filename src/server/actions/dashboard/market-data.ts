@@ -8,17 +8,12 @@ import {
   ConfigError,
   UnauthenticatedError,
   ValidationError,
-  type PriceError,
   type SearchTickerError,
 } from "../../errors";
 import type {
   FinnhubStock,
-  PriceResultData,
   SerializedError,
 } from "../types";
-import { getPrices } from "@/server/services/market-data/get-prices";
-import { toPriceResultData } from "@/server/services/market-data/mappers";
-import type { GetPricesInput } from "@/server/services/market-data/types";
 
 export async function searchTicker(
   query: string,
@@ -80,40 +75,4 @@ async function searchTickerResult(
     console.log("Finnhub data: ", fetchResult);
     return Result.ok(fetchResult);
   });
-}
-
-export async function getPrice(companySymbols: string[], exchange: string): Promise<SerializedResult<PriceResultData, SerializedError>> {
-  const result = await getPriceResult(companySymbols, exchange);
-  return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
-}
-
-async function getPriceResult(companySymbols: string[], exchange: string): Promise<Result<PriceResultData, PriceError>> {
-  return Result.gen(async function* () {
-    const session = await getSession();
-    if (!session) {
-      return Result.err(new UnauthenticatedError());
-    }
-
-    if (exchange !== "US" && exchange !== "WA") {
-      return Result.err(
-        new ValidationError({
-          field: "exchange",
-          message: "Unsupported exchange. Must be 'US' or 'WA'.",
-        })
-      );
-    }
-
-    const input: GetPricesInput = {
-      symbols: companySymbols,
-      exchange: exchange,
-      mode: "user-refresh",
-      operationId: crypto.randomUUID()
-    }
-
-    const prices = yield* Result.await(
-      getPrices(input)
-    );
-
-    return Result.ok(toPriceResultData(prices));
-  })
 }

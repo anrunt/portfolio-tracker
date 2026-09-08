@@ -1,7 +1,9 @@
 import { relations, sql } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index, pgEnum, date, uniqueIndex, numeric, check } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, pgEnum, date, uniqueIndex, numeric, check, primaryKey } from "drizzle-orm/pg-core";
 
-export const currencyEnum = pgEnum("currency_enum", ["USD", "PLN"]);
+import { SUPPORTED_CURRENCIES } from "@/domain/currency";
+
+export const currencyEnum = pgEnum("currency_enum", SUPPORTED_CURRENCIES);
 export const granularityEnum = pgEnum("granularity_enum", ["daily", "intraday"]);
 export const portfolioTransactionTypeEnum = pgEnum("portfolio_transaction_type_enum", [
   "BUY",
@@ -82,21 +84,43 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const wallet = pgTable("wallet", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  userId: text("user_id")
+export const wallet = pgTable(
+  "wallet",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    currency: currencyEnum("currency").notNull(),
+    cashBalance: numeric("cash_balance", { precision: 20, scale: 10 }).default("0").notNull(),
+    totalBuyCost: numeric("total_buy_cost", { precision: 20, scale: 10 }).default("0").notNull(),
+    totalContributed: numeric("total_contributed", { precision: 20, scale: 10 }).default("0").notNull(),
+    totalWithdrawn: numeric("total_withdrawn", { precision: 20, scale: 10 }).default("0").notNull(),
+    realizedPl: numeric("realized_pl", { precision: 20, scale: 10 }).default("0").notNull(),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("wallet_user_name_currency_uq")
+      .on(table.userId, table.name, table.currency)
+      .where(sql`${table.deletedAt} is null`),
+  ],
+);
+
+export const walletNetInvestedBalance = pgTable("wallet_net_invested_balance", {
+  walletId: text("wallet_id")
     .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+    .references(() => wallet.id, { onDelete: "cascade" }),
   currency: currencyEnum("currency").notNull(),
-  cashBalance: numeric("cash_balance", { precision: 20, scale: 10 }).default("0").notNull(),
-  totalBuyCost: numeric("total_buy_cost", { precision: 20, scale: 10 }).default("0").notNull(),
-  totalContributed: numeric("total_contributed", { precision: 20, scale: 10 }).default("0").notNull(),
-  totalWithdrawn: numeric("total_withdrawn", { precision: 20, scale: 10 }).default("0").notNull(),
-  realizedPl: numeric("realized_pl", { precision: 20, scale: 10 }).default("0").notNull(),
-  deletedAt: timestamp("deleted_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  netInvested: numeric("net_invested", {precision: 20, scale: 10}).default("0").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull()
+  }, (table) => [
+    primaryKey({
+      columns: [table.walletId, table.currency]
+    })
+  ]
+);
 
 export const position = pgTable("position", {
   id: text("id").primaryKey(),
@@ -118,6 +142,7 @@ export const portfolioTransaction = pgTable("portfolio_transaction", {
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
   positionId: text("position_id").references(() => position.id, { onDelete: "set null" }),
+  fxRateId: text("fx_rate_id").references(() => fxRates.id, { onDelete: "restrict" }),
   type: portfolioTransactionTypeEnum("type").notNull(),
   companyName: text("company_name"),
   companySymbol: text("company_symbol"),
@@ -135,12 +160,13 @@ export const walletDailySnapshot = pgTable("wallet_daily_snapshot", {
   walletId: text("wallet_id")
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
+  currency: currencyEnum("currency").notNull(),
   totalValue: numeric("total_value", { precision: 20, scale: 10 }).notNull(),
   netInvested: numeric("net_invested", { precision: 20, scale: 10 }).notNull(),
   snapshotDate: date("snapshot_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  uniqueIndex("wallet_daily_snapshot_wallet_date_idx").on(table.walletId, table.snapshotDate),
+  uniqueIndex("wallet_daily_snapshot_wallet_date_idx").on(table.walletId, table.snapshotDate, table.currency),
 ]);
 
 export const walletIntradaySnapshot = pgTable("wallet_intraday_snapshot", {
@@ -148,11 +174,14 @@ export const walletIntradaySnapshot = pgTable("wallet_intraday_snapshot", {
   walletId: text("wallet_id")
     .notNull()
     .references(() => wallet.id, { onDelete: "cascade" }),
+  currency: currencyEnum("currency").notNull(),
   totalValue: numeric("total_value", { precision: 20, scale: 10 }).notNull(),
   netInvested: numeric("net_invested", { precision: 20, scale: 10 }).notNull(),
   snapshotAt: timestamp("snapshot_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("wallet_intraday_snapshot_wallet_time_idx").on(table.walletId, table.snapshotAt, table.currency)
+]);
 
 export const fxRates = pgTable("fx_rates", {
   id: text("id").primaryKey(),

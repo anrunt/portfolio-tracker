@@ -4,6 +4,10 @@ Portfolio Tracker tracks wallet holdings and portfolio value over time using mar
 
 ## Language
 
+**Supported Currency**:
+A currency that Portfolio Tracker recognizes and permits for wallets, portfolio display, snapshots, and exchange rates.
+_Avoid_: Market currency or display currency when referring to the complete supported set
+
 **Wallet**:
 A user-owned container for cash balance, holdings, contributions, withdrawals, and performance history.
 _Avoid_: Account, portfolio account

@@ -1,6 +1,21 @@
-import { and, asc, desc, eq, gt, gte, isNull, lte, sql } from "drizzle-orm";
+import type { SupportedCurrency } from "@/domain/currency";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { db } from ".";
-import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot } from "./schema";
+import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot, walletNetInvestedBalance } from "./schema";
 
 export const QUERIES = {
   getWallets: function (userId: string) {
@@ -26,18 +41,42 @@ export const QUERIES = {
       .groupBy(wallet.id)
   },
 
-  getWalletsWithLatestSnapshot: function (userId: string) {
-    const latestSnapshot = db
+  getWalletsWithLatestSnapshot: function (userId: string, displayCurrency?: SupportedCurrency) {
+    const valuationCurrency = displayCurrency ?? wallet.currency;
+    const latestIntraday = db
       .select({
-        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value"),
-        netInvested: sql<number>`(${walletIntradaySnapshot.netInvested})::double precision`.as("net_invested"),
+        totalValueIntraday: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value_intraday"),
+        netInvestedIntraday: sql<number>`(${walletIntradaySnapshot.netInvested})::double precision`.as("net_invested_intraday"),
         snapshotAt: walletIntradaySnapshot.snapshotAt,
       })
       .from(walletIntradaySnapshot)
-      .where(eq(walletIntradaySnapshot.walletId, wallet.id))
+      .where(
+        and(
+          eq(walletIntradaySnapshot.walletId, wallet.id),
+          eq(walletIntradaySnapshot.currency, valuationCurrency)
+        )
+      )
       .orderBy(desc(walletIntradaySnapshot.snapshotAt))
       .limit(1)
-      .as("latest_snapshot");
+      .as("latest_intraday_snapshot");
+
+    const latestDaily = db
+      .select({
+        totalValueDaily: sql<number>`(${walletDailySnapshot.totalValue})::double precision`.as("total_value_daily"),
+        netInvestedDaily: sql<number>`(${walletDailySnapshot.netInvested})::double precision`.as("net_invested_daily"),
+        snapshotDate: walletDailySnapshot.snapshotDate,
+        createdAt: walletDailySnapshot.createdAt,
+      })
+      .from(walletDailySnapshot)
+      .where(
+        and(
+          eq(walletDailySnapshot.walletId, wallet.id),
+          eq(walletDailySnapshot.currency, valuationCurrency)
+        )
+      )
+      .orderBy(desc(walletDailySnapshot.snapshotDate))
+      .limit(1)
+      .as("latest_daily_snapshot");
 
     const walletFallback = db
       .select({
@@ -59,13 +98,40 @@ export const QUERIES = {
         name: wallet.name,
         userId: wallet.userId,
         currency: wallet.currency,
+        valuationCurrency: sql<SupportedCurrency>`${valuationCurrency}`.as("valuation_currency"),
         createdAt: wallet.createdAt,
-        totalValue: sql<number>`coalesce(${latestSnapshot.totalValue}, ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision)`.as("total_value"),
-        netInvested: sql<number>`coalesce(${latestSnapshot.netInvested}, (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision)`.as("net_invested"),
-        snapshotAt: latestSnapshot.snapshotAt,
+        totalValue: sql<number | null>`coalesce(
+          ${latestIntraday.totalValueIntraday},
+          ${latestDaily.totalValueDaily},
+          case
+            when ${valuationCurrency} = ${wallet.currency}
+              then ${walletFallback.holdingsValue} + (${wallet.cashBalance})::double precision
+            else null
+          end
+        )`.as("total_value"),
+        netInvested: sql<number | null>`coalesce(
+          ${latestIntraday.netInvestedIntraday},
+          ${latestDaily.netInvestedDaily},
+          case
+            when ${valuationCurrency} = ${wallet.currency}
+              then (${wallet.totalContributed})::double precision - (${wallet.totalWithdrawn})::double precision
+            else null
+          end
+        )`.as("net_invested"),
+        snapshotAt: sql<Date | null>`coalesce(
+          ${latestIntraday.snapshotAt},
+          ${latestDaily.createdAt}
+        )`.mapWith(walletIntradaySnapshot.snapshotAt).as("snapshot_at"),
+        valueSource: sql<"intraday" | "daily" | "cost-basis" | "unavailable">`case
+          when ${latestIntraday.snapshotAt} is not null then 'intraday'
+          when ${latestDaily.createdAt} is not null then 'daily'
+          when ${valuationCurrency} = ${wallet.currency} then 'cost-basis'
+          else 'unavailable'
+        end`.as("value_source"),
       })
       .from(wallet)
-      .leftJoinLateral(latestSnapshot, sql`true`)
+      .leftJoinLateral(latestIntraday, sql`true`)
+      .leftJoinLateral(latestDaily, sql`true`)
       .leftJoinLateral(walletFallback, sql`true`)
       .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)));
   },
@@ -91,6 +157,26 @@ export const QUERIES = {
       .then((result) => result[0]);
   },
 
+  getActiveWalletByNameAndCurrency: async function (
+    userId: string,
+    name: string,
+    currency: SupportedCurrency
+  ) {
+    return db
+      .select({ id: wallet.id })
+      .from(wallet)
+      .where(
+        and(
+          eq(wallet.userId, userId),
+          eq(wallet.name, name),
+          eq(wallet.currency, currency),
+          isNull(wallet.deletedAt)
+        )
+      )
+      .limit(1)
+      .then((result) => result[0]);
+  },
+
   getWalletPositions: function (walletId: string, userId: string) {
     return db
       .select({
@@ -107,9 +193,9 @@ export const QUERIES = {
       .innerJoin(wallet, eq(position.walletId, wallet.id))
       .where(
         and(
-          eq(position.walletId, walletId), 
+          eq(position.walletId, walletId),
           eq(wallet.userId, userId),
-          gt(position.quantity, "0"), 
+          gt(position.quantity, "0"),
           isNull(position.closedAt),
           isNull(wallet.deletedAt)
         )
@@ -171,6 +257,49 @@ export const QUERIES = {
           isNull(wallet.deletedAt)
         )
       );
+  },
+
+  getUserTransactionHistory: function(
+    userId: string,
+    companyNameOrSymbol: string,
+    walletNames?: string[]
+  ) {
+    return db
+      .select({
+        wallet: {
+          id: wallet.id,
+          name: wallet.name,
+          currency: wallet.currency,
+        },
+        transaction: {
+          type: portfolioTransaction.type,
+          companyName: portfolioTransaction.companyName,
+          companySymbol: portfolioTransaction.companySymbol,
+          quantity: sql<number>`(${portfolioTransaction.quantity})::double precision`,
+          pricePerShare: sql<number>`(${portfolioTransaction.pricePerShare})::double precision`,
+          transactionValue: sql<number>`(${portfolioTransaction.transactionValue})::double precision`,
+          realizedPl: sql<number>`(${portfolioTransaction.realizedPl})::double precision`,
+          createdAt: portfolioTransaction.createdAt,
+        },
+      })
+      .from(portfolioTransaction)
+      .innerJoin(wallet, eq(portfolioTransaction.walletId, wallet.id))
+      .where(
+        and(
+          eq(wallet.userId, userId),
+          isNull(wallet.deletedAt),
+          inArray(portfolioTransaction.type, ["BUY", "SELL"]),
+          isNotNull(portfolioTransaction.quantity), // Always not null but i need to make ts happy
+          isNotNull(portfolioTransaction.pricePerShare), // Always not null but i need to make ts happy
+          or(
+            ilike(portfolioTransaction.companySymbol, companyNameOrSymbol),
+            ilike(portfolioTransaction.companySymbol, `${companyNameOrSymbol}.%`),
+            ilike(portfolioTransaction.companyName, `%${companyNameOrSymbol}%`)
+          ),
+          walletNames ? inArray(sql<string>`lower(${wallet.name})`, walletNames) : undefined
+        )
+      )
+      .orderBy(desc(portfolioTransaction.createdAt));
   },
 
   getActivePositionsBySymbol: function (walletId: string, userId: string, companySymbol: string) {
@@ -241,7 +370,7 @@ export const QUERIES = {
         },
       })
       .from(wallet)
-      .leftJoin(position, 
+      .leftJoin(position,
         and(
           eq(wallet.id, position.walletId), // Left join to include wallets without positions but with cash balance
           gt(position.quantity, "0"),
@@ -250,7 +379,43 @@ export const QUERIES = {
       .where(isNull(wallet.deletedAt))
   },
 
-  getDailyPortfolioData: function(walletId: string, startDate: string) {
+  getUserWalletsWithPositions: function(userId: string) {
+    return db
+      .select({
+        wallet: {
+          id: wallet.id,
+          name: wallet.name,
+          currency: wallet.currency,
+          createdAt: wallet.createdAt,
+        },
+        position: {
+          id: position.id,
+          walletId: position.walletId,
+          companyName: position.companyName,
+          companySymbol: position.companySymbol,
+          pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
+          quantity: sql<number>`(${position.quantity})::double precision`,
+          createdAt: position.createdAt,
+        },
+      })
+      .from(wallet)
+      .leftJoin(
+        position,
+        and(
+          eq(wallet.id, position.walletId),
+          gt(position.quantity, "0"),
+          isNull(position.closedAt)
+        )
+      )
+      .where(
+        and(
+          eq(wallet.userId, userId),
+          isNull(wallet.deletedAt)
+        )
+      );
+  },
+
+  getDailyPortfolioData: function(walletId: string, startDate: string, walletCurrency: SupportedCurrency) {
     return db
       .select({
         id: walletDailySnapshot.id,
@@ -264,13 +429,14 @@ export const QUERIES = {
       .where(
         and(
           eq(walletDailySnapshot.walletId, walletId),
+          eq(walletDailySnapshot.currency, walletCurrency),
           gte(walletDailySnapshot.snapshotDate, startDate)
         )
       )
       .orderBy(asc(walletDailySnapshot.snapshotDate))
   },
 
-  getIntradayPortfolioData: function(walletId: string, startOfToday: Date) {
+  getIntradayPortfolioData: function(walletId: string, startOfToday: Date, walletCurrency: SupportedCurrency) {
     return db
       .select({
         id: walletIntradaySnapshot.id,
@@ -284,14 +450,15 @@ export const QUERIES = {
       .where(
         and(
           eq(walletIntradaySnapshot.walletId, walletId),
+          eq(walletIntradaySnapshot.currency, walletCurrency),
           gte(walletIntradaySnapshot.snapshotAt, startOfToday)
         )
       )
       .orderBy(asc(walletIntradaySnapshot.snapshotAt))
   },
 
-  
-  getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date) {
+
+  getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date, displayCurrency: SupportedCurrency) {
     return db
       .select({
         snapshotAt: walletIntradaySnapshot.snapshotAt,
@@ -305,6 +472,7 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
+          eq(walletIntradaySnapshot.currency, displayCurrency),
           isNull(wallet.deletedAt),
           gte(walletIntradaySnapshot.snapshotAt, startOfToday)
         )
@@ -314,7 +482,7 @@ export const QUERIES = {
       );
   },
 
-  getAllWalletsDailyPortfolioData: function(userId: string, startDate: string) {
+  getAllWalletsDailyPortfolioData: function(userId: string, startDate: string, displayCurrency: SupportedCurrency) {
     return db
       .select({
         snapshotDate: walletDailySnapshot.snapshotDate,
@@ -328,6 +496,7 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
+          eq(walletDailySnapshot.currency, displayCurrency),
           isNull(wallet.deletedAt),
           gte(walletDailySnapshot.snapshotDate, startDate)
         )
@@ -337,13 +506,28 @@ export const QUERIES = {
       )
   },
 
-  getUserDisplayCurrency: function (userId: string) {
+  getAllWalletsNetInvestedBalance: function() {
+    return db
+      .select({
+        walletId: walletNetInvestedBalance.walletId,
+        currency: walletNetInvestedBalance.currency,
+        netInvested: walletNetInvestedBalance.netInvested
+      })
+      .from(walletNetInvestedBalance)
+      .innerJoin(wallet, eq(wallet.id, walletNetInvestedBalance.walletId))
+      .where(
+        isNull(wallet.deletedAt)
+      )
+  },
+
+  getUserDisplayCurrency: async function (userId: string) {
     return db
       .select({
         displayCurrency: user.displayCurrency
       })
-      .from(user)  
+      .from(user)
       .where(eq(user.id, userId))
+      .then((r) => r[0] ?? null)
   },
 
   getFxRateBefore: async function (startDate: Date) {
