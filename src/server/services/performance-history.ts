@@ -61,22 +61,23 @@ export type PortfolioPerformanceHistoryResult =
       status: "failed";
       error:
         | "display-currency-unavailable"
-        | "exchange-rate-unavailable";
     };
 
 export async function getWalletPerformanceHistory({
   walletId,
+  walletCurrency,
   period,
   now,
 }: {
   walletId: string;
+  walletCurrency: SupportedCurrency
   period: PerformanceHistoryPeriod;
   now: Date;
 }): Promise<PerformanceHistoryResult> {
   const start = getPeriodStart(period, now);
 
   if (period === "today") {
-    const rows = await QUERIES.getIntradayPortfolioData(walletId, start);
+    const rows = await QUERIES.getIntradayPortfolioData(walletId, start, walletCurrency);
     const points = rows.map((row) => ({
       at: row.snapshotAt.toISOString(),
       totalValue: Number(row.totalValue),
@@ -86,7 +87,7 @@ export async function getWalletPerformanceHistory({
     return analyzePerformanceHistory(points, period);
   }
 
-  const rows = await QUERIES.getDailyPortfolioData(walletId, toDateKey(start));
+  const rows = await QUERIES.getDailyPortfolioData(walletId, toDateKey(start), walletCurrency);
   const points = rows.map((row) => ({
     at: row.snapshotDate,
     totalValue: Number(row.totalValue),
@@ -119,14 +120,7 @@ export async function getPortfolioPerformanceHistory({
   const history =
     period === "today"
       ? await getIntradayPortfolioHistory(userId, start, currency)
-      : await getDailyPortfolioHistory(userId, start, now, currency);
-
-  if (history === null) {
-    return {
-      status: "failed",
-      error: "exchange-rate-unavailable",
-    };
-  }
+      : await getDailyPortfolioHistory(userId, start, currency);
 
   return {
     status: "ready",
@@ -139,39 +133,23 @@ async function getIntradayPortfolioHistory(
   userId: string,
   startOfToday: Date,
   displayCurrency: SupportedCurrency,
-): Promise<PerformanceHistoryPoint[] | null> {
+): Promise<PerformanceHistoryPoint[]> {
   const rows = await QUERIES.getAllWalletsIntradayPortfolioData(
     userId,
     startOfToday,
+    displayCurrency
   );
-  const needsFxRate = rows.some(
-    (row) => row.walletCurrency !== displayCurrency,
-  );
-  const fxRate = needsFxRate
-    ? await QUERIES.getFxRateBefore(startOfToday)
-    : null;
-
-  if (needsFxRate && !fxRate) {
-    return null;
-  }
 
   const pointsByTimestamp = new Map<string, PerformanceHistoryPoint>();
 
   for (const row of rows) {
     const at = row.snapshotAt.toISOString();
-    const converted = convertSnapshotValues(
-      Number(row.totalValue),
-      Number(row.netInvested),
-      row.walletCurrency,
-      displayCurrency,
-      fxRate,
-    );
-
-    if (!converted) {
-      return null;
+    const data = {
+      totalValue: row.totalValue,
+      netInvested: row.netInvested
     }
 
-    addToPoint(pointsByTimestamp, at, converted);
+    addToPoint(pointsByTimestamp, at, data);
   }
 
   return [...pointsByTimestamp.values()];
@@ -180,106 +158,24 @@ async function getIntradayPortfolioHistory(
 async function getDailyPortfolioHistory(
   userId: string,
   start: Date,
-  now: Date,
   displayCurrency: SupportedCurrency,
-): Promise<PerformanceHistoryPoint[] | null> {
+): Promise<PerformanceHistoryPoint[]> {
   const startDate = toDateKey(start);
-  const rows = await QUERIES.getAllWalletsDailyPortfolioData(userId, startDate);
-  const sortedRows = [...rows].sort((left, right) =>
-    left.snapshotDate.localeCompare(right.snapshotDate),
-  );
-  const needsFxRates = sortedRows.some(
-    (row) => row.walletCurrency !== displayCurrency,
-  );
 
-  const rates = needsFxRates
-    ? await getHistoricalFxRates(start, now)
-    : [];
+  const rows = await QUERIES.getAllWalletsDailyPortfolioData(userId, startDate, displayCurrency);
 
   const pointsByDate = new Map<string, PerformanceHistoryPoint>();
-  let currentRate: (typeof rates)[number] | null = null;
-  let rateIndex = 0;
 
-  for (const row of sortedRows) {
-    while (
-      rateIndex < rates.length &&
-      rates[rateIndex].date <= row.snapshotDate
-    ) {
-      currentRate = rates[rateIndex];
-      rateIndex += 1;
+  for (const row of rows) {
+    const data = {
+      totalValue: row.totalValue,
+      netInvested: row.netInvested
     }
 
-    const converted = convertSnapshotValues(
-      Number(row.totalValue),
-      Number(row.netInvested),
-      row.walletCurrency,
-      displayCurrency,
-      currentRate?.rate ?? null,
-    );
-
-    if (!converted) {
-      return null;
-    }
-
-    addToPoint(pointsByDate, row.snapshotDate, converted);
+    addToPoint(pointsByDate, row.snapshotDate, data);
   }
 
   return [...pointsByDate.values()];
-}
-
-async function getHistoricalFxRates(start: Date, now: Date) {
-  const [ratesInRange, fallbackRate] = await Promise.all([
-    QUERIES.getFxRatesInRange(start, now),
-    QUERIES.getFxRateBefore(start),
-  ]);
-
-  return [
-    ...(fallbackRate ? [fallbackRate] : []),
-    ...ratesInRange,
-  ]
-    .sort((left, right) => left.asOf.getTime() - right.asOf.getTime())
-    .map((rate) => ({
-      date: toDateKey(rate.asOf),
-      rate,
-    }));
-}
-
-function convertSnapshotValues(
-  totalValue: number,
-  netInvested: number,
-  sourceCurrency: SupportedCurrency,
-  targetCurrency: SupportedCurrency,
-  fxRate: Awaited<ReturnType<typeof QUERIES.getFxRateBefore>> | null,
-) {
-  if (sourceCurrency === targetCurrency) {
-    return { totalValue, netInvested };
-  }
-
-  if (!fxRate) {
-    return null;
-  }
-
-  if (
-    sourceCurrency === fxRate.baseCurrency &&
-    targetCurrency === fxRate.quoteCurrency
-  ) {
-    return {
-      totalValue: totalValue * fxRate.rate,
-      netInvested: netInvested * fxRate.rate,
-    };
-  }
-
-  if (
-    sourceCurrency === fxRate.quoteCurrency &&
-    targetCurrency === fxRate.baseCurrency
-  ) {
-    return {
-      totalValue: totalValue / fxRate.rate,
-      netInvested: netInvested / fxRate.rate,
-    };
-  }
-
-  return null;
 }
 
 function addToPoint(

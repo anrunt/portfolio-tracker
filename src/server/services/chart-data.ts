@@ -52,6 +52,7 @@ export async function getWalletChartData(
     const now = new Date();
     const history = await getWalletPerformanceHistory({
       walletId,
+      walletCurrency: wallet.currency,
       period,
       now,
     });
@@ -87,12 +88,7 @@ export async function getAllWalletsPortfolioData(
     });
 
     if (result.status === "failed") {
-      const resource =
-        result.error === "display-currency-unavailable"
-          ? "User displayCurrency"
-          : "Fx rate";
-
-      return Result.err(new NotFoundError({ resource }));
+      return Result.err(new NotFoundError({ resource: result.error }));
     }
 
     return Result.ok(toChartDataPoints(result.history.points, period));

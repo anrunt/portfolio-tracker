@@ -49,7 +49,12 @@ export const QUERIES = {
         snapshotAt: walletIntradaySnapshot.snapshotAt,
       })
       .from(walletIntradaySnapshot)
-      .where(eq(walletIntradaySnapshot.walletId, wallet.id))
+      .where(
+        and(
+          eq(walletIntradaySnapshot.walletId, wallet.id),
+          eq(walletIntradaySnapshot.currency, wallet.currency)
+        )
+      )
       .orderBy(desc(walletIntradaySnapshot.snapshotAt))
       .limit(1)
       .as("latest_intraday_snapshot");
@@ -62,7 +67,12 @@ export const QUERIES = {
         createdAt: walletDailySnapshot.createdAt,
       })
       .from(walletDailySnapshot)
-      .where(eq(walletDailySnapshot.walletId, wallet.id))
+      .where(
+        and(
+          eq(walletDailySnapshot.walletId, wallet.id),
+          eq(walletDailySnapshot.currency, wallet.currency)
+        )
+      )
       .orderBy(desc(walletDailySnapshot.snapshotDate))
       .limit(1)
       .as("latest_daily_snapshot");
@@ -394,7 +404,7 @@ export const QUERIES = {
       );
   },
 
-  getDailyPortfolioData: function(walletId: string, startDate: string) {
+  getDailyPortfolioData: function(walletId: string, startDate: string, walletCurrency: SupportedCurrency) {
     return db
       .select({
         id: walletDailySnapshot.id,
@@ -408,13 +418,14 @@ export const QUERIES = {
       .where(
         and(
           eq(walletDailySnapshot.walletId, walletId),
+          eq(walletDailySnapshot.currency, walletCurrency),
           gte(walletDailySnapshot.snapshotDate, startDate)
         )
       )
       .orderBy(asc(walletDailySnapshot.snapshotDate))
   },
 
-  getIntradayPortfolioData: function(walletId: string, startOfToday: Date) {
+  getIntradayPortfolioData: function(walletId: string, startOfToday: Date, walletCurrency: SupportedCurrency) {
     return db
       .select({
         id: walletIntradaySnapshot.id,
@@ -428,6 +439,7 @@ export const QUERIES = {
       .where(
         and(
           eq(walletIntradaySnapshot.walletId, walletId),
+          eq(walletIntradaySnapshot.currency, walletCurrency),
           gte(walletIntradaySnapshot.snapshotAt, startOfToday)
         )
       )
@@ -435,7 +447,7 @@ export const QUERIES = {
   },
 
 
-  getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date) {
+  getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date, displayCurrency: SupportedCurrency) {
     return db
       .select({
         snapshotAt: walletIntradaySnapshot.snapshotAt,
@@ -449,6 +461,7 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
+          eq(walletIntradaySnapshot.currency, displayCurrency),
           isNull(wallet.deletedAt),
           gte(walletIntradaySnapshot.snapshotAt, startOfToday)
         )
@@ -458,7 +471,7 @@ export const QUERIES = {
       );
   },
 
-  getAllWalletsDailyPortfolioData: function(userId: string, startDate: string) {
+  getAllWalletsDailyPortfolioData: function(userId: string, startDate: string, displayCurrency: SupportedCurrency) {
     return db
       .select({
         snapshotDate: walletDailySnapshot.snapshotDate,
@@ -472,6 +485,7 @@ export const QUERIES = {
       .where(
         and(
           eq(wallet.userId, userId),
+          eq(walletDailySnapshot.currency, displayCurrency),
           isNull(wallet.deletedAt),
           gte(walletDailySnapshot.snapshotDate, startDate)
         )

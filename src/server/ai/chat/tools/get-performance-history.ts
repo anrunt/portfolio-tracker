@@ -94,7 +94,6 @@ type PerformanceHistoryToolOutput =
       status: "failed";
       error:
         | "display-currency-unavailable"
-        | "exchange-rate-unavailable";
     };
 
 export function createGetPerformanceHistoryTool({ userId }: ChatToolContext) {
@@ -159,6 +158,7 @@ async function getWalletHistoryByName(
     const wallet = matchingWallets[0];
     const result = await getWalletPerformanceHistory({
       walletId: wallet.id,
+      walletCurrency: wallet.currency,
       period,
       now,
     });
@@ -175,6 +175,7 @@ async function getWalletHistoryByName(
     matchingWallets.map(async (wallet) => {
       const result = await getWalletPerformanceHistory({
         walletId: wallet.id,
+        walletCurrency: wallet.currency,
         period,
         now,
       });
