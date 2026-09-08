@@ -12,6 +12,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { deletePosition } from "@/server/actions/dashboard/position-delete-actions";
 import SellPositionDialog from "./sell-position-dialog";
+import PriceSkeleton from "./price-skeleton";
 
 interface PositionProps {
   walletId: string;
@@ -22,6 +23,7 @@ interface PositionProps {
   pricePerShare: number;
   currency: SupportedCurrency;
   currentPrice?: number;
+  isLoadingPrices: boolean;
   gridLayoutClass: string;
 }
 
@@ -34,6 +36,7 @@ export default function Position({
   pricePerShare,
   currency,
   currentPrice,
+  isLoadingPrices,
   gridLayoutClass,
 }: PositionProps) {
   const deletePositionWithId = deletePosition.bind(null, positionId, walletId);
@@ -101,7 +104,7 @@ export default function Position({
       </div>
 
       <div className="text-right font-(family-name:--font-jb-mono) text-[11px] tabular-nums text-foreground/70">
-        {typeof currentPrice === "number" ? (
+        {isLoadingPrices ? <PriceSkeleton /> : typeof currentPrice === "number" ? (
           <>
             {formatNumber(currentPrice)}{" "}
             <span className="text-[9px] text-muted-foreground font-semibold">
@@ -116,7 +119,7 @@ export default function Position({
       <div
         className={`text-right font-(family-name:--font-jb-mono) text-[11px] tabular-nums ${plColor}`}
       >
-        {typeof unrealizedPl === "number" ? (
+        {isLoadingPrices ? <PriceSkeleton /> : typeof unrealizedPl === "number" ? (
           <div className="flex flex-col items-end leading-snug">
             <span>
               {formatPl(unrealizedPl)}{" "}

@@ -5,20 +5,20 @@ import { useMemo } from "react";
 interface UsePricesParams {
   symbols: string[];
   exchange: string;
-  initialData: PriceResultData
 }
 
-export function usePrices({symbols, exchange, initialData} : UsePricesParams) {
-  const { data, dataUpdatedAt } = useQuery<PriceResultData>({
+export function usePrices({symbols, exchange} : UsePricesParams) {
+  const { data, dataUpdatedAt, isPending, isFetching, isError } = useQuery<PriceResultData>({
     queryKey: ["prices", symbols, exchange],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         symbol: symbols.join(","),
         exchange,
       });
 
       const result = await fetch(
-        `/api/stock?${params.toString()}`
+        `/api/stock?${params.toString()}`,
+        { signal }
       );
 
       if (!result.ok) {
@@ -27,7 +27,7 @@ export function usePrices({symbols, exchange, initialData} : UsePricesParams) {
 
       return await result.json() as PriceResultData;
     },
-    initialData: initialData,
+    enabled: symbols.length > 0,
     refetchInterval: 75_000 // Cache is 60s so we want fresh data with query refetch
   });
 
@@ -51,6 +51,9 @@ export function usePrices({symbols, exchange, initialData} : UsePricesParams) {
   return {
     pricesBySymbol,
     failedSymbols,
-    dataUpdatedAt
+    dataUpdatedAt,
+    isLoadingPrices: symbols.length > 0 && isPending,
+    isRefreshingPrices: !isPending && isFetching,
+    hasPriceError: isError,
   }
 }

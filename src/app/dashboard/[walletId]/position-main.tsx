@@ -5,6 +5,7 @@ import type { SupportedCurrency } from "@/domain/currency";
 import { ChevronDown } from "lucide-react";
 import Position from "./position";
 import SellAllSymbolDialog from "./sell-all-symbol-dialog";
+import PriceSkeleton from "./price-skeleton";
 
 interface PositionData {
   id: string;
@@ -20,6 +21,7 @@ interface MainPositionProps {
   walletId: string;
   currency: SupportedCurrency;
   currentPrice?: number;
+  isLoadingPrices: boolean;
   gridLayoutClass: string;
 }
 
@@ -29,6 +31,7 @@ export default function MainPosition({
   walletId,
   currency,
   currentPrice,
+  isLoadingPrices,
   gridLayoutClass,
 }: MainPositionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -115,7 +118,7 @@ export default function MainPosition({
           </span>
         </div>
         <div className="text-right font-(family-name:--font-jb-mono) text-[12px] tabular-nums text-foreground">
-          {typeof currentPrice === "number" ? (
+          {isLoadingPrices ? <PriceSkeleton /> : typeof currentPrice === "number" ? (
             <>
               {formatNumber(currentPrice)}{" "}
               <span className="text-[9px] text-muted-foreground font-semibold">
@@ -129,7 +132,7 @@ export default function MainPosition({
         <div
           className={`text-right font-(family-name:--font-jb-mono) text-[12px] tabular-nums ${plColor}`}
         >
-          {typeof unrealizedPl === "number" ? (
+          {isLoadingPrices ? <PriceSkeleton /> : typeof unrealizedPl === "number" ? (
             <div className="flex flex-col items-end leading-snug">
               <span>
                 {formatPl(unrealizedPl)}{" "}
@@ -183,6 +186,7 @@ export default function MainPosition({
                 pricePerShare={pos.pricePerShare}
                 currency={currency}
                 currentPrice={currentPrice}
+                isLoadingPrices={isLoadingPrices}
                 gridLayoutClass={gridLayoutClass}
               />
             ))}

@@ -18,6 +18,8 @@ interface WalletPositionsProps {
   pricesBySymbol: Map<string, number>;
   failedSymbols: Set<string>;
   lastUpdated: string | null;
+  isLoadingPrices: boolean;
+  isRefreshingPrices: boolean;
 }
 
 export default function WalletPositions({
@@ -28,6 +30,8 @@ export default function WalletPositions({
   pricesBySymbol,
   failedSymbols,
   lastUpdated,
+  isLoadingPrices,
+  isRefreshingPrices,
 }: WalletPositionsProps) {
   const gridLayoutClass =
     "grid grid-cols-[65px_1.5fr_65px_110px_110px_110px_150px_44px] gap-3 items-center";
@@ -89,6 +93,7 @@ export default function WalletPositions({
                           : pricesBySymbol.get(symbol)
                       }
                       gridLayoutClass={gridLayoutClass}
+                      isLoadingPrices={isLoadingPrices}
                     />
                   )
                 )}
@@ -99,9 +104,14 @@ export default function WalletPositions({
       </div>
 
       {/* Last Updated indicator */}
-      {lastUpdated && (
+      {(lastUpdated || isLoadingPrices || isRefreshingPrices) && (
         <div className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground/40 text-right pt-2 pr-1 tracking-wider">
-          LAST_UPDATE: {lastUpdated}
+          {isLoadingPrices ? "LOADING PRICES…" : (
+            <>
+              {lastUpdated && <>LAST_UPDATE: {lastUpdated}</>}
+              {isRefreshingPrices && " · REFRESHING PRICES…"}
+            </>
+          )}
         </div>
       )}
     </section>

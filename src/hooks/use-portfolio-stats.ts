@@ -1,6 +1,6 @@
 import type { SupportedCurrency } from "@/domain/currency";
 import { usePrices } from "@/hooks/use-prices";
-import type { PositionData, PriceResultData, WalletMetrics } from "@/server/actions/types";
+import type { PositionData, WalletMetrics } from "@/server/actions/types";
 
 interface UsePortfolioStatsParams {
   wallet: WalletMetrics;
@@ -9,7 +9,6 @@ interface UsePortfolioStatsParams {
   symbols: string[];
   exchange: string;
   currency: SupportedCurrency;
-  initialPriceData: PriceResultData;
 }
 
 export function usePortfolioStats({
@@ -19,12 +18,17 @@ export function usePortfolioStats({
   symbols,
   exchange,
   currency,
-  initialPriceData,
 }: UsePortfolioStatsParams) {
-  const { pricesBySymbol, failedSymbols, dataUpdatedAt } = usePrices({
+  const {
+    pricesBySymbol,
+    failedSymbols,
+    dataUpdatedAt,
+    isLoadingPrices,
+    isRefreshingPrices,
+    hasPriceError,
+  } = usePrices({
     symbols,
     exchange,
-    initialData: initialPriceData,
   });
 
   const holdingsCostBasis = positions.reduce(
@@ -34,27 +38,30 @@ export function usePortfolioStats({
   const totalPositions = positions.length;
   const uniqueSymbols = Object.keys(groupedPositions).length;
 
-  let holdingsValue = 0;
-  let hasAnyPrice = false;
+  let pricedHoldingsValue = 0;
+  let hasMissingPrices = false;
   for (const pos of positions) {
     const livePrice = !failedSymbols.has(pos.companySymbol)
       ? pricesBySymbol.get(pos.companySymbol)
       : undefined;
 
     if (typeof livePrice === "number") {
-      holdingsValue += livePrice * pos.quantity;
-      hasAnyPrice = true;
+      pricedHoldingsValue += livePrice * pos.quantity;
     } else {
-      holdingsValue += pos.pricePerShare * pos.quantity;
+      hasMissingPrices = true;
     }
   }
 
-  const portfolioValue = holdingsValue + wallet.cashBalance;
+  const holdingsValue = hasMissingPrices ? null : pricedHoldingsValue;
+  const portfolioValue = holdingsValue === null ? null : holdingsValue + wallet.cashBalance;
   const netInvested = wallet.totalContributed - wallet.totalWithdrawn;
-  const unrealizedPl = holdingsValue - holdingsCostBasis;
+  const unrealizedPl = holdingsValue === null ? null : holdingsValue - holdingsCostBasis;
   const realizedPl = wallet.realizedPl;
-  const totalPl = portfolioValue - netInvested;
-  const totalPlPercent = netInvested > 0 ? (totalPl / netInvested) * 100 : 0;
+  const totalPl = portfolioValue === null ? null : portfolioValue - netInvested;
+  let totalPlPercent: number | null = null;
+  if (totalPl !== null) {
+    totalPlPercent = netInvested > 0 ? (totalPl / netInvested) * 100 : 0;
+  }
 
   const formatCurrency = (value: number) =>
     value.toLocaleString(currency === "USD" ? "en-US" : "pl-PL", {
@@ -91,7 +98,10 @@ export function usePortfolioStats({
     totalPlPercent,
     totalPositions,
     uniqueSymbols,
-    hasAnyPrice,
+    hasMissingPrices,
+    isLoadingPrices,
+    isRefreshingPrices,
+    hasPriceError,
     formatCurrency,
     formatPl,
     formatPlPercent,
