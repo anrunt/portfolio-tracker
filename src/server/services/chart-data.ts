@@ -5,7 +5,6 @@ import { Result } from "better-result";
 import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import {
-  NotFoundError,
   UnauthenticatedError,
   UnauthorizedError,
   ValidationError,
@@ -18,6 +17,7 @@ import {
   type PerformanceHistoryPoint,
 } from "./performance-history";
 import type { ChartDataPoint, TimeRange } from "@/server/actions/types";
+import type { SupportedCurrency } from "@/domain/currency";
 
 export async function getWalletChartData(
   walletId: string,
@@ -63,6 +63,7 @@ export async function getWalletChartData(
 
 export async function getAllWalletsPortfolioData(
   range: TimeRange,
+  displayCurrency: SupportedCurrency,
 ): Promise<Result<ChartDataPoint[], WalletChartError>> {
   return Result.gen(async function* () {
     const user = await getSession();
@@ -83,13 +84,10 @@ export async function getAllWalletsPortfolioData(
     const now = new Date();
     const result = await getPortfolioPerformanceHistory({
       userId: user.session.userId,
+      displayCurrency,
       period,
       now,
     });
-
-    if (result.status === "failed") {
-      return Result.err(new NotFoundError({ resource: result.error }));
-    }
 
     return Result.ok(toChartDataPoints(result.history.points, period));
   });

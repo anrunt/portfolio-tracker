@@ -3,7 +3,7 @@ import { getSession } from "@/server/better-auth/session";
 import { QUERIES } from "@/server/db/queries";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import type { TimeRange } from "@/server/actions/types";
+import { timeRangeSchema } from "@/lib/chart-query";
 import WalletChart from "./wallet-chart";
 import WalletPageClient from "./wallet-page-client";
 
@@ -14,12 +14,13 @@ const mono = JetBrains_Mono({
 
 interface WalletPageProps {
   params: Promise<{ walletId: string }>;
-  searchParams: Promise<{ range?: TimeRange }>;
+  searchParams: Promise<{ range?: string | string[] }>;
 }
 
 export default async function WalletPage({ params, searchParams }: WalletPageProps) {
   const { walletId } = await params;
-  const range = (await searchParams).range ?? "1D";
+  const rangeParam = (await searchParams).range;
+  const range = timeRangeSchema.catch("1D").parse(rangeParam);
 
   const session = await getSession();
   if (!session) {
@@ -93,7 +94,7 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
               </div>
             }
           >
-            <WalletChart walletId={wallet.id} range={range} />
+            <WalletChart userId={session.user.id} walletId={wallet.id} range={range} />
           </Suspense>
         }
       />

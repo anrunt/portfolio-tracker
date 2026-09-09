@@ -51,17 +51,11 @@ export type PerformanceHistoryResult =
       points: PerformanceHistoryPoint[];
     };
 
-export type PortfolioPerformanceHistoryResult =
-  | {
-      status: "ready";
-      currency: SupportedCurrency;
-      history: PerformanceHistoryResult;
-    }
-  | {
-      status: "failed";
-      error:
-        | "display-currency-unavailable"
-    };
+export type PortfolioPerformanceHistoryResult = {
+  status: "ready";
+  currency: SupportedCurrency;
+  history: PerformanceHistoryResult;
+};
 
 export async function getWalletPerformanceHistory({
   walletId,
@@ -99,32 +93,24 @@ export async function getWalletPerformanceHistory({
 
 export async function getPortfolioPerformanceHistory({
   userId,
+  displayCurrency,
   period,
   now,
 }: {
   userId: string;
+  displayCurrency: SupportedCurrency;
   period: PerformanceHistoryPeriod;
   now: Date;
 }): Promise<PortfolioPerformanceHistoryResult> {
   const start = getPeriodStart(period, now);
-  const preferences = await QUERIES.getUserDisplayCurrency(userId);
-
-  if (!preferences) {
-    return {
-      status: "failed",
-      error: "display-currency-unavailable",
-    };
-  }
-
-  const currency = preferences.displayCurrency;
   const history =
     period === "today"
-      ? await getIntradayPortfolioHistory(userId, start, currency)
-      : await getDailyPortfolioHistory(userId, start, currency);
+      ? await getIntradayPortfolioHistory(userId, start, displayCurrency)
+      : await getDailyPortfolioHistory(userId, start, displayCurrency);
 
   return {
     status: "ready",
-    currency,
+    currency: displayCurrency,
     history: analyzePerformanceHistory(history, period),
   };
 }

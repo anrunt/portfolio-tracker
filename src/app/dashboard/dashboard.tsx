@@ -9,8 +9,7 @@ import {
   SUPPORTED_CURRENCIES,
   type SupportedCurrency,
 } from "@/domain/currency";
-import { ChartDataPoint, TimeRange } from "@/server/actions/types";
-import PerformanceChart from "./performance-chart";
+import PerformanceChartClient from "./performance-chart-client";
 import DisplayCurrencyToggle from "./display-currency-toggle";
 
 const mono = JetBrains_Mono({
@@ -27,13 +26,11 @@ interface Props {
     netInvested: number;
     snapshotAt: Date | null;
   }>;
-  range: TimeRange;
+  userId: string;
   displayCurrency: SupportedCurrency;
-  chartData?: ChartDataPoint[];
-  chartError?: string;
 }
 
-export default function Dashboard({ wallets, range, displayCurrency, chartData, chartError }: Props) {
+export default function Dashboard({ userId, wallets, displayCurrency }: Props) {
   const totalsByCurrency: Partial<Record<SupportedCurrency, number>> = {};
   for (const w of wallets) {
     totalsByCurrency[w.currency] =
@@ -104,71 +101,11 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
 
       <main className="relative max-w-7xl mx-auto px-6 py-8 space-y-6">
         <section className="rounded-lg border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
-          {chartError ? (
-            <>
-              <div className="px-5 py-2.5 border-b border-border flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
-                  <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
-                    Performance Overview
-                  </span>
-                </div>
-                <DisplayCurrencyToggle displayCurrency={displayCurrency} />
-              </div>
-              <div className="px-5 py-8 text-center">
-                <p className="font-(family-name:--font-jb-mono) text-[11px] text-destructive tracking-wider">
-                  ERROR: {chartError}
-                </p>
-              </div>
-            </>
-          ) : chartData ? (
-            <PerformanceChart
-              range={range}
-              data={chartData}
-              basePath="/dashboard"
-              controls={<DisplayCurrencyToggle displayCurrency={displayCurrency} />}
-            />
-          ) : (
-            <>
-              <div className="px-5 py-2.5 border-b border-border flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                  <span className="font-(family-name:--font-jb-mono) text-[10px] text-muted-foreground tracking-[0.2em] uppercase font-medium">
-                    Performance Overview
-                  </span>
-                </div>
-                <DisplayCurrencyToggle displayCurrency={displayCurrency} />
-              </div>
-              <div className="h-90 flex items-center justify-center relative">
-                <div
-                  className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
-                  style={{
-                    backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 3px, currentColor 3px, currentColor 4px)`,
-                  }}
-                />
-                <div className="text-center space-y-3 relative">
-                  <div className="w-14 h-14 mx-auto border border-dashed border-primary/20 rounded flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-primary/30"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                      />
-                    </svg>
-                  </div>
-                  <p className="font-(family-name:--font-jb-mono) text-[11px] text-muted-foreground/30 tracking-wider">
-                    NO_DATA_AVAILABLE
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
+          <PerformanceChartClient
+            userId={userId}
+            scope={{ kind: "portfolio", displayCurrency }}
+            controls={<DisplayCurrencyToggle displayCurrency={displayCurrency} />}
+          />
         </section>
 
         <section>
@@ -194,7 +131,7 @@ export default function Dashboard({ wallets, range, displayCurrency, chartData, 
           ) : (
             <div className="space-y-1.5">
               {wallets.map((w) => (
-                <Wallet key={w.id} wallet={w} />
+                <Wallet key={w.id} userId={userId} wallet={w} />
               ))}
             </div>
           )}

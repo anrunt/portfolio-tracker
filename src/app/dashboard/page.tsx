@@ -2,11 +2,13 @@ import { getSession } from "@/server/better-auth/session";
 import { redirect } from "next/navigation";
 import { QUERIES } from "@/server/db/queries";
 import Dashboard from "./dashboard";
-import { TimeRange } from "@/server/actions/types";
 import { getAllWalletsPortfolioData } from "@/server/services/chart-data";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/app/get-query-clients";
+import { getChartQueryKey, timeRangeSchema, type ChartResponse } from "@/lib/chart-query";
 
 interface DashboardProps {
-  searchParams: Promise<{ range?: TimeRange }>;
+  searchParams: Promise<{ range?: string | string[] }>;
 }
 
 export default async function DashboardPage({ searchParams }: DashboardProps) {
@@ -15,7 +17,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     redirect("/login");
   }
 
-  const range = (await searchParams).range ?? "1D";
+  const rangeParam = (await searchParams).range;
+  const range = timeRangeSchema.catch("1D").parse(rangeParam);
 
   const userWallets = await QUERIES.getWalletsWithLatestSnapshot(session.user.id);
 
@@ -42,25 +45,23 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
 
   const displayCurrency = displayCurrencyRaw.displayCurrency;
 
-  const chartResult = await getAllWalletsPortfolioData(range);
+  const chartResult = await getAllWalletsPortfolioData(range, displayCurrency);
+  const queryClient = getQueryClient();
 
-  if (chartResult.isErr()) {
-    return (
-      <Dashboard
-        wallets={wallets}
-        range={range}
-        displayCurrency={displayCurrency}
-        chartError={chartResult.error.message}
-      />
+  if (chartResult.isOk()) {
+    queryClient.setQueryData(
+      getChartQueryKey(session.user.id, { kind: "portfolio", displayCurrency }, range),
+      { points: chartResult.value } satisfies ChartResponse,
     );
   }
 
   return (
-    <Dashboard
-      wallets={wallets}
-      range={range}
-      displayCurrency={displayCurrency}
-      chartData={chartResult.value}
-    />
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <Dashboard
+        userId={session.user.id}
+        wallets={wallets}
+        displayCurrency={displayCurrency}
+      />
+    </HydrationBoundary>
   );
 }

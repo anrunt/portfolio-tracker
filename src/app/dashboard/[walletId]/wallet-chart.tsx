@@ -1,26 +1,30 @@
 import { getWalletChartData } from "@/server/services/chart-data";
 import { TimeRange } from "@/server/actions/types";
-import PerformanceChart from "../performance-chart";
+import PerformanceChartClient from "../performance-chart-client";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/app/get-query-clients";
+import { getChartQueryKey, type ChartResponse } from "@/lib/chart-query";
 
 interface Props {
+  userId: string;
   walletId: string;
   range: TimeRange;
 }
 
-export default async function WalletChart({ walletId, range }: Props) {
+export default async function WalletChart({ userId, walletId, range }: Props) {
   const result = await getWalletChartData(walletId, range);
+  const queryClient = getQueryClient();
 
-  if (result.isErr()) {
-    return (
-      <div className="px-5 py-8 text-center">
-        <p className="font-(family-name:--font-jb-mono) text-[11px] text-destructive tracking-wider">
-          ERROR: {result.error.message}
-        </p>
-      </div>
+  if (result.isOk()) {
+    queryClient.setQueryData(
+      getChartQueryKey(userId, { kind: "wallet", walletId }, range),
+      { points: result.value } satisfies ChartResponse,
     );
   }
 
-  const chartData = result.value;
-
-  return <PerformanceChart basePath={`/dashboard/${walletId}`} range={range} data={chartData} />;
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <PerformanceChartClient userId={userId} scope={{ kind: "wallet", walletId }} />
+    </HydrationBoundary>
+  );
 }

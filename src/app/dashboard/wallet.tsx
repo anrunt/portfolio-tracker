@@ -1,4 +1,8 @@
+"use client";
+
 import type { SupportedCurrency } from "@/domain/currency";
+import { useQueryClient } from "@tanstack/react-query";
+import { chartQueryKeys } from "@/lib/chart-query";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +16,7 @@ import { deleteWallet } from "@/server/actions/dashboard/wallet-actions";
 import RenameWallet from "./rename-wallet";
 
 interface WalletProps {
+  userId: string;
   wallet: {
     id: string;
     name: string;
@@ -56,8 +61,22 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
   };
 }
 
-export default function Wallet({ wallet }: WalletProps) {
-  const deleteWalletWithId = deleteWallet.bind(null, wallet.id);
+export default function Wallet({ userId, wallet }: WalletProps) {
+  const queryClient = useQueryClient();
+
+  async function handleDeleteWallet() {
+    await deleteWallet(wallet.id);
+
+    // Remove wallet cache
+    const walletQueryKey = chartQueryKeys.wallet(userId, wallet.id);
+    await queryClient.cancelQueries({ queryKey: walletQueryKey });
+    queryClient.removeQueries({ queryKey: walletQueryKey });
+
+    // Remove outdated portfolio cache
+    const portfolioQueryKey = chartQueryKeys.portfolio(userId);
+    await queryClient.cancelQueries({ queryKey: portfolioQueryKey });
+    await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
+  }
 
   const {
     totalPl,
@@ -148,7 +167,7 @@ export default function Wallet({ wallet }: WalletProps) {
                   Cancel
                 </button>
               </DialogTrigger>
-              <form action={deleteWalletWithId}>
+              <form action={handleDeleteWallet}>
                 <button
                   type="submit"
                   className="font-(family-name:--font-jb-mono) text-[10px] tracking-widest uppercase px-4 py-2 rounded border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/60 transition-all duration-150 flex items-center gap-1.5"

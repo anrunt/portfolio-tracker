@@ -104,15 +104,20 @@ export function createGetPerformanceHistoryTool({ userId }: ChatToolContext) {
       const now = new Date();
 
       if (input.walletScope === "portfolio") {
+        const preferences = await QUERIES.getUserDisplayCurrency(userId);
+        if (!preferences) {
+          return {
+            status: "failed" as const,
+            error: "display-currency-unavailable" as const,
+          };
+        }
+
         const result = await getPortfolioPerformanceHistory({
           userId,
+          displayCurrency: preferences.displayCurrency,
           period: input.period,
           now,
         });
-
-        if (result.status === "failed") {
-          return result;
-        }
 
         const scope: PerformanceHistoryScope = {
           type: "portfolio",

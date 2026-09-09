@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useTransition, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { CartesianGrid, Line, LineChart } from "recharts";
-import { ChartDataPoint, TimeRange } from "@/server/actions/types";
+import type { ChartDataPoint, TimeRange } from "@/server/actions/types";
 import {
   ChartContainer,
   ChartTooltip,
@@ -11,8 +10,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
-
-const TIME_RANGES: TimeRange[] = ["1D", "1W", "1M", "3M", "6M", "1YR"];
+import { TIME_RANGES } from "@/lib/chart-query";
 
 const chartConfig = {
   totalValue: {
@@ -35,25 +33,25 @@ function formatTimestamp(value: number) {
 interface Props {
   range: TimeRange;
   data: ChartDataPoint[];
-  basePath: string;
+  onRangeChange: (range: TimeRange) => void;
+  isRefreshing: boolean;
   controls?: ReactNode;
+  children?: ReactNode;
 }
 
-export default function PerformanceChart({ range, data, basePath, controls }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  function handleRangeChange(newRange: TimeRange) {
-    startTransition(() => {
-      router.push(`${basePath}?range=${newRange}`);
-    });
-  }
-
+export default function PerformanceChart({
+  range,
+  data,
+  onRangeChange,
+  isRefreshing,
+  controls,
+  children,
+}: Props) {
   return (
     <div
       className={cn(
         "transition-opacity duration-200",
-        isPending && "opacity-60"
+        isRefreshing && "opacity-60"
       )}
     >
       <div className="px-5 py-2.5 border-b border-border flex items-center justify-between gap-3">
@@ -74,10 +72,11 @@ export default function PerformanceChart({ range, data, basePath, controls }: Pr
             {TIME_RANGES.map((r) => (
               <button
                 key={r}
-                onClick={() => handleRangeChange(r)}
-                disabled={isPending}
+                type="button"
+                onClick={() => onRangeChange(r)}
+                aria-pressed={r === range}
                 className={cn(
-                  "px-2.5 py-1 font-(family-name:--font-jb-mono) text-[10px] rounded transition-all duration-150 cursor-pointer disabled:cursor-wait",
+                  "px-2.5 py-1 font-(family-name:--font-jb-mono) text-[10px] rounded transition-all duration-150 cursor-pointer",
                   r === range
                     ? "bg-primary text-primary-foreground font-semibold"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -90,59 +89,61 @@ export default function PerformanceChart({ range, data, basePath, controls }: Pr
         </div>
       </div>
 
-      <div className="relative">
-        <div
-          className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 3px, currentColor 3px, currentColor 4px)`,
-          }}
-        />
-        <div className="px-5 py-4">
-          <ChartContainer config={chartConfig} className="aspect-5/1 w-full">
-            <LineChart
-              accessibilityLayer
-              data={data}
-              margin={{ left: 8, right: 8, top: 4, bottom: 4 }}
-            >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(_, payload) => {
-                      const point = payload[0]?.payload;
-                      if (point?.label) {
-                        return new Date(
-                          point.label + "T00:00:00"
-                        ).toLocaleDateString([], {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        });
-                      } else {
-                        return formatTimestamp(point?.timestamp);
-                      }
-                    }}
-                  />
-                }
-              />
-              <Line
-                dataKey="totalValue"
-                type="monotone"
-                stroke="var(--color-totalValue)"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                dataKey="netInvested"
-                type="monotone"
-                stroke="var(--color-netInvested)"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ChartContainer>
+      {children ?? (
+        <div className="relative" aria-busy={isRefreshing}>
+          <div
+            className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none"
+            style={{
+              backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 3px, currentColor 3px, currentColor 4px)`,
+            }}
+          />
+          <div className="px-5 py-4">
+            <ChartContainer config={chartConfig} className="aspect-5/1 w-full">
+              <LineChart
+                accessibilityLayer
+                data={data}
+                margin={{ left: 8, right: 8, top: 4, bottom: 4 }}
+              >
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(_, payload) => {
+                        const point = payload[0]?.payload;
+                        if (point?.label) {
+                          return new Date(
+                            point.label + "T00:00:00"
+                          ).toLocaleDateString([], {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          });
+                        } else {
+                          return formatTimestamp(point?.timestamp);
+                        }
+                      }}
+                    />
+                  }
+                />
+                <Line
+                  dataKey="totalValue"
+                  type="monotone"
+                  stroke="var(--color-totalValue)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  dataKey="netInvested"
+                  type="monotone"
+                  stroke="var(--color-netInvested)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ChartContainer>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
