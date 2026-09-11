@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { and, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { Result } from "better-result";
 import { z } from "zod";
 
@@ -408,16 +408,17 @@ async function sellAllPositionsForSymbolResult(
             }
 
             const closedAt = new Date();
+            const transactionRows = [];
 
             for (const pos of positionsToSell) {
               const proceeds = pos.quantity * parsed.data.price;
               const realizedPl = (parsed.data.price - pos.pricePerShare) * pos.quantity;
 
-              await tx.insert(portfolioTransaction).values({
+              transactionRows.push({
                 id: randomUUID(),
                 walletId,
                 positionId: pos.id,
-                type: "SELL",
+                type: "SELL" as const,
                 companyName: pos.companyName,
                 companySymbol: pos.companySymbol,
                 quantity: numToNumericString(pos.quantity),
@@ -427,23 +428,25 @@ async function sellAllPositionsForSymbolResult(
                 externalContribution: "0",
                 realizedPl: numToNumericString(realizedPl),
               });
-
-              await tx
-                .update(position)
-                .set({
-                  quantity: "0",
-                  closedAt,
-                })
-                .where(
-                  and(
-                    eq(position.walletId, walletId),
-                    eq(position.id, pos.id),
-                    eq(position.companySymbol, companySymbol),
-                    gt(position.quantity, "0"),
-                    isNull(position.closedAt)
-                  )
-                );
             }
+
+            await tx.insert(portfolioTransaction).values(transactionRows);
+
+            await tx
+              .update(position)
+              .set({
+                quantity: "0",
+                closedAt,
+              })
+              .where(
+                and(
+                  eq(position.walletId, walletId),
+                  inArray(position.id, positionsToSell.map((pos) => pos.id)),
+                  eq(position.companySymbol, companySymbol),
+                  gt(position.quantity, "0"),
+                  isNull(position.closedAt)
+                )
+              );
 
             if (withdrawal > 0) {
               const withdrawalDate = new Date();
