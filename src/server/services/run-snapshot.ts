@@ -104,8 +104,10 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
   const walletCount = Object.keys(grouped).length;
   console.log(`[cron/snapshot] Starting ${type} run: ${walletCount} wallets, ${US_Symbols.size} US symbols, ${WA_Symbols.size} WA symbols`);
 
-  const usResult = await getPrices({ symbols: [...US_Symbols], exchange: "US", mode: "snapshot", operationId });
-  const waResult = await getPrices({ symbols: [...WA_Symbols], exchange: "WA", mode: "snapshot", operationId });
+  const [usResult, waResult] = await Promise.all([
+    getPrices({ symbols: [...US_Symbols], exchange: "US", mode: "snapshot", operationId }),
+    getPrices({ symbols: [...WA_Symbols], exchange: "WA", mode: "snapshot", operationId }),
+  ]);
 
   if (usResult.isErr() && waResult.isErr()) {
     console.error("[cron/snapshot] Finnhub fetch failed", usResult.error.message);

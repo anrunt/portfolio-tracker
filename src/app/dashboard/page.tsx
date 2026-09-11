@@ -20,7 +20,10 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const rangeParam = (await searchParams).range;
   const range = timeRangeSchema.catch("1D").parse(rangeParam);
 
-  const userWallets = await QUERIES.getWalletsWithLatestSnapshot(session.user.id);
+  const [userWallets, displayCurrencyRaw] = await Promise.all([
+    QUERIES.getWalletsWithLatestSnapshot(session.user.id),
+    QUERIES.getUserDisplayCurrency(session.session.userId),
+  ]);
 
   const wallets = userWallets.map((w) => {
     if (w.totalValue === null || w.netInvested === null) {
@@ -35,9 +38,6 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
       snapshotAt: w.snapshotAt,
     }
   });
-
-
-  const displayCurrencyRaw = await QUERIES.getUserDisplayCurrency(session.session.userId);
 
   if (!displayCurrencyRaw) {
     throw new Error("Display currency is not configured for this account.");
