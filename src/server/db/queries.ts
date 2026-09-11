@@ -530,6 +530,28 @@ export const createQueries = (executor: DbExecutor) => ({
       .then((r) => r[0] ?? null)
   },
 
+  getFxRateForDate: async function (date: Date) {
+    const asOf = new Date(date);
+    asOf.setUTCHours(0, 0, 0, 0);
+
+    return executor
+      .select({
+        rate: sql<number>`(${fxRates.rate})::double precision`,
+      })
+      .from(fxRates)
+      .where(
+        and(
+          eq(fxRates.baseCurrency, "USD"),
+          eq(fxRates.quoteCurrency, "PLN"),
+          eq(fxRates.granularity, "daily"),
+          eq(fxRates.source, "nbp"),
+          eq(fxRates.asOf, asOf)
+        )
+      )
+      .limit(1)
+      .then((rows) => rows[0] ?? null)
+  },
+
   getFxRateBefore: async function (startDate: Date) {
     return executor
       .select({

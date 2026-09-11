@@ -1,4 +1,4 @@
-import { createQueries, type QUERIES } from "../db/queries";
+import { createQueries, QUERIES } from "../db/queries";
 import { db } from "../db";
 import { numToNumericString } from "../db/numeric";
 import { fxRates, walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
@@ -120,23 +120,31 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
   // All rows share the timestamp captured when reading wallet state.
   const snapshotDate = snapshotAt.toISOString().split("T")[0];
 
-  // get fxRate for USD->PLN
-  const {rate, effectiveDate} = await getUsdPlnRate(snapshotAt);
-  try {
-    await db
-      .insert(fxRates)
-      .values({
-        id: crypto.randomUUID(),
-        baseCurrency: "USD",
-        quoteCurrency: "PLN",
-        rate: numToNumericString(rate),
-        asOf: new Date(effectiveDate),
-        granularity: "daily",
-        source: "nbp"
-      })
-      .onConflictDoNothing();
-  } catch (error) {
-    console.error("[cron/snapshot] Error with inserting fx rates into the db:", error);
+  const storedFxRate = await QUERIES.getFxRateForDate(snapshotAt);
+  let rate: number;
+
+  if (storedFxRate) {
+    rate = storedFxRate.rate;
+  } else {
+    const { rate: fetchedRate, effectiveDate } = await getUsdPlnRate(snapshotAt);
+    rate = fetchedRate;
+
+    try {
+      await db
+        .insert(fxRates)
+        .values({
+          id: crypto.randomUUID(),
+          baseCurrency: "USD",
+          quoteCurrency: "PLN",
+          rate: numToNumericString(rate),
+          asOf: new Date(effectiveDate),
+          granularity: "daily",
+          source: "nbp"
+        })
+        .onConflictDoNothing();
+    } catch (error) {
+      console.error("[cron/snapshot] Error with inserting fx rates into the db:", error);
+    }
   }
 
   const netInvestedBalancesMap = new Map<string, Map<SupportedCurrency, string>>();
