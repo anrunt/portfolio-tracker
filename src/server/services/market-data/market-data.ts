@@ -1,7 +1,7 @@
 import "server-only";
 
 import { Result } from "better-result";
-import { getSession } from "@/server/better-auth/session";
+import { getSession } from "@/server/cache/session";
 import { UnauthenticatedError, ValidationError, type PriceError } from "@/server/errors";
 import type { PriceResultData } from "@/server/actions/types";
 import { getPrices } from "./get-prices";

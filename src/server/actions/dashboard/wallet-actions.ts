@@ -10,7 +10,7 @@ import {
   SUPPORTED_CURRENCIES,
   supportedCurrencySchema,
 } from "@/domain/currency";
-import { getSession } from "../../better-auth/session";
+import { getSession } from "../../cache/session";
 import { db } from "../../db";
 import { numToNumericString } from "../../db/numeric";
 import { QUERIES } from "../../db/queries";

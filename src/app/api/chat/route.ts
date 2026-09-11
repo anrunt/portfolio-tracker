@@ -11,7 +11,7 @@ import {
 import { groq } from "@/server/ai/groq";
 import { buildSystemPrompt } from "@/server/ai/chat/system-prompt";
 import { createChatTools } from "@/server/ai/chat/tools/create-chat-tools";
-import { getSession } from "@/server/better-auth/session";
+import { getSession } from "@/server/cache/session";
 
 export async function POST(req: Request) {
   const session = await getSession();

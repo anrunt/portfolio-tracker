@@ -1,4 +1,4 @@
-import { getSession } from "@/server/better-auth/session";
+import { getSession } from "@/server/cache/session";
 import { redirect } from "next/navigation";
 import { QUERIES } from "@/server/db/queries";
 import Dashboard from "./dashboard";

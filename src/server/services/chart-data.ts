@@ -2,8 +2,8 @@ import "server-only";
 
 import { Result } from "better-result";
 
-import { getSession } from "@/server/better-auth/session";
-import { QUERIES } from "@/server/db/queries";
+import { getSession } from "@/server/cache/session";
+import { getWalletForUser } from "@/server/cache/wallet";
 import {
   UnauthenticatedError,
   UnauthorizedError,
@@ -29,7 +29,7 @@ export async function getWalletChartData(
       return Result.err(new UnauthenticatedError());
     }
 
-    const wallet = await QUERIES.getWalletById(
+    const wallet = await getWalletForUser(
       walletId,
       user.session.userId,
     );

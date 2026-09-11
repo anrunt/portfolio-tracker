@@ -1,6 +1,7 @@
 import { JetBrains_Mono } from "next/font/google";
-import { getSession } from "@/server/better-auth/session";
+import { getSession } from "@/server/cache/session";
 import { QUERIES } from "@/server/db/queries";
+import { getWalletForUser } from "@/server/cache/wallet";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { timeRangeSchema } from "@/lib/chart-query";
@@ -28,7 +29,7 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
   }
 
   const [wallet, positionsRaw] = await Promise.all([
-    QUERIES.getWalletById(walletId, session.user.id),
+    getWalletForUser(walletId, session.session.userId),
     QUERIES.getWalletPositions(walletId, session.user.id),
   ]);
   if (!wallet) {

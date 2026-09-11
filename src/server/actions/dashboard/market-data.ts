@@ -2,7 +2,7 @@
 
 import { Result, type SerializedResult } from "better-result";
 
-import { getSession } from "../../better-auth/session";
+import { getSession } from "../../cache/session";
 import {
   ApiError,
   ConfigError,

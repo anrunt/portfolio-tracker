@@ -126,19 +126,11 @@ async function getIntradayPortfolioHistory(
     displayCurrency
   );
 
-  const pointsByTimestamp = new Map<string, PerformanceHistoryPoint>();
-
-  for (const row of rows) {
-    const at = row.snapshotAt.toISOString();
-    const data = {
-      totalValue: row.totalValue,
-      netInvested: row.netInvested
-    }
-
-    addToPoint(pointsByTimestamp, at, data);
-  }
-
-  return [...pointsByTimestamp.values()];
+  return rows.map((row) => ({
+    at: row.snapshotAt.toISOString(),
+    totalValue: row.totalValue,
+    netInvested: row.netInvested,
+  }));
 }
 
 async function getDailyPortfolioHistory(
@@ -150,34 +142,11 @@ async function getDailyPortfolioHistory(
 
   const rows = await QUERIES.getAllWalletsDailyPortfolioData(userId, startDate, displayCurrency);
 
-  const pointsByDate = new Map<string, PerformanceHistoryPoint>();
-
-  for (const row of rows) {
-    const data = {
-      totalValue: row.totalValue,
-      netInvested: row.netInvested
-    }
-
-    addToPoint(pointsByDate, row.snapshotDate, data);
-  }
-
-  return [...pointsByDate.values()];
-}
-
-function addToPoint(
-  points: Map<string, PerformanceHistoryPoint>,
-  at: string,
-  values: { totalValue: number; netInvested: number },
-) {
-  const existing = points.get(at);
-
-  if (existing) {
-    existing.totalValue += values.totalValue;
-    existing.netInvested += values.netInvested;
-    return;
-  }
-
-  points.set(at, { at, ...values });
+  return rows.map((row) => ({
+    at: row.snapshotDate,
+    totalValue: row.totalValue,
+    netInvested: row.netInvested,
+  }));
 }
 
 function analyzePerformanceHistory(

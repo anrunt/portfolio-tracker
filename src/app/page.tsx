@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Navbar } from "@/app/navbar";
 import { Button } from "@/components/ui/button";
-import { getSession } from "@/server/better-auth/session";
+import { getSession } from "@/server/cache/session";
 import { Suspense } from "react";
 import { Footer } from "./footer";
 import { Loader2 } from "lucide-react";

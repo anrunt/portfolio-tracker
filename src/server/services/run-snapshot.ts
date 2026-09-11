@@ -1,8 +1,8 @@
-import type { QUERIES } from "../db/queries";
+import { createQueries, type QUERIES } from "../db/queries";
 import { db } from "../db";
 import { numToNumericString } from "../db/numeric";
-import { fxRates, position, wallet, walletDailySnapshot, walletIntradaySnapshot, walletNetInvestedBalance } from "../db/schema";
-import { and, eq, gt, isNull, lte, sql } from "drizzle-orm";
+import { fxRates, walletDailySnapshot, walletIntradaySnapshot } from "../db/schema";
+import { lte, sql } from "drizzle-orm";
 import { getUsdPlnRate } from "./getUsdPlnRate";
 import { getPrices } from "./market-data/get-prices";
 import { SUPPORTED_CURRENCIES, SupportedCurrency } from "@/domain/currency";
@@ -21,45 +21,9 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
   const { flat, netInvestedBalancesRaw, snapshotAt } = await db.transaction(async (tx) => {
     const snapshotAt = new Date();
 
-    const flat = await tx
-      .select({
-        wallet: {
-          id: wallet.id,
-          name: wallet.name,
-          userId: wallet.userId,
-          currency: wallet.currency,
-          cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
-          totalContributed: sql<number>`(${wallet.totalContributed})::double precision`,
-          totalWithdrawn: sql<number>`(${wallet.totalWithdrawn})::double precision`,
-          createdAt: wallet.createdAt,
-        },
-        position: {
-          id: position.id,
-          walletId: position.walletId,
-          companyName: position.companyName,
-          companySymbol: position.companySymbol,
-          pricePerShare: sql<number>`(${position.pricePerShare})::double precision`,
-          quantity: sql<number>`(${position.quantity})::double precision`,
-          createdAt: position.createdAt,
-        },
-      })
-      .from(wallet)
-      .leftJoin(position, and(
-        eq(wallet.id, position.walletId),
-        gt(position.quantity, "0"),
-        isNull(position.closedAt)
-      ))
-      .where(isNull(wallet.deletedAt));
-
-    const netInvestedBalancesRaw = await tx
-      .select({
-        walletId: walletNetInvestedBalance.walletId,
-        currency: walletNetInvestedBalance.currency,
-        netInvested: walletNetInvestedBalance.netInvested,
-      })
-      .from(walletNetInvestedBalance)
-      .innerJoin(wallet, eq(wallet.id, walletNetInvestedBalance.walletId))
-      .where(isNull(wallet.deletedAt));
+    const txQueries = createQueries(tx);
+    const flat = await txQueries.getAllWalletsWithPositions();
+    const netInvestedBalancesRaw = await txQueries.getAllWalletsNetInvestedBalance();
 
     return { flat, netInvestedBalancesRaw, snapshotAt };
   }, {

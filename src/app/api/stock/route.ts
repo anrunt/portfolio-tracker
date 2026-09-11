@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/server/better-auth/session";
+import { getSession } from "@/server/cache/session";
 import { getPrices } from "@/server/services/market-data/get-prices";
 import { toPriceResultData } from "@/server/services/market-data/mappers";
 import type {

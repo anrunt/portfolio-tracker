@@ -6,7 +6,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { Result } from "better-result";
 import { z } from "zod";
 
-import { getSession } from "../../better-auth/session";
+import { getSession } from "../../cache/session";
 import { db } from "../../db";
 import { numToNumericString } from "../../db/numeric";
 import { QUERIES } from "../../db/queries";

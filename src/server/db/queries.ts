@@ -14,19 +14,21 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { db } from ".";
+import { db, type DbTransaction } from ".";
 import { fxRates, portfolioTransaction, position, user, wallet, walletDailySnapshot, walletIntradaySnapshot, walletNetInvestedBalance } from "./schema";
 
-export const QUERIES = {
+type DbExecutor = typeof db | DbTransaction;
+
+export const createQueries = (executor: DbExecutor) => ({
   getWallets: function (userId: string) {
-    return db
+    return executor
       .select()
       .from(wallet)
       .where(and(eq(wallet.userId, userId), isNull(wallet.deletedAt)));
   },
 
   getWalletsWithTotalValue: function (userId: string) {
-    return db
+    return executor
       .select({
         id: wallet.id,
         name: wallet.name,
@@ -43,7 +45,7 @@ export const QUERIES = {
 
   getWalletsWithLatestSnapshot: function (userId: string, displayCurrency?: SupportedCurrency) {
     const valuationCurrency = displayCurrency ?? wallet.currency;
-    const latestIntraday = db
+    const latestIntraday = executor
       .select({
         totalValueIntraday: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value_intraday"),
         netInvestedIntraday: sql<number>`(${walletIntradaySnapshot.netInvested})::double precision`.as("net_invested_intraday"),
@@ -60,7 +62,7 @@ export const QUERIES = {
       .limit(1)
       .as("latest_intraday_snapshot");
 
-    const latestDaily = db
+    const latestDaily = executor
       .select({
         totalValueDaily: sql<number>`(${walletDailySnapshot.totalValue})::double precision`.as("total_value_daily"),
         netInvestedDaily: sql<number>`(${walletDailySnapshot.netInvested})::double precision`.as("net_invested_daily"),
@@ -78,7 +80,7 @@ export const QUERIES = {
       .limit(1)
       .as("latest_daily_snapshot");
 
-    const walletFallback = db
+    const walletFallback = executor
       .select({
         holdingsValue: sql<number>`coalesce(sum(${position.quantity} * ${position.pricePerShare}), 0::numeric)::double precision`.as("holdings_value"),
       })
@@ -92,7 +94,7 @@ export const QUERIES = {
       )
       .as("wallet_fallback");
 
-    return db
+    return executor
       .select({
         id: wallet.id,
         name: wallet.name,
@@ -137,7 +139,7 @@ export const QUERIES = {
   },
 
   getWalletById: async function (walletId: string, userId: string) {
-    return db
+    return executor
       .select({
         id: wallet.id,
         name: wallet.name,
@@ -162,7 +164,7 @@ export const QUERIES = {
     name: string,
     currency: SupportedCurrency
   ) {
-    return db
+    return executor
       .select({ id: wallet.id })
       .from(wallet)
       .where(
@@ -178,7 +180,7 @@ export const QUERIES = {
   },
 
   getWalletPositions: function (walletId: string, userId: string) {
-    return db
+    return executor
       .select({
         id: position.id,
         companyName: position.companyName,
@@ -203,7 +205,7 @@ export const QUERIES = {
   },
 
   getPositionLotById: async function (positionId: string, walletId: string, userId: string) {
-    return db
+    return executor
       .select({
         id: position.id,
         walletId: position.walletId,
@@ -230,7 +232,7 @@ export const QUERIES = {
   },
 
   getPositionSellTransactions: function (positionId: string, walletId: string, userId: string) {
-    return db
+    return executor
       .select({
         id: portfolioTransaction.id,
         walletId: portfolioTransaction.walletId,
@@ -264,7 +266,7 @@ export const QUERIES = {
     companyNameOrSymbol: string,
     walletNames?: string[]
   ) {
-    return db
+    return executor
       .select({
         wallet: {
           id: wallet.id,
@@ -303,7 +305,7 @@ export const QUERIES = {
   },
 
   getActivePositionsBySymbol: function (walletId: string, userId: string, companySymbol: string) {
-    return db
+    return executor
       .select({
         id: position.id,
         walletId: position.walletId,
@@ -330,7 +332,7 @@ export const QUERIES = {
   },
 
   getWalletCashBalance: async function (walletId: string, userId: string) {
-    return db
+    return executor
       .select({
         cashBalance: sql<number>`(${wallet.cashBalance})::double precision`,
       })
@@ -347,7 +349,7 @@ export const QUERIES = {
   },
 
   getAllWalletsWithPositions: function() {
-    return db
+    return executor
       .select({
         wallet: {
           id: wallet.id,
@@ -380,7 +382,7 @@ export const QUERIES = {
   },
 
   getUserWalletsWithPositions: function(userId: string) {
-    return db
+    return executor
       .select({
         wallet: {
           id: wallet.id,
@@ -416,7 +418,7 @@ export const QUERIES = {
   },
 
   getDailyPortfolioData: function(walletId: string, startDate: string, walletCurrency: SupportedCurrency) {
-    return db
+    return executor
       .select({
         id: walletDailySnapshot.id,
         walletId: walletDailySnapshot.walletId,
@@ -437,7 +439,7 @@ export const QUERIES = {
   },
 
   getIntradayPortfolioData: function(walletId: string, startOfToday: Date, walletCurrency: SupportedCurrency) {
-    return db
+    return executor
       .select({
         id: walletIntradaySnapshot.id,
         walletId: walletIntradaySnapshot.walletId,
@@ -459,13 +461,11 @@ export const QUERIES = {
 
 
   getAllWalletsIntradayPortfolioData: function(userId: string, startOfToday: Date, displayCurrency: SupportedCurrency) {
-    return db
+    return executor
       .select({
         snapshotAt: walletIntradaySnapshot.snapshotAt,
-        walletId: walletIntradaySnapshot.walletId,
-        walletCurrency: wallet.currency,
-        totalValue: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`,
-        netInvested: sql<number>`(${walletIntradaySnapshot.netInvested})::double precision`,
+        totalValue: sql<number>`sum(${walletIntradaySnapshot.totalValue})::double precision`,
+        netInvested: sql<number>`sum(${walletIntradaySnapshot.netInvested})::double precision`,
       })
       .from(walletIntradaySnapshot)
       .innerJoin(wallet, eq(wallet.id, walletIntradaySnapshot.walletId))
@@ -477,19 +477,18 @@ export const QUERIES = {
           gte(walletIntradaySnapshot.snapshotAt, startOfToday)
         )
       )
+      .groupBy(walletIntradaySnapshot.snapshotAt)
       .orderBy(
         asc(walletIntradaySnapshot.snapshotAt),
       );
   },
 
   getAllWalletsDailyPortfolioData: function(userId: string, startDate: string, displayCurrency: SupportedCurrency) {
-    return db
+    return executor
       .select({
         snapshotDate: walletDailySnapshot.snapshotDate,
-        walletId: walletDailySnapshot.walletId,
-        walletCurrency: wallet.currency,
-        totalValue: sql<number>`(${walletDailySnapshot.totalValue})::double precision`,
-        netInvested: sql<number>`(${walletDailySnapshot.netInvested})::double precision`
+        totalValue: sql<number>`sum(${walletDailySnapshot.totalValue})::double precision`,
+        netInvested: sql<number>`sum(${walletDailySnapshot.netInvested})::double precision`
       })
       .from(walletDailySnapshot)
       .innerJoin(wallet, eq(wallet.id, walletDailySnapshot.walletId))
@@ -501,13 +500,14 @@ export const QUERIES = {
           gte(walletDailySnapshot.snapshotDate, startDate)
         )
       )
+      .groupBy(walletDailySnapshot.snapshotDate)
       .orderBy(
         asc(walletDailySnapshot.snapshotDate),
       )
   },
 
   getAllWalletsNetInvestedBalance: function() {
-    return db
+    return executor
       .select({
         walletId: walletNetInvestedBalance.walletId,
         currency: walletNetInvestedBalance.currency,
@@ -521,7 +521,7 @@ export const QUERIES = {
   },
 
   getUserDisplayCurrency: async function (userId: string) {
-    return db
+    return executor
       .select({
         displayCurrency: user.displayCurrency
       })
@@ -531,7 +531,7 @@ export const QUERIES = {
   },
 
   getFxRateBefore: async function (startDate: Date) {
-    return db
+    return executor
       .select({
         rate: sql<number>`(${fxRates.rate})::double precision`,
         asOf: fxRates.asOf,
@@ -555,7 +555,7 @@ export const QUERIES = {
 
 
   getFxRatesInRange: function(startDate: Date, endDate: Date) {
-    return db
+    return executor
       .select({
         rate: sql<number>`(${fxRates.rate})::double precision`,
         asOf: fxRates.asOf,
@@ -575,4 +575,6 @@ export const QUERIES = {
       )
       .orderBy(asc(fxRates.asOf))
   }
-};
+});
+
+export const QUERIES = createQueries(db);
