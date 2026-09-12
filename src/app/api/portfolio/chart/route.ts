@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // The service uses the authenticated user, never a user ID from the request.
     const result = await getAllWalletsPortfolioData(range.data, currency.data);
     if (result.isErr()) {
       const status =
