@@ -31,8 +31,8 @@ add multiple positions for the same company from the Add Position dialog.
 -[x] FIX: New api for polish stock prices
 -[x] Fix: User shouldnt be able to create wallet with same name and same currency. 
 -[x] Feature: AI agent which can talk about your portfolio
--[] Refactor: Queries should support transactions
+-[x] Refactor: Queries should support transactions
+-[] Feature: Portfolio transaction history
 -[] Update: Add proper tests + test stack for ai
 -[] Update: Add transfering internal-cash between wallets
--[] Feature: Portfolio transaction history
 -[] Feature: You can send files to agent like company reports for him to analyze your positions based on provided company files
