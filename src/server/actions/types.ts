@@ -29,20 +29,11 @@ export type NbpResponse = {
   rates: NbpRate[];
 };
 
-export type PriceSuccess = { 
-  symbol: string; 
-  price: number; 
-};
-
-export type PriceFetchFailure = { 
-  symbol: string; 
-  reason: string; 
-};
-
-export type PriceResultData = {
-  prices: PriceSuccess[];
-  failures: PriceFetchFailure[];
-};
+export type {
+  PriceSuccess,
+  PriceFetchFailure,
+  PriceResultData,
+} from "@/domain/prices";
 
 export type SerializedError = {
   _tag: string;

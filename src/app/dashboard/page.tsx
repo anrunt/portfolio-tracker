@@ -6,6 +6,7 @@ import { getAllWalletsPortfolioData } from "@/server/services/chart-data";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/app/get-query-clients";
 import { getChartQueryKey, timeRangeSchema, type ChartResponse } from "@/lib/chart-query";
+import { getPrice } from "@/server/services/market-data/market-data";
 
 interface DashboardProps {
   searchParams: Promise<{ range?: string | string[] }>;

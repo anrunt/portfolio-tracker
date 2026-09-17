@@ -1,4 +1,4 @@
-import { PriceResultData } from "@/server/actions/types";
+import { priceResultSchema } from "@/domain/prices";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -8,7 +8,7 @@ interface UsePricesParams {
 }
 
 export function usePrices({symbols, exchange} : UsePricesParams) {
-  const { data, dataUpdatedAt, isPending, isFetching, isError } = useQuery<PriceResultData>({
+  const { data, dataUpdatedAt, isPending, isFetching, isError } = useQuery({
     queryKey: ["prices", symbols, exchange],
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
@@ -25,7 +25,8 @@ export function usePrices({symbols, exchange} : UsePricesParams) {
         throw new Error("Failed to fetch prices");
       }
 
-      return await result.json() as PriceResultData;
+      const payload: unknown = await result.json();
+      return priceResultSchema.parse(payload);
     },
     enabled: symbols.length > 0,
     refetchInterval: 75_000 // Cache is 60s so we want fresh data with query refetch

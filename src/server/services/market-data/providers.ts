@@ -13,7 +13,7 @@ const yahooPriceSchema = z.object({
       .array(
         z.object({
           meta: z.object({
-            regularMarketPrice: z.number(),
+            regularMarketPrice: z.number().positive(),
           }),
         }),
       )
