@@ -12,6 +12,7 @@ export async function getUsdPlnRate(
   if (res.ok) {
     const data = (await res.json()) as NbpResponse;
     const { mid, effectiveDate } = data.rates[0];
+
     return { 
       rate: mid,
       effectiveDate 
@@ -29,6 +30,7 @@ export async function getUsdPlnRate(
 
     const data = (await fallback.json()) as NbpResponse;
     const { mid, effectiveDate } = data.rates[0];
+
     return { 
       rate: mid, 
       effectiveDate 

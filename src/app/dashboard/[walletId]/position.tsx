@@ -67,11 +67,13 @@ export default function Position({
 
   const formatPl = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + formatNumber(Math.abs(value));
   };
 
   const formatPlPercent = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + Math.abs(value).toFixed(2) + "%";
   };
 

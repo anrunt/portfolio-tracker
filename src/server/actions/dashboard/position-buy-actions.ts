@@ -58,11 +58,13 @@ async function addPositionResult(
 ): Promise<Result<void, PositionError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
 
     const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+
     if (!userWallet) {
       return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
     }
@@ -149,10 +151,12 @@ async function addPositionResult(
               const externalContribution = buyCost - cashUsed;
 
               let fxRateId: string | null = null;
+
               if (externalContribution > 0) {
                 if (!fxRate) {
                   fxRate = await getWalletNetInvestedFxRate(tx, { date: transactionDate });
                 }
+
                 fxRateId = fxRate.id;
               }
 

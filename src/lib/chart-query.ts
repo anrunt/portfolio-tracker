@@ -3,6 +3,7 @@ import type { SupportedCurrency } from "@/domain/currency";
 import type { TimeRange } from "@/server/actions/types";
 
 export const TIME_RANGES = ["1D", "1W", "1M", "3M", "6M", "1YR"] as const satisfies readonly TimeRange[];
+
 export const timeRangeSchema = z.enum(TIME_RANGES);
 
 export const chartResponseSchema = z.object({

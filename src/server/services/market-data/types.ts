@@ -2,8 +2,11 @@ import type { SupportedCurrency } from "@/domain/currency";
 import { PriceFetchFailure } from "@/server/actions/types";
 
 export type Exchange = "US" | "WA";
+
 export type MarketDataMode = "user-refresh" | "snapshot";
+
 export type MarketDataProvider = "yahoo" | "finnhub";
+
 export type CacheStatus = "hit" | "miss" | "stale-if-error" | "bypass";
 
 export type GetPricesInput = {

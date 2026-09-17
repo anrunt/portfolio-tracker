@@ -35,11 +35,13 @@ export function usePortfolioStats({
     (sum, pos) => sum + pos.pricePerShare * pos.quantity,
     0
   );
+
   const totalPositions = positions.length;
   const uniqueSymbols = Object.keys(groupedPositions).length;
 
   let pricedHoldingsValue = 0;
   let hasMissingPrices = false;
+
   for (const pos of positions) {
     const livePrice = !failedSymbols.has(pos.companySymbol)
       ? pricesBySymbol.get(pos.companySymbol)
@@ -59,6 +61,7 @@ export function usePortfolioStats({
   const realizedPl = wallet.realizedPl;
   const totalPl = portfolioValue === null ? null : portfolioValue - netInvested;
   let totalPlPercent: number | null = null;
+
   if (totalPl !== null) {
     totalPlPercent = netInvested > 0 ? (totalPl / netInvested) * 100 : 0;
   }
@@ -71,11 +74,13 @@ export function usePortfolioStats({
 
   const formatPl = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + formatCurrency(Math.abs(value));
   };
 
   const formatPlPercent = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + Math.abs(value).toFixed(2) + "%";
   };
 

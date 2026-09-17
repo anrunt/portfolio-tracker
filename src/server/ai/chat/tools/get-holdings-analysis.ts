@@ -144,6 +144,7 @@ export function createGetHoldingsAnalysisTool({ userId }: ChatToolContext) {
           "[chat/holdings-analysis] Yahoo fetch failed",
           waResult.error.message,
         );
+
         return {
           status: "failed",
           error: "market-prices-unavailable",
@@ -171,6 +172,7 @@ export function createGetHoldingsAnalysisTool({ userId }: ChatToolContext) {
       const usPricesBySymbol = new Map<string, MarketPrice>(
         usPrices.map((price) => [price.symbol, price]),
       );
+
       const waPricesBySymbol = new Map<string, MarketPrice>(
         waPrices.map((price) => [price.symbol, price]),
       );
@@ -178,15 +180,19 @@ export function createGetHoldingsAnalysisTool({ userId }: ChatToolContext) {
       const missingUSPrices = [...US_Symbols].filter(
         (symbol) => !usPricesBySymbol.has(symbol),
       );
+
       const missingWAPrices = [...WA_Symbols].filter(
         (symbol) => !waPricesBySymbol.has(symbol),
       );
+
       const missingPricesCount =
         missingUSPrices.length + missingWAPrices.length;
+
       const unavailableSymbols = new Set([
         ...missingUSPrices,
         ...missingWAPrices,
       ]);
+
       const requestedPricesCount = US_Symbols.size + WA_Symbols.size;
 
       if (
@@ -203,9 +209,12 @@ export function createGetHoldingsAnalysisTool({ userId }: ChatToolContext) {
           .filter((wallet) => wallet.positions.length > 0)
           .map((wallet) => wallet.currency),
       );
+
       const shouldCalculatePortfolioWeights = priceCoverage === "complete";
+
       const needsFxRate =
         shouldCalculatePortfolioWeights && holdingCurrencies.size > 1;
+
       const fxRate = needsFxRate
         ? await QUERIES.getFxRateBefore(new Date())
         : null;
@@ -225,6 +234,7 @@ export function createGetHoldingsAnalysisTool({ userId }: ChatToolContext) {
         positions: wallet.positions.map((position): AnalyzedHolding => {
           const pricesBySymbol =
             wallet.currency === "USD" ? usPricesBySymbol : waPricesBySymbol;
+
           const marketPrice = pricesBySymbol.get(position.symbol);
 
           if (!marketPrice) {

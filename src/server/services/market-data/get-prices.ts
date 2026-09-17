@@ -17,6 +17,7 @@ export async function getPrices(
     if (input.symbols.length === 0) {
       const data: MarketPriceResultData = { prices: [], failures: [] };
       logBatchCompleted(input, data, startedAt);
+
       return Result.ok(data);
     }
 
@@ -39,6 +40,7 @@ export async function getPrices(
             }
 
             const cacheResult = await redis.getCachedMarketPrice(cacheContext);
+
             if (cacheResult.kind === "found" && cacheResult.freshness === "fresh") {
               return {
                 symbol: symbol,
@@ -61,6 +63,7 @@ export async function getPrices(
                 ...providerPrice,
                 cacheStatus: "miss"
               }
+
               await redis.setCachedMarketPrice(marketPrice, cacheContext);
 
               return marketPrice;
@@ -106,6 +109,7 @@ export async function getPrices(
 
           const data = { prices, failures } satisfies MarketPriceResultData;
           logBatchCompleted(input, data, startedAt);
+
           return Result.ok(data);
         } else { // snapshot
           const promises = input.symbols.map(async (symbol) => {
@@ -144,6 +148,7 @@ export async function getPrices(
 
           const data = { prices, failures } satisfies MarketPriceResultData;
           logBatchCompleted(input, data, startedAt);
+
           return Result.ok(data);
         }
 
@@ -165,6 +170,7 @@ export async function getPrices(
             }
 
             const cacheResult = await redis.getCachedMarketPrice(cacheContext);
+
             if (cacheResult.kind === "found" && cacheResult.freshness === "fresh") {
               return {
                 symbol: symbol,
@@ -192,6 +198,7 @@ export async function getPrices(
                 ...providerPrice,
                 cacheStatus: "miss"
               }
+
               await redis.setCachedMarketPrice(marketPrice, cacheContext);
 
               return marketPrice;
@@ -236,6 +243,7 @@ export async function getPrices(
 
           const data = { prices, failures } satisfies MarketPriceResultData;
           logBatchCompleted(input, data, startedAt);
+
           return Result.ok(data);
         } else { // snapshot
           const promises = input.symbols.map(async (symbol) => {
@@ -272,6 +280,7 @@ export async function getPrices(
 
           const data = { prices, failures } satisfies MarketPriceResultData;
           logBatchCompleted(input, data, startedAt);
+
           return Result.ok(data);
         }
 
@@ -289,12 +298,15 @@ function logBatchCompleted(
   const cacheHits = data.prices.filter(
     (price) => price.cacheStatus === "hit",
   ).length;
+
   const cacheMisses = data.prices.filter(
     (price) => price.cacheStatus === "miss",
   ).length;
+
   const staleIfErrorCount = data.prices.filter(
     (price) => price.cacheStatus === "stale-if-error",
   ).length;
+
   const providerCalls =
     data.prices.filter((price) => price.cacheStatus !== "hit").length +
     data.failures.length;

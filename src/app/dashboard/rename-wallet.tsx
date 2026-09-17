@@ -27,16 +27,20 @@ export default function RenameWallet({
   walletName,
 }: RenameWalletProps) {
   const renameWalletWithId = renameWallet.bind(null, walletId);
+
   const [state, formAction, pending] = useActionState(
     renameWalletWithId,
     initialState
   );
+
   const [open, setOpen] = useState(false);
   const [clientError, setClientError] = useState("");
   const [inputName, setInputName] = useState(walletName);
   const [dismissedAt, setDismissedAt] = useState(0);
+
   const isUnchanged =
     inputName.trim() === walletName || inputName.trim() === "";
+
   const serverError = state.timestamp > dismissedAt ? state.message : "";
 
   useEffect(() => {
@@ -58,12 +62,14 @@ export default function RenameWallet({
     if (!newName || newName.trim() === "") {
       e.preventDefault();
       setClientError("Please enter a wallet name");
+
       return;
     }
 
     if (newName.trim() === walletName) {
       e.preventDefault();
       setClientError("New name must be different from the current name");
+
       return;
     }
   };

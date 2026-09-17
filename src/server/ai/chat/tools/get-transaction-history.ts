@@ -40,11 +40,13 @@ export function createGetTransactionHistoryTool({ userId }: ChatToolContext) {
     execute: async ({ companyNameOrSymbol, walletScope, walletNames }) => {
       if (walletScope === "specified") {
         const lowerWalletNames = walletNames.map((name) => name.toLowerCase());
+
         const transactionHistory = await QUERIES.getUserTransactionHistory(
           userId,
           companyNameOrSymbol,
           lowerWalletNames,
         );
+
         const groupedTransactionHistory =
           groupTransactionHistory(transactionHistory);
 
@@ -62,6 +64,7 @@ export function createGetTransactionHistoryTool({ userId }: ChatToolContext) {
         userId,
         companyNameOrSymbol,
       );
+
       const groupedTransactionHistory =
         groupTransactionHistory(transactionHistory);
 

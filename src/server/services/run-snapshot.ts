@@ -8,7 +8,9 @@ import { getPrices } from "./market-data/get-prices";
 import { SUPPORTED_CURRENCIES, SupportedCurrency } from "@/domain/currency";
 
 type WalletPositionRow = Awaited<ReturnType<typeof QUERIES.getAllWalletsWithPositions>>[number];
+
 type WalletSnapshotPosition = NonNullable<WalletPositionRow["position"]>;
+
 type GroupedWalletSnapshotData = {
   currency: WalletPositionRow["wallet"]["currency"];
   cashBalance: number;
@@ -165,6 +167,7 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
 
     for (const pos of data.positions) {
       const price = allPrices.get(pos.companySymbol);
+
       if (price === undefined) {
         throw new Error(`[cron/snapshot] Missing validated price for ${pos.companySymbol}`);
       }
@@ -177,6 +180,7 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
 
     for (const currency of SUPPORTED_CURRENCIES) {
       let convertedTotalValue = nativeTotalValue;
+
       if (currency !== data.currency) {
         convertedTotalValue = currency === "USD" 
           ? (nativeTotalValue) / rate
@@ -184,6 +188,7 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
       }
 
       const netInvested = netInvestedBalancesMap.get(walletId)?.get(currency);
+
       if (netInvested === undefined) {
         throw new Error(`[cron/snapshot] Missing netInvested balance for walletId ${walletId}, currency ${currency}`);
       }
@@ -208,7 +213,9 @@ export async function runSnapshot(type: "daily" | "intraday", operationId: strin
         });
       }
     }
-  };
+  }
+
+;
 
   if (dailyRows.length > 0) {
     try {

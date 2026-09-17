@@ -66,6 +66,7 @@ export default function SellPositionDialog({
   const quantityWarning = hasValidQuantity && parsedQuantity > quantity
     ? "Quantity exceeds this lot"
     : undefined;
+
   const withdrawalWarning = withdrawAfterSale && hasValidWithdrawal && parsedWithdrawAmount > saleProceeds
     ? "Withdrawal exceeds sale proceeds"
     : undefined;
@@ -89,6 +90,7 @@ export default function SellPositionDialog({
 
   const formatPl = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + formatNumber(Math.abs(value));
   };
 

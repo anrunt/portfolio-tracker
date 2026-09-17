@@ -40,6 +40,7 @@ export default function MainPosition({
 
   let totalQuantity = 0;
   let totalValue = 0;
+
   for (const position of positions) {
     totalQuantity += position.quantity;
     totalValue += position.pricePerShare * position.quantity;
@@ -73,11 +74,13 @@ export default function MainPosition({
 
   const formatPl = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + formatNumber(Math.abs(value));
   };
 
   const formatPlPercent = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + Math.abs(value).toFixed(2) + "%";
   };
 

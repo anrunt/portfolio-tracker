@@ -24,6 +24,7 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
   const range = timeRangeSchema.catch("1D").parse(rangeParam);
 
   const session = await getSession();
+
   if (!session) {
     redirect("/login");
   }
@@ -32,6 +33,7 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
     getWalletForUser(walletId, session.session.userId),
     QUERIES.getWalletPositions(walletId, session.user.id),
   ]);
+
   if (!wallet) {
     redirect("/dashboard");
   }
@@ -43,6 +45,7 @@ export default async function WalletPage({ params, searchParams }: WalletPagePro
   }));
 
   const groupedPositions: Record<string, typeof positions> = {};
+
   for (const pos of positions) {
     (groupedPositions[pos.companySymbol] ??= []).push(pos);
   }

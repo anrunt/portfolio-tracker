@@ -36,6 +36,7 @@ export function createGetWalletsOverviewTool({ userId }: ChatToolContext) {
       }
 
       const displayCurrency = userPreferences.displayCurrency;
+
       const portfolioWallets = await QUERIES.getWalletsWithLatestSnapshot(
         userId,
         displayCurrency,
@@ -97,6 +98,7 @@ function buildWalletsOverview(
     : null;
 
   let profitLossUnavailableReason = valuationUnavailableReason;
+
   if (!hasMissingValuations && hasIncompleteMarketData) {
     profitLossUnavailableReason =
       "Portfolio P/L is unavailable because at least one wallet lacks current market data.";

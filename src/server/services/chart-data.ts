@@ -25,6 +25,7 @@ export async function getWalletChartData(
 ): Promise<Result<ChartDataPoint[], WalletChartError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
@@ -33,6 +34,7 @@ export async function getWalletChartData(
       walletId,
       user.session.userId,
     );
+
     if (!wallet) {
       return Result.err(
         new UnauthorizedError({ resource: `wallet ${walletId}` }),
@@ -40,6 +42,7 @@ export async function getWalletChartData(
     }
 
     const period = mapTimeRange(range);
+
     if (!period) {
       return Result.err(
         new ValidationError({
@@ -50,6 +53,7 @@ export async function getWalletChartData(
     }
 
     const now = new Date();
+
     const history = await getWalletPerformanceHistory({
       walletId,
       walletCurrency: wallet.currency,
@@ -67,11 +71,13 @@ export async function getAllWalletsPortfolioData(
 ): Promise<Result<ChartDataPoint[], WalletChartError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
 
     const period = mapTimeRange(range);
+
     if (!period) {
       return Result.err(
         new ValidationError({
@@ -82,6 +88,7 @@ export async function getAllWalletsPortfolioData(
     }
 
     const now = new Date();
+
     const result = await getPortfolioPerformanceHistory({
       userId: user.session.userId,
       displayCurrency,

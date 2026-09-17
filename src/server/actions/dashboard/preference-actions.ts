@@ -18,6 +18,7 @@ export async function setDisplayCurrency(
   currency: SupportedCurrency
 ): Promise<SerializedResult<void, SerializedError>> {
   const result = await setDisplayCurrencyResult(currency);
+
   return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
 }
 
@@ -26,11 +27,13 @@ async function setDisplayCurrencyResult(
 ): Promise<Result<void, UnauthenticatedError | ValidationError | DatabaseError>> {
   return Result.gen(async function* () {
     const session = await getSession();
+
     if (!session) {
       return Result.err(new UnauthenticatedError());
     }
 
     const parsedCurrency = supportedCurrencySchema.safeParse(currency);
+
     if (!parsedCurrency.success) {
       return Result.err(
         new ValidationError({

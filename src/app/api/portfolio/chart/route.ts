@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await getAllWalletsPortfolioData(range.data, currency.data);
+
     if (result.isErr()) {
       const status =
         result.error._tag === "UnauthenticatedError"
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
             : result.error._tag === "ValidationError"
               ? 400
               : 404;
+
       return NextResponse.json(
         { error: result.error.message },
         { status, headers },
@@ -40,6 +42,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("Failed to load portfolio chart", error);
+
     return NextResponse.json(
       { error: "Unable to load performance history" },
       { status: 500, headers },

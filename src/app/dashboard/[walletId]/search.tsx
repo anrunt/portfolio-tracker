@@ -22,10 +22,12 @@ export default function Search({ exchange }: SearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<FinnhubStock[] | undefined>();
+
   const [selectedCompany, setSelectedCompany] = useState<{
     name: string;
     symbol: string;
   } | null>(null);
+
   const [error, setError] = useState<string | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -90,6 +92,7 @@ export default function Search({ exchange }: SearchProps) {
     if (!value) {
       setQuery("");
       setResults(undefined);
+
       return;
     }
 
@@ -155,8 +158,10 @@ export default function Search({ exchange }: SearchProps) {
                   <ul className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2 -mr-2">
                     {results.map((company, index) => {
                       const text = company.description || company.symbol;
+
                       const truncatedText =
                         text.length > 30 ? text.slice(0, 30) + "..." : text;
+
                       return (
                         <li key={`${company.symbol}-${index}`}>
                           <button

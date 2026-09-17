@@ -110,6 +110,7 @@ export default function PerformanceChart({
                     <ChartTooltipContent
                       labelFormatter={(_, payload) => {
                         const point = payload[0]?.payload;
+
                         if (point?.label) {
                           return new Date(
                             point.label + "T00:00:00"

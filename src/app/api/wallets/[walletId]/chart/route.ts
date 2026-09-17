@@ -11,6 +11,7 @@ export async function GET(
   const range = timeRangeSchema.safeParse(
     request.nextUrl.searchParams.get("range") ?? "1D",
   );
+
   if (!range.success) {
     return NextResponse.json(
       { error: "Unsupported chart range" },
@@ -22,6 +23,7 @@ export async function GET(
     const { walletId } = await params;
     // The service checks the session and wallet ownership before reading history.
     const result = await getWalletChartData(walletId, range.data);
+
     if (result.isErr()) {
       const status =
         result.error._tag === "UnauthenticatedError"
@@ -31,6 +33,7 @@ export async function GET(
             : result.error._tag === "ValidationError"
               ? 400
               : 404;
+
       return NextResponse.json(
         { error: result.error.message },
         { status, headers },
@@ -43,6 +46,7 @@ export async function GET(
     );
   } catch (error) {
     console.error("Failed to load wallet chart", error);
+
     return NextResponse.json(
       { error: "Unable to load performance history" },
       { status: 500, headers },

@@ -92,8 +92,10 @@ export class ApiError extends TaggedError("ApiError")<{
 }>() {
   constructor(args: { service: string; status?: number; cause?: unknown }) {
     const statusPart = args.status ? ` (${args.status})` : "";
+
     const causePart =
       args.cause instanceof Error ? `: ${args.cause.message}` : "";
+
     super({
       ...args,
       message: `${args.service} API error${statusPart}${causePart}`,
@@ -112,6 +114,7 @@ export class DatabaseError extends TaggedError("DatabaseError")<{
   constructor(args: { operation: string; cause: unknown }) {
     const causeMsg =
       args.cause instanceof Error ? args.cause.message : String(args.cause);
+
     super({
       ...args,
       message: `Database ${args.operation} failed: ${causeMsg}`,

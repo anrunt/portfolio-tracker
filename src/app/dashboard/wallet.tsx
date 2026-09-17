@@ -29,6 +29,7 @@ interface WalletProps {
 
 function getWalletPerformance(wallet: WalletProps["wallet"]) {
   const locale = wallet.currency === "USD" ? "en-US" : "pl-PL";
+
   const formatter = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -37,6 +38,7 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
   const formattedValue = formatter.format(wallet.totalValue);
 
   const totalPl = wallet.totalValue - wallet.netInvested;
+
   const totalPlPercent =
     wallet.netInvested > 0
       ? (totalPl / wallet.netInvested) * 100
@@ -44,11 +46,13 @@ function getWalletPerformance(wallet: WalletProps["wallet"]) {
 
   const formatSignedValue = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + formatter.format(Math.abs(value));
   };
 
   const formatSignedPercent = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + Math.abs(value).toFixed(2) + "%";
   };
 
