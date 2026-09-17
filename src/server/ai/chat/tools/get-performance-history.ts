@@ -105,6 +105,7 @@ export function createGetPerformanceHistoryTool({ userId }: ChatToolContext) {
 
       if (input.walletScope === "portfolio") {
         const preferences = await QUERIES.getUserDisplayCurrency(userId);
+
         if (!preferences) {
           return {
             status: "failed" as const,
@@ -145,6 +146,7 @@ async function getWalletHistoryByName(
 ): Promise<PerformanceHistoryToolOutput> {
   const wallets = await QUERIES.getWallets(userId);
   const normalizedWalletName = walletName.toLowerCase();
+
   const matchingWallets = wallets.filter(
     (wallet) => wallet.name.toLowerCase() === normalizedWalletName,
   );
@@ -161,12 +163,14 @@ async function getWalletHistoryByName(
 
   if (matchingWallets.length === 1) {
     const wallet = matchingWallets[0];
+
     const result = await getWalletPerformanceHistory({
       walletId: wallet.id,
       walletCurrency: wallet.currency,
       period,
       now,
     });
+
     const scope: PerformanceHistoryScope = {
       type: "wallet",
       name: wallet.name,
@@ -184,11 +188,13 @@ async function getWalletHistoryByName(
         period,
         now,
       });
+
       const scope: PerformanceHistoryScope = {
         type: "wallet",
         name: wallet.name,
         currency: wallet.currency,
       };
+
       const history = formatHistoryForToolOutput(result, scope);
 
       return {

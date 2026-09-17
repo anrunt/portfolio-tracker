@@ -13,6 +13,7 @@ interface DashboardProps {
 
 export default async function DashboardPage({ searchParams }: DashboardProps) {
   const session = await getSession();
+
   if (!session) {
     redirect("/login");
   }
@@ -29,6 +30,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     if (w.totalValue === null || w.netInvested === null) {
       throw new Error(`No native valuation for ${w.name}`);
     }
+
     return {
       id: w.id,
       name: w.name,

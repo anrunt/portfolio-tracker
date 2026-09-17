@@ -49,6 +49,7 @@ export default function SellAllSymbolDialog({
 
   let totalQuantity = 0;
   let totalPositionCost = 0;
+
   for (const position of positions) {
     totalQuantity += position.quantity;
     totalPositionCost += position.quantity * position.pricePerShare;
@@ -73,6 +74,7 @@ export default function SellAllSymbolDialog({
   const totalProceeds = hasValidPrice ? totalQuantity * parsedPrice : 0;
 
   let estimatedRealizedPl = 0;
+
   if (hasValidPrice) {
     for (const position of positions) {
       estimatedRealizedPl += (parsedPrice - position.pricePerShare) * position.quantity;
@@ -80,6 +82,7 @@ export default function SellAllSymbolDialog({
   }
 
   const withdrawalPreview = withdrawAfterSale && hasValidWithdrawal ? parsedWithdrawAmount : 0;
+
   const withdrawalWarning = withdrawAfterSale && hasValidWithdrawal && parsedWithdrawAmount > totalProceeds
     ? "Withdrawal exceeds sale proceeds"
     : undefined;
@@ -103,6 +106,7 @@ export default function SellAllSymbolDialog({
 
   const formatPl = (value: number) => {
     const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+
     return sign + formatNumber(Math.abs(value));
   };
 

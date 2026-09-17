@@ -12,7 +12,9 @@ import {
 import { logMarketData } from "./logger";
 
 const FRESH_CACHE_TTL_MS = 60_000;
+
 const STALE_CACHE_TTL_SECONDS = 300;
+
 const STALE_CACHE_MAX_AGE_MS = 300_000;
 
 
@@ -126,6 +128,7 @@ export function createRedisPriceCache(config: CacheConfig) {
       context.exchange,
       context.symbol,
     );
+
     const cachePayload: CachedMarketPrice = {
       symbol: price.symbol,
       price: price.price,
@@ -136,6 +139,7 @@ export function createRedisPriceCache(config: CacheConfig) {
 
     try {
       await redis.set(key, cachePayload, { ex: STALE_CACHE_TTL_SECONDS });
+
       return true;
     } catch (error) {
       logMarketData("error", {

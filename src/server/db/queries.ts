@@ -45,6 +45,7 @@ export const createQueries = (executor: DbExecutor) => ({
 
   getWalletsWithLatestSnapshot: function (userId: string, displayCurrency?: SupportedCurrency) {
     const valuationCurrency = displayCurrency ?? wallet.currency;
+
     const latestIntraday = executor
       .select({
         totalValueIntraday: sql<number>`(${walletIntradaySnapshot.totalValue})::double precision`.as("total_value_intraday"),

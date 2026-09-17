@@ -27,6 +27,7 @@ type EvalResult = EvalCase & {
 };
 
 type TransactionHistoryInput = ToolInput<"getTransactionHistory">;
+
 type PerformanceHistoryInput = ToolInput<"getPerformanceHistory">;
 
 const EVALS: EvalCase[] = [
@@ -181,6 +182,7 @@ async function main() {
 
     const givenTool =
       toolCall && isToolName(toolCall.toolName) ? toolCall.toolName : null;
+
     const givenInput: unknown = toolCall?.input ?? null;
 
     const passed =
@@ -231,6 +233,7 @@ function inputsMatch(evalCase: EvalCase, givenInput: unknown) {
         )
       );
     }
+
     case "getHoldingsAnalysis": {
       const parsedInput =
         CHAT_TOOL_DEFINITIONS.getHoldingsAnalysis.inputSchema.safeParse(
@@ -244,6 +247,7 @@ function inputsMatch(evalCase: EvalCase, givenInput: unknown) {
         )
       );
     }
+
     case "getTransactionHistory": {
       const parsedInput =
         CHAT_TOOL_DEFINITIONS.getTransactionHistory.inputSchema.safeParse(
@@ -257,6 +261,7 @@ function inputsMatch(evalCase: EvalCase, givenInput: unknown) {
         )
       );
     }
+
     case "getPerformanceHistory": {
       const parsedInput =
         CHAT_TOOL_DEFINITIONS.getPerformanceHistory.inputSchema.safeParse(
@@ -304,6 +309,7 @@ function transactionHistoryInputsMatch(
   const expectedWalletNames = expectedInput.walletNames
     ?.map((name) => name.toLowerCase())
     .sort();
+
   const givenWalletNames = givenInput.walletNames
     ?.map((name) => name.toLowerCase())
     .sort();

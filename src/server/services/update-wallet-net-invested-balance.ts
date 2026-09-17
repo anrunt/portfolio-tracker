@@ -32,6 +32,7 @@ export async function getWalletNetInvestedFxRate(
   if (!fxRate) {
     throw new NotFoundError({ resource: "No fx rate for netInvested" });
   }
+
   if (!Number.isFinite(fxRate.rate) || fxRate.rate <= 0) {
     throw new ValidationError({ message: "Invalid USD/PLN rate for netInvested" });
   }

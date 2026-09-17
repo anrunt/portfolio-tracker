@@ -50,6 +50,7 @@ export default function AddWallet() {
     if (!currency) {
       e.preventDefault();
       setClientError("Please select a currency");
+
       return;
     }
   };
@@ -111,6 +112,7 @@ export default function AddWallet() {
               value={currency}
               onValueChange={(value) => {
                 const result = supportedCurrencySchema.safeParse(value);
+
                 if (!result.success) return;
                 setCurrency(result.data);
                 setClientError("");

@@ -20,6 +20,7 @@ export async function searchTicker(
   exchange: string = "US"
 ): Promise<SerializedResult<FinnhubStock[], SerializedError>> {
   const result = await searchTickerResult(query, exchange);
+
   return Result.serialize(result.mapError((e) => e.toJSON() as SerializedError));
 }
 
@@ -29,6 +30,7 @@ async function searchTickerResult(
 ): Promise<Result<FinnhubStock[], SearchTickerError>> {
   return Result.gen(async function* () {
     const session = await getSession();
+
     if (!session) {
       return Result.err(new UnauthenticatedError());
     }
@@ -63,6 +65,7 @@ async function searchTickerResult(
           }
 
           const data = await response.json();
+
           return data.result as FinnhubStock[];
         },
         catch: (e) =>
@@ -73,6 +76,7 @@ async function searchTickerResult(
     );
 
     console.log("Finnhub data: ", fetchResult);
+
     return Result.ok(fetchResult);
   });
 }

@@ -9,6 +9,7 @@ import type {
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
+
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
   }
 
   const exchange: Exchange = exchangeParam;
+
   const symbols = symbolsParam
     .split(",")
     .map((symbol) => symbol.trim())

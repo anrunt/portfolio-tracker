@@ -53,12 +53,14 @@ type ToolPhase = keyof (typeof TOOL_STATUS_COPY)[ToolName];
 export default function ChatPopup() {
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState("");
+
   const [transport] = React.useState(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
       }),
   );
+
   const { messages, sendMessage, status, error } = useChat({ transport });
 
   const isBusy = status === "submitted" || status === "streaming";
@@ -67,6 +69,7 @@ export default function ChatPopup() {
     event.preventDefault();
 
     const text = input.trim();
+
     if (!text || isBusy) {
       return;
     }
@@ -250,10 +253,12 @@ export default function ChatPopup() {
 
 function ToolCallDebug({ part }: { part: unknown }) {
   const toolType = getDebugField(part, "type") ?? "tool";
+
   const toolName =
     toolType === "dynamic-tool"
       ? (getDebugField(part, "toolName") ?? toolType)
       : toolType.replace(/^tool-/, "");
+
   const state = getDebugField(part, "state");
 
   return (

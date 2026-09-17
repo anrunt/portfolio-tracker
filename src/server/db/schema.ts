@@ -4,7 +4,9 @@ import { pgTable, text, timestamp, boolean, index, pgEnum, date, uniqueIndex, nu
 import { SUPPORTED_CURRENCIES } from "@/domain/currency";
 
 export const currencyEnum = pgEnum("currency_enum", SUPPORTED_CURRENCIES);
+
 export const granularityEnum = pgEnum("granularity_enum", ["daily", "intraday"]);
+
 export const portfolioTransactionTypeEnum = pgEnum("portfolio_transaction_type_enum", [
   "BUY",
   "SELL",

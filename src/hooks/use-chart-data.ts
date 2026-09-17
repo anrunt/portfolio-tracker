@@ -42,6 +42,7 @@ export function useChartData(userId: string, scope: ChartScope, range: TimeRange
       const sameChart = queryKey.slice(0, -1).every(
         (part, index) => previousQuery?.queryKey[index] === part,
       );
+
       return sameChart ? previousData : undefined;
     },
   });

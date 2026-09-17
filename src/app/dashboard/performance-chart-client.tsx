@@ -16,6 +16,7 @@ interface Props {
 export default function PerformanceChartClient({ userId, scope, controls }: Props) {
   const searchParams = useSearchParams();
   const range = timeRangeSchema.catch("1D").parse(searchParams.get("range"));
+
   const { data, isPending, isFetching, isError } = useChartData(
     userId,
     scope,
@@ -30,6 +31,7 @@ export default function PerformanceChartClient({ userId, scope, controls }: Prop
   }
 
   let content: ReactNode;
+
   if (isPending) {
     content = (
       <div role="status" className="px-5 py-4">

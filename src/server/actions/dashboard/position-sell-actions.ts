@@ -91,11 +91,13 @@ export async function sellPositionLotResult(
 ): Promise<Result<void, PositionError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
 
     const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+
     if (!userWallet) {
       return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
     }
@@ -114,6 +116,7 @@ export async function sellPositionLotResult(
 
     if (!parsed.success) {
       const errors = z.flattenError(parsed.error);
+
       return Result.err(
         new ValidationError({
           message: "Invalid input",
@@ -328,11 +331,13 @@ async function sellAllPositionsForSymbolResult(
 ): Promise<Result<void, PositionError>> {
   return Result.gen(async function* () {
     const session = await getSession();
+
     if (!session) {
       return Result.err(new UnauthenticatedError());
     }
 
     const userWallet = await QUERIES.getWalletById(walletId, session.session.userId);
+
     if (!userWallet) {
       return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
     }
@@ -348,6 +353,7 @@ async function sellAllPositionsForSymbolResult(
 
     if (!parsed.success) {
       const errors = z.flattenError(parsed.error);
+
       return Result.err(
         new ValidationError({
           message: "Invalid input",

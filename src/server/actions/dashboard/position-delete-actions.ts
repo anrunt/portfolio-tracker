@@ -23,6 +23,7 @@ export async function deletePosition(
   walletId: string
 ): Promise<void> {
   const result = await deletePositionResult(positionId, walletId);
+
   if (result.status === "error") {
     throw new Error(result.error.message);
   }
@@ -34,6 +35,7 @@ export async function deletePositionResult(
 ): Promise<Result<void, PositionError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
@@ -138,6 +140,7 @@ export async function deletePositionResult(
             }
 
             const externalContribution = Number(buyTransaction.externalContribution);
+
             if (externalContribution > 0) {
               if (!buyTransaction.fxRateId) {
                 throw new ValidationError({

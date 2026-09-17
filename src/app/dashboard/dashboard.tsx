@@ -32,6 +32,7 @@ interface Props {
 
 export default function Dashboard({ userId, wallets, displayCurrency }: Props) {
   const totalsByCurrency: Partial<Record<SupportedCurrency, number>> = {};
+
   for (const w of wallets) {
     totalsByCurrency[w.currency] =
       (totalsByCurrency[w.currency] || 0) + w.totalValue;
@@ -70,6 +71,7 @@ export default function Dashboard({ userId, wallets, displayCurrency }: Props) {
             <div className="flex gap-5">
               {SUPPORTED_CURRENCIES.map((currency) => {
                 const total = totalsByCurrency[currency];
+
                 if (total === undefined) return null;
 
                 return (

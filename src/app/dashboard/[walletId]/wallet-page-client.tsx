@@ -73,6 +73,7 @@ export default function WalletPageClient({
   const metricCardClass = "rounded-lg border border-border/60 bg-card/70 dark:bg-card/40 px-3 py-3 min-w-0";
 
   let priceStatusMessage: string | null = null;
+
   if (hasPriceError) {
     priceStatusMessage = hasMissingPrices
       ? "Could not load prices. Portfolio valuation is unavailable."

@@ -11,6 +11,7 @@ import type { GetPricesInput } from "./types";
 export async function getPrice(companySymbols: string[], exchange: string): Promise<Result<PriceResultData, PriceError>> {
   return Result.gen(async function* () {
     const session = await getSession();
+
     if (!session) {
       return Result.err(new UnauthenticatedError());
     }

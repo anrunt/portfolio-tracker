@@ -72,6 +72,7 @@ export async function getWalletPerformanceHistory({
 
   if (period === "today") {
     const rows = await QUERIES.getIntradayPortfolioData(walletId, start, walletCurrency);
+
     const points = rows.map((row) => ({
       at: row.snapshotAt.toISOString(),
       totalValue: Number(row.totalValue),
@@ -82,6 +83,7 @@ export async function getWalletPerformanceHistory({
   }
 
   const rows = await QUERIES.getDailyPortfolioData(walletId, toDateKey(start), walletCurrency);
+
   const points = rows.map((row) => ({
     at: row.snapshotDate,
     totalValue: Number(row.totalValue),
@@ -103,6 +105,7 @@ export async function getPortfolioPerformanceHistory({
   now: Date;
 }): Promise<PortfolioPerformanceHistoryResult> {
   const start = getPeriodStart(period, now);
+
   const history =
     period === "today"
       ? await getIntradayPortfolioHistory(userId, start, displayCurrency)
@@ -156,6 +159,7 @@ function analyzePerformanceHistory(
   const points = [...unsortedPoints].sort((left, right) =>
     left.at.localeCompare(right.at),
   );
+
   const firstPoint = points[0] ?? null;
   const lastPoint = points.at(-1) ?? null;
 
@@ -184,6 +188,7 @@ function analyzePerformanceHistory(
   }
 
   const totalValueChange = lastPoint.totalValue - firstPoint.totalValue;
+
   const netInvestedChange =
     lastPoint.netInvested - firstPoint.netInvested;
 
@@ -217,12 +222,14 @@ function getPeriodStart(period: PerformanceHistoryPeriod, now: Date) {
   if (period === "today") {
     const start = new Date(now);
     start.setUTCHours(0, 0, 0, 0);
+
     return start;
   }
 
   if (period === "week") {
     const start = new Date(now);
     start.setUTCDate(start.getUTCDate() - 7);
+
     return start;
   }
 
@@ -232,6 +239,7 @@ function getPeriodStart(period: PerformanceHistoryPeriod, now: Date) {
     six_months: 6,
     year: 12,
   } as const;
+
   const start = new Date(now);
   const originalDay = start.getUTCDate();
 
@@ -243,6 +251,7 @@ function getPeriodStart(period: PerformanceHistoryPeriod, now: Date) {
   ).getUTCDate();
 
   start.setUTCDate(Math.min(originalDay, daysInTargetMonth));
+
   return start;
 }
 

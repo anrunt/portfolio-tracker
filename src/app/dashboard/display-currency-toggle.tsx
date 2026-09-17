@@ -25,6 +25,7 @@ export default function DisplayCurrencyToggle({ displayCurrency }: Props) {
 
   function handleChange(next: string) {
     const result = supportedCurrencySchema.safeParse(next);
+
     if (!result.success || result.data === displayCurrency) return;
     startTransition(async () => {
       await setDisplayCurrency(result.data);

@@ -50,6 +50,7 @@ async function addWalletResult(
 ): Promise<Result<void, WalletError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
@@ -142,11 +143,13 @@ export async function renameWallet(
 async function renameWalletResult(formData: FormData, walletId: string): Promise<Result<void, WalletError>>{
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
 
     const userWallet = await QUERIES.getWalletById(walletId, user.session.userId);
+
     if (!userWallet) {
       return Result.err(new NotFoundError({ resource: "Wallet", id: walletId }));
     }
@@ -210,6 +213,7 @@ async function renameWalletResult(formData: FormData, walletId: string): Promise
 
 export async function deleteWallet(walletId: string): Promise<void> {
   const result = await deleteWalletResult(walletId);
+
   if (result.status === "error") {
     throw new Error(result.error.message);
   }
@@ -220,6 +224,7 @@ export async function deleteWalletResult(
 ): Promise<Result<void, WalletError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
@@ -298,6 +303,7 @@ export async function withdrawCashResult(
 ): Promise<Result<void, WalletError>> {
   return Result.gen(async function* () {
     const user = await getSession();
+
     if (!user) {
       return Result.err(new UnauthenticatedError());
     }
