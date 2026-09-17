@@ -20,16 +20,17 @@ Local additions are this provenance document, the root `LICENSE`, and a private 
 
 The generic plugin is registered through `jsPlugins` in the root `.oxlintrc.json`. The vendored directory is excluded from lint targets with `tools/oxlint/anti-slop/**`; the plugin remains available to lint application code.
 
-Only these eight user-selected generic rules are enabled, all at `error` severity:
+Only these seven user-selected generic rules are enabled, all at `error` severity:
 
 - `anti-slop/no-chained-type-assertions`
 - `anti-slop/no-widen-then-assert`
 - `anti-slop/no-reduce-accumulator-copy`
 - `anti-slop/no-object-parameters`
-- `anti-slop/require-safety-comment-for-type-assertion`
 - `anti-slop/no-unknown-returns`
 - `anti-slop/no-unknown-type-aliases`
 - `anti-slop/require-readable-spacing`
+
+`anti-slop/require-safety-comment-for-type-assertion` was initially selected but is explicitly set to `off` at the user's request. Do not re-enable it during updates.
 
 Other rules, including the optional Effect plugin, were not selected. Do not automatically enable them during updates.
 
